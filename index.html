@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALFA v1.2 - Expert Decision Suite</title>
+    <title>ALPHA v1.3 - Expert Color Intelligence</title>
     <style>
         :root {
             --bg-page: #212529;
@@ -27,7 +27,7 @@
         input { width: 90%; padding: 10px; background: #1a1a1a; border: 1px solid var(--color-border); border-radius: 5px; color: white; margin-bottom: 10px; }
 
         .button-group { display: flex; gap: 10px; margin-top: 20px; }
-        .btn-calc { flex: 2; padding: 15px; background: linear-gradient(135deg, var(--color-btn-coral), var(--color-btn-orange)); border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 1.1em; }
+        .btn-calc { flex: 2; padding: 15px; background: linear-gradient(135deg, var(--color-btn-coral), var(--color-btn-orange)); border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 1.1em; transition: 0.3s; }
         .btn-new { flex: 1; padding: 15px; background: #495057; border: none; border-radius: 10px; color: white; cursor: pointer; font-weight: bold; }
 
         .instrucciones-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 20px; }
@@ -40,8 +40,7 @@
         .bloqueado-card { border-color: var(--color-btn-orange); opacity: 0.6; background: #1a1a1a; }
 
         #resultado { display: none; margin-top: 30px; text-align: left; }
-        .msg-alerta { background:#2c2c2c; border: 1px solid var(--color-btn-orange); padding:20px; border-radius:10px; margin-top:20px; }
-        .estrategia-box { margin-top: 15px; padding: 10px; border-left: 4px solid var(--color-text-main); background: #1a1a1a; }
+        .msg-alerta { background:#2c2c2c; border: 1px solid var(--color-btn-orange); padding:20px; border-radius:10px; margin-top:20px; line-height: 1.6; }
 
         .historial-header { display: flex; justify-content: space-between; align-items: center; margin-top: 50px; border-bottom: 1px solid var(--color-text-main); padding-bottom: 10px; }
         .btn-clear-hist { background: transparent; border: 1px solid #ff6b81; color: #ff6b81; padding: 5px 15px; border-radius: 5px; cursor: pointer; font-size: 0.8em; }
@@ -55,11 +54,11 @@
 <div class="container">
     <img src="Logo.png" alt="ALFA" class="logo-header">
     <h1>ALPHA</h1>
-    <p style="font-size: 0.7em; opacity: 0.6;">DECISION SUPPORT SYSTEM v1.2</p>
+    <p style="font-size: 0.7em; opacity: 0.6;">EXPERT ANALYTICS v1.3</p>
 
     <div class="card" style="margin-top:20px;">
         <h3>Identificación del Proyecto</h3>
-        <input type="text" id="colorName" placeholder="Nombre del color">
+        <input type="text" id="colorName" placeholder="Nombre del color / Ref">
     </div>
 
     <div class="grid-inputs">
@@ -88,7 +87,7 @@
     </div>
 
     <div class="button-group">
-        <button onclick="procesarAlfa()" class="btn-calc">CALCULAR</button>
+        <button onclick="procesarAlfa()" class="btn-calc">CALCULAR RUTA</button>
         <button onclick="nuevoCalculo()" class="btn-new">NUEVO</button>
     </div>
 
@@ -100,11 +99,11 @@
     </div>
 
     <div class="historial-header">
-        <h3 style="color: var(--color-text-main); margin: 0;">HISTORIAL</h3>
+        <h3 style="color: var(--color-text-main); margin: 0;">REGISTRO DE CONTROL</h3>
         <button onclick="borrarHistorial()" class="btn-clear-hist">BORRAR HISTORIAL</button>
     </div>
     <table id="tablaHistorial">
-        <thead><tr><th>Nombre</th><th>ΔE</th><th>Ajuste</th></tr></thead>
+        <thead><tr><th>Referencia</th><th>ΔE</th><th>Ajuste Propuesto</th></tr></thead>
         <tbody id="cuerpoTabla"></tbody>
     </table>
 </div>
@@ -119,10 +118,17 @@
     }
 
     function procesarAlfa() {
-        const nombre = document.getElementById('colorName').value || "S/N";
-        const dL = (document.getElementById('L2').value - document.getElementById('L1').value) || 0;
-        const da = (document.getElementById('a2').value - document.getElementById('a1').value) || 0;
-        const db = (document.getElementById('b2').value - document.getElementById('b1').value) || 0;
+        const nombre = document.getElementById('colorName').value || "Muestra";
+        const L1 = parseFloat(document.getElementById('L1').value) || 0;
+        const a1 = parseFloat(document.getElementById('a1').value) || 0;
+        const b1 = parseFloat(document.getElementById('b1').value) || 0;
+        const L2 = parseFloat(document.getElementById('L2').value) || 0;
+        const a2 = parseFloat(document.getElementById('a2').value) || 0;
+        const b2 = parseFloat(document.getElementById('b2').value) || 0;
+        
+        const dL = L2 - L1;
+        const da = a2 - a1;
+        const db = b2 - b1;
         const dE = Math.sqrt(dL*dL + da*da + db*db).toFixed(2);
 
         const tintas = [
@@ -133,59 +139,60 @@
         ];
 
         let htmlCartas = "";
-        let saturadoM = (tintas[1].actual + parseFloat(tintas[1].ajuste)) > 100;
+        let razonamiento = "";
 
         tintas.forEach(t => {
             let isSaturado = (t.actual + parseFloat(t.ajuste)) > 100;
             let clase = isSaturado ? 'bloqueado-card' : (t.ajuste > 0 ? 'subir-card' : 'bajar-card');
             let textoAjuste = isSaturado ? "MAX" : (t.ajuste > 0 ? "+" + t.ajuste : t.ajuste) + "%";
-            htmlCartas += `<div class="color-instruction ${clase}"><span class="label-tinta">${t.nombre}</span><span class="val-ajuste">${textoAjuste}</span><small>${isSaturado ? 'TOPE' : (t.ajuste > 0 ? 'SUBIR' : 'BAJAR')}</small></div>`;
+            
+            // ANALISIS DE SATURACIÓN CRÍTICA (CASO MAGENTA)
+            if(isSaturado && t.id === 'M') {
+                if(db < 0 || b2 < b1) { // Tendencia al azul/vino
+                    razonamiento = `
+                        <div class="msg-alerta">
+                            <strong>ANÁLISIS DE EXPERTO:</strong> El color tiende al <strong>Azul/Vino</strong> y el Magenta está agotado.<br>
+                            <strong>ESTRATEGIA RECOMENDADA:</strong><br>
+                            • Reducir <strong>Cian (C) -2.5%</strong> para que el Magenta recupere el control del tono.<br>
+                            • Si se percibe claridad, compensar con <strong>Negro (K) +1.5%</strong>.
+                        </div>`;
+                } else if(da < 0) { // Tendencia a sucio/amarillento
+                    razonamiento = `
+                        <div class="msg-alerta">
+                            <strong>ANÁLISIS DE EXPERTO:</strong> El color se percibe <strong>Sucio o Rojizo Oscuro</strong>.<br>
+                            <strong>ESTRATEGIA RECOMENDADA:</strong><br>
+                            • Reducir <strong>Amarillo (Y) -2.0%</strong> para limpiar la saturación.<br>
+                            • Reducir <strong>Cian (C) -1.0%</strong> para recuperar viveza.
+                        </div>`;
+                }
+            }
+
+            htmlCartas += `<div class="color-instruction ${clase}"><span class="label-tinta">${t.nombre}</span><span class="val-ajuste">${textoAjuste}</span><small>${isSaturado ? 'AL TOPE' : (t.ajuste > 0 ? 'SUBIR' : 'BAJAR')}</small></div>`;
         });
 
         document.getElementById('resTitulo').innerText = nombre;
         document.getElementById('resDelta').innerText = `ΔE: ${dE}`;
         document.getElementById('gridCartas').innerHTML = htmlCartas;
+        document.getElementById('msgCompensacion').innerHTML = razonamiento;
         document.getElementById('resultado').style.display = 'block';
-
-        const msgBox = document.getElementById('msgCompensacion');
-        if(saturadoM) {
-            msgBox.innerHTML = `
-                <div class="msg-alerta">
-                    <strong style="color:var(--color-btn-orange)">⚠️ MAGENTA AL LÍMITE (100%): Elija la ruta según lo que ve</strong>
-                    <div class="estrategia-box">
-                        <strong>RUTA 1: Si el color se ve CLARO y AZULADO</strong><br>
-                        • Bajar <strong>Cian: -3.0%</strong><br>
-                        • Subir <strong>Negro: +2.5%</strong><br>
-                        <small>Esto permite que el Magenta domine y el Negro cubra la claridad.</small>
-                    </div>
-                    <div class="estrategia-box" style="border-left-color: var(--color-btn-coral)">
-                        <strong>RUTA 2: Si el color se ve ROJIZO o SUCIO (Oscuro)</strong><br>
-                        • Bajar <strong>Cian: -2.0%</strong><br>
-                        • Bajar <strong>Amarillo: -2.0%</strong><br>
-                        <small>Esto limpia la mezcla para que el Magenta resalte sin oscurecer más.</small>
-                    </div>
-                </div>`;
-        } else {
-            msgBox.innerHTML = "";
-        }
 
         guardarEnHistorial(nombre, dE, tintas.map(t => `${t.id}:${t.ajuste}`).join(' '));
     }
 
     function guardarEnHistorial(nombre, de, ajuste) {
-        let history = JSON.parse(localStorage.getItem('alfa_v12_hist')) || [];
+        let history = JSON.parse(localStorage.getItem('alfa_v13_hist')) || [];
         history.unshift({ nombre, de, ajuste });
-        localStorage.setItem('alfa_v12_hist', JSON.stringify(history.slice(0, 10)));
+        localStorage.setItem('alfa_v13_hist', JSON.stringify(history.slice(0, 10)));
         cargarHistorial();
     }
 
     function cargarHistorial() {
-        let history = JSON.parse(localStorage.getItem('alfa_v12_hist')) || [];
+        let history = JSON.parse(localStorage.getItem('alfa_v13_hist')) || [];
         document.getElementById('cuerpoTabla').innerHTML = history.map(h => `<tr><td>${h.nombre}</td><td>${h.de}</td><td>${h.ajuste}</td></tr>`).join('');
     }
 
     function borrarHistorial() {
-        if(confirm("¿Borrar historial?")) { localStorage.removeItem('alfa_v12_hist'); cargarHistorial(); }
+        if(confirm("¿Borrar historial?")) { localStorage.removeItem('alfa_v13_hist'); cargarHistorial(); }
     }
 </script>
 </body>
