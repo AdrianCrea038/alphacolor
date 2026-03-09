@@ -1,0 +1,60 @@
+======================================================================
+         DOCUMENTACIÓN TÉCNICA: PROYECTO ALPHA (v0.7)
+======================================================================
+Fecha de última actualización: 7 de marzo de 2026
+Autor: Colorista Principal & IA Mentor
+Estado: Beta Estable para Pruebas de Usuario
+
+1. DESCRIPCIÓN DEL PROYECTO
+----------------------------------------------------------------------
+ALPHA es una herramienta de software ligera diseñada para coloristas
+de sublimación. El sistema traduce la diferencia de color percibida
+por el ojo (LAB) en acciones físicas de dosificación de tinta (CMYK).
+
+2. ARQUITECTURA TÉCNICA
+----------------------------------------------------------------------
+- Entorno: Aplicación Web Monolítica (Single File).
+- Lenguajes: HTML5, CSS3 (Variables :root), JavaScript ES6.
+- Persistencia: LocalStorage de navegador (almacena últimos 15 registros).
+- Diseño: Interfaz Dark Mode con paleta corporativa (Cian, Coral, Oro).
+
+3. LÓGICA DE CÁLCULO (ALGORITMO)
+----------------------------------------------------------------------
+El sistema calcula la diferencia (Delta) entre Estándar y Muestra:
+dL = L_muestra - L_estandar
+da = a_muestra - a_estandar
+db = b_muestra - b_estandar
+
+Factores de ajuste aplicados:
+- Cian (C): dL * 0.4
+- Magenta (M): da * -1.6
+- Amarillo (Y): db * -1.6
+- Negro (K): dL * 1.3
+- Delta E: Raíz cuadrada de (dL² + da² + db²)
+
+4. REGLAS DE NEGOCIO Y SEGURIDAD (SMART BLOCK)
+----------------------------------------------------------------------
+- Signos: Todo valor numérico DEBE mostrar (+) o (-) para guiar al usuario.
+- Bloqueo de Saturación: Si (Valor_Actual + Ajuste) > 100%, el sistema:
+  a) Tacha la instrucción de subida original.
+  b) Muestra el estado "MAX (No subir)".
+  c) Activa mensaje de "Compensación por Contraste" (Sugerencia de 
+     bajar colores opuestos un 2% para ganar intensidad visual).
+
+5. INTERFAZ DE USUARIO (UX)
+----------------------------------------------------------------------
+- Campo de Identificación: Permite asignar nombre/referencia al cálculo.
+- Botón Nuevo: Limpia campos LAB y Nombre para agilizar flujo.
+- Historial: Tabla con badge de color dinámico para el valor ΔE 
+  (Verde si ΔE < 1.5, Rojo si es mayor).
+- Limpieza: Opción de borrado total de memoria (Caché).
+
+6. PRÓXIMAS FASES
+----------------------------------------------------------------------
+- Integración de exportación a PDF para reportes de calidad.
+- Ajuste de sensibilidad de los factores multiplicadores según feedback.
+- Implementación de logotipos dinámicos.
+
+======================================================================
+             FIN DEL DOCUMENTO - ALPHA COLOR MANAGER
+======================================================================
