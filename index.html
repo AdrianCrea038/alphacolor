@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALFA v0.8 - Precision Color Suite</title>
+    <title>ALFA v0.9 - Precision Color Suite</title>
     <style>
         :root {
             --bg-page: #212529;
@@ -26,7 +26,6 @@
         
         input { width: 90%; padding: 10px; background: #1a1a1a; border: 1px solid var(--color-border); border-radius: 5px; color: white; margin-bottom: 10px; }
 
-        /* NUEVO DISEÑO DE RESULTADOS POR COLOR */
         .instrucciones-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 20px; }
         .color-instruction { padding: 15px; border-radius: 12px; text-align: center; border: 2px solid transparent; background: #252525; }
         .val-ajuste { font-size: 1.8em; font-weight: bold; display: block; margin: 5px 0; }
@@ -37,11 +36,14 @@
         .bloqueado-card { border-color: var(--color-btn-orange); opacity: 0.6; background: #1a1a1a; }
 
         #resultado { display: none; margin-top: 30px; text-align: left; }
-        .btn-calc { width: 100%; padding: 15px; background: linear-gradient(135deg, var(--color-btn-coral), var(--color-btn-orange)); border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 1.1em; }
+        .btn-calc { width: 100%; padding: 15px; background: linear-gradient(135deg, var(--color-btn-coral), var(--color-btn-orange)); border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 1.1em; transition: 0.3s; }
+        .btn-calc:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255,107,129,0.3); }
         
         table { width: 100%; border-collapse: collapse; font-size: 0.8em; margin-top: 20px; }
         th { background: #343a40; color: var(--color-text-main); padding: 10px; }
         td { padding: 10px; border-bottom: 1px solid var(--color-border); text-align: center; }
+
+        .msg-alerta { background:#3e2723; color:var(--color-btn-orange); padding:15px; border-radius:10px; border:1px solid orange; margin-top:20px; line-height: 1.5; }
     </style>
 </head>
 <body>
@@ -49,11 +51,11 @@
 <div class="container">
     <img src="logo.png" alt="ALFA" class="logo-header">
     <h1>ALPHA</h1>
-    <p style="font-size: 0.7em; opacity: 0.6;">SISTEMA DE AJUSTE POR COLOR v0.8</p>
+    <p style="font-size: 0.7em; opacity: 0.6;">SISTEMA DE AJUSTE INTELIGENTE v0.9</p>
 
     <div class="card" style="margin-top:20px;">
         <h3>Identificación del Proyecto</h3>
-        <input type="text" id="colorName" placeholder="Nombre del color / Referencia">
+        <input type="text" id="colorName" placeholder="Ej: Deep Marron NK675426">
     </div>
 
     <div class="grid-inputs">
@@ -74,10 +76,10 @@
     <div class="card">
         <h3>CMYK Actual (%)</h3>
         <div style="display: flex; gap: 10px;">
-            <input type="number" id="curC" placeholder="C">
-            <input type="number" id="curM" placeholder="M">
-            <input type="number" id="curY" placeholder="Y">
-            <input type="number" id="curK" placeholder="K">
+            <div style="flex:1; text-align:center;"><label style="font-size:0.7em;">C</label><input type="number" id="curC"></div>
+            <div style="flex:1; text-align:center;"><label style="font-size:0.7em;">M</label><input type="number" id="curM"></div>
+            <div style="flex:1; text-align:center;"><label style="font-size:0.7em;">Y</label><input type="number" id="curY"></div>
+            <div style="flex:1; text-align:center;"><label style="font-size:0.7em;">K</label><input type="number" id="curK"></div>
         </div>
     </div>
 
@@ -88,13 +90,13 @@
         <p id="resDelta" style="margin: 0 0 20px 0; font-weight: bold;"></p>
         
         <div class="instrucciones-grid" id="gridCartas"></div>
-        <div id="msgCompensacion" style="margin-top:20px;"></div>
+        <div id="msgCompensacion"></div>
     </div>
 
     <div style="margin-top:50px;">
         <h3 style="color: var(--color-text-main); text-align: left;">HISTORIAL RECIENTE</h3>
         <table id="tablaHistorial">
-            <thead><tr><th>Color</th><th>ΔE</th><th>Ajuste</th></tr></thead>
+            <thead><tr><th>Color</th><th>ΔE</th><th>Ajuste Aplicado</th></tr></thead>
             <tbody id="cuerpoTabla"></tbody>
         </table>
     </div>
@@ -103,36 +105,49 @@
 <script>
     function procesarAlfa() {
         const nombre = document.getElementById('colorName').value || "S/N";
-        const dL = document.getElementById('L2').value - document.getElementById('L1').value;
-        const da = document.getElementById('a2').value - document.getElementById('a1').value;
-        const db = document.getElementById('b2').value - document.getElementById('b1').value;
+        const L1 = parseFloat(document.getElementById('L1').value) || 0;
+        const a1 = parseFloat(document.getElementById('a1').value) || 0;
+        const b1 = parseFloat(document.getElementById('b1').value) || 0;
+        const L2 = parseFloat(document.getElementById('L2').value) || 0;
+        const a2 = parseFloat(document.getElementById('a2').value) || 0;
+        const b2 = parseFloat(document.getElementById('b2').value) || 0;
+        
+        const dL = L2 - L1;
+        const da = a2 - a1;
+        const db = b2 - b1;
         const dE = Math.sqrt(dL*dL + da*da + db*db).toFixed(2);
 
         const tintas = [
-            { id: 'C', nombre: 'Cian', ajuste: (dL * 0.4).toFixed(1), actual: parseFloat(document.getElementById('curC').value) },
-            { id: 'M', nombre: 'Magenta', ajuste: (da * -1.6).toFixed(1), actual: parseFloat(document.getElementById('curM').value) },
-            { id: 'Y', nombre: 'Amarillo', ajuste: (db * -1.6).toFixed(1), actual: parseFloat(document.getElementById('curY').value) },
-            { id: 'K', nombre: 'Negro', ajuste: (dL * 1.3).toFixed(1), actual: parseFloat(document.getElementById('curK').value) }
+            { id: 'C', nombre: 'Cian', ajuste: (dL * 0.4).toFixed(1), actual: parseFloat(document.getElementById('curC').value) || 0 },
+            { id: 'M', nombre: 'Magenta', ajuste: (da * -1.6).toFixed(1), actual: parseFloat(document.getElementById('curM').value) || 0 },
+            { id: 'Y', nombre: 'Amarillo', ajuste: (db * -1.6).toFixed(1), actual: parseFloat(document.getElementById('curY').value) || 0 },
+            { id: 'K', nombre: 'Negro', ajuste: (dL * 1.3).toFixed(1), actual: parseFloat(document.getElementById('curK').value) || 0 }
         ];
 
         document.getElementById('resTitulo').innerText = nombre;
         document.getElementById('resDelta').innerText = `Diferencia Total ΔE: ${dE}`;
         
         let htmlCartas = "";
-        let saturacionGlobal = false;
+        let alertasEspecificas = [];
 
         tintas.forEach(t => {
             let isSaturado = (t.actual + parseFloat(t.ajuste)) > 100;
             let clase = isSaturado ? 'bloqueado-card' : (t.ajuste > 0 ? 'subir-card' : 'bajar-card');
             let signo = t.ajuste > 0 ? "+" : "";
             let textoAjuste = isSaturado ? "MAX" : `${signo}${t.ajuste}%`;
-            if(isSaturado) saturacionGlobal = true;
+            
+            if(isSaturado) {
+                // Lógica de compensación específica
+                if(t.id === 'M') alertasEspecificas.push("Bajar un 2% de <strong>Cian</strong> y un 2% de <strong>Amarillo</strong>");
+                if(t.id === 'C') alertasEspecificas.push("Bajar un 2% de <strong>Magenta</strong> y un 2% de <strong>Amarillo</strong>");
+                if(t.id === 'Y') alertasEspecificas.push("Bajar un 2% de <strong>Cian</strong> y un 2% de <strong>Magenta</strong>");
+            }
 
             htmlCartas += `
                 <div class="color-instruction ${clase}">
                     <span class="label-tinta">${t.nombre}</span>
                     <span class="val-ajuste">${textoAjuste}</span>
-                    <small>${isSaturado ? 'LÍMITE ALCANZADO' : (t.ajuste > 0 ? 'AUMENTAR' : 'REDUCIR')}</small>
+                    <small>${isSaturado ? 'LÍMITE ALCANZADO' : (t.ajuste > 0 ? 'SUBIR' : 'BAJAR')}</small>
                 </div>
             `;
         });
@@ -141,12 +156,18 @@
         document.getElementById('resultado').style.display = 'block';
 
         const msgBox = document.getElementById('msgCompensacion');
-        msgBox.innerHTML = saturacionGlobal 
-            ? `<div style="background:#3e2723; color:var(--color-btn-orange); padding:15px; border-radius:10px; border:1px solid orange;">
-               <strong>ESTRATEGIA DE COMPENSACIÓN:</strong> El Magenta/Cian está al tope. No intentes subir más. Para ganar profundidad, reduce un 2% los otros colores opuestos.</div>`
-            : "";
+        if (alertasEspecificas.length > 0) {
+            msgBox.innerHTML = `
+                <div class="msg-alerta">
+                    <strong>ESTRATEGIA DE COMPENSACIÓN REQUERIDA:</strong><br>
+                    Al estar en el límite de tinta, para ganar profundidad visual debes aplicar:<br>
+                    <ul>${alertasEspecificas.map(a => `<li>${a}</li>`).join('')}</ul>
+                </div>`;
+        } else {
+            msgBox.innerHTML = "";
+        }
 
-        // Guardar Historial (Simple)
+        // Guardar Historial
         const fila = `<tr><td>${nombre}</td><td>${dE}</td><td>C:${tintas[0].ajuste} M:${tintas[1].ajuste} Y:${tintas[2].ajuste} K:${tintas[3].ajuste}</td></tr>`;
         document.getElementById('cuerpoTabla').insertAdjacentHTML('afterbegin', fila);
     }
