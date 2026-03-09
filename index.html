@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALPHA v1.3 - Expert Color Intelligence</title>
+    <title>ALPHA v1.5 - Full CMYK Intelligence</title>
     <style>
         :root {
             --bg-page: #212529;
@@ -27,17 +27,16 @@
         input { width: 90%; padding: 10px; background: #1a1a1a; border: 1px solid var(--color-border); border-radius: 5px; color: white; margin-bottom: 10px; }
 
         .button-group { display: flex; gap: 10px; margin-top: 20px; }
-        .btn-calc { flex: 2; padding: 15px; background: linear-gradient(135deg, var(--color-btn-coral), var(--color-btn-orange)); border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 1.1em; transition: 0.3s; }
+        .btn-calc { flex: 2; padding: 15px; background: linear-gradient(135deg, var(--color-btn-coral), var(--color-btn-orange)); border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 1.1em; }
         .btn-new { flex: 1; padding: 15px; background: #495057; border: none; border-radius: 10px; color: white; cursor: pointer; font-weight: bold; }
 
         .instrucciones-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 20px; }
         .color-instruction { padding: 15px; border-radius: 12px; text-align: center; border: 2px solid transparent; background: #252525; }
         .val-ajuste { font-size: 1.8em; font-weight: bold; display: block; margin: 5px 0; }
-        .label-tinta { font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; }
         
         .subir-card { border-color: var(--color-btn-coral); }
         .bajar-card { border-color: #51cf66; }
-        .bloqueado-card { border-color: var(--color-btn-orange); opacity: 0.6; background: #1a1a1a; }
+        .bloqueado-card { border-color: var(--color-btn-orange); opacity: 0.9; background: #1a1a1a; }
 
         #resultado { display: none; margin-top: 30px; text-align: left; }
         .msg-alerta { background:#2c2c2c; border: 1px solid var(--color-btn-orange); padding:20px; border-radius:10px; margin-top:20px; line-height: 1.6; }
@@ -52,13 +51,13 @@
 <body>
 
 <div class="container">
-    <img src="Logo.png" alt="ALFA" class="logo-header">
+    <img src="logo.png" alt="ALFA" class="logo-header">
     <h1>ALPHA</h1>
-    <p style="font-size: 0.7em; opacity: 0.6;">EXPERT ANALYTICS v1.3</p>
+    <p style="font-size: 0.7em; opacity: 0.6;">UNIVERSAL CMYK ENGINE v1.5</p>
 
     <div class="card" style="margin-top:20px;">
         <h3>Identificación del Proyecto</h3>
-        <input type="text" id="colorName" placeholder="Nombre del color / Ref">
+        <input type="text" id="colorName" placeholder="Nombre del color">
     </div>
 
     <div class="grid-inputs">
@@ -99,11 +98,11 @@
     </div>
 
     <div class="historial-header">
-        <h3 style="color: var(--color-text-main); margin: 0;">REGISTRO DE CONTROL</h3>
-        <button onclick="borrarHistorial()" class="btn-clear-hist">BORRAR HISTORIAL</button>
+        <h3 style="color: var(--color-text-main); margin: 0;">REGISTRO</h3>
+        <button onclick="borrarHistorial()" class="btn-clear-hist">LIMPIAR</button>
     </div>
     <table id="tablaHistorial">
-        <thead><tr><th>Referencia</th><th>ΔE</th><th>Ajuste Propuesto</th></tr></thead>
+        <thead><tr><th>Nombre</th><th>ΔE</th><th>Ajuste</th></tr></thead>
         <tbody id="cuerpoTabla"></tbody>
     </table>
 </div>
@@ -112,13 +111,13 @@
     window.onload = cargarHistorial;
 
     function nuevoCalculo() {
-        ['colorName', 'L1', 'a1', 'b1', 'L2', 'a2', 'b2', 'curC', 'curM', 'curY', 'curK'].forEach(id => document.getElementById(id).value = "");
+        ['colorName', 'L1', 'a1', 'b1', 'L2', 'a2', 'b2', 'curC', 'curM', 'curY', 'curK'].forEach(id => {
+            document.getElementById(id).value = "";
+        });
         document.getElementById('resultado').style.display = 'none';
-        document.getElementById('colorName').focus();
     }
 
     function procesarAlfa() {
-        const nombre = document.getElementById('colorName').value || "Muestra";
         const L1 = parseFloat(document.getElementById('L1').value) || 0;
         const a1 = parseFloat(document.getElementById('a1').value) || 0;
         const b1 = parseFloat(document.getElementById('b1').value) || 0;
@@ -126,7 +125,7 @@
         const a2 = parseFloat(document.getElementById('a2').value) || 0;
         const b2 = parseFloat(document.getElementById('b2').value) || 0;
         
-        const dL = L2 - L1;
+        const dL = L2 - L1; 
         const da = a2 - a1;
         const db = b2 - b1;
         const dE = Math.sqrt(dL*dL + da*da + db*db).toFixed(2);
@@ -139,60 +138,60 @@
         ];
 
         let htmlCartas = "";
-        let razonamiento = "";
+        let alertas = [];
 
         tintas.forEach(t => {
-            let isSaturado = (t.actual + parseFloat(t.ajuste)) > 100;
+            let valorFinal = t.actual + parseFloat(t.ajuste);
+            let isSaturado = valorFinal >= 100;
             let clase = isSaturado ? 'bloqueado-card' : (t.ajuste > 0 ? 'subir-card' : 'bajar-card');
             let textoAjuste = isSaturado ? "MAX" : (t.ajuste > 0 ? "+" + t.ajuste : t.ajuste) + "%";
-            
-            // ANALISIS DE SATURACIÓN CRÍTICA (CASO MAGENTA)
-            if(isSaturado && t.id === 'M') {
-                if(db < 0 || b2 < b1) { // Tendencia al azul/vino
-                    razonamiento = `
-                        <div class="msg-alerta">
-                            <strong>ANÁLISIS DE EXPERTO:</strong> El color tiende al <strong>Azul/Vino</strong> y el Magenta está agotado.<br>
-                            <strong>ESTRATEGIA RECOMENDADA:</strong><br>
-                            • Reducir <strong>Cian (C) -2.5%</strong> para que el Magenta recupere el control del tono.<br>
-                            • Si se percibe claridad, compensar con <strong>Negro (K) +1.5%</strong>.
-                        </div>`;
-                } else if(da < 0) { // Tendencia a sucio/amarillento
-                    razonamiento = `
-                        <div class="msg-alerta">
-                            <strong>ANÁLISIS DE EXPERTO:</strong> El color se percibe <strong>Sucio o Rojizo Oscuro</strong>.<br>
-                            <strong>ESTRATEGIA RECOMENDADA:</strong><br>
-                            • Reducir <strong>Amarillo (Y) -2.0%</strong> para limpiar la saturación.<br>
-                            • Reducir <strong>Cian (C) -1.0%</strong> para recuperar viveza.
-                        </div>`;
+
+            // MOTOR DE DECISIÓN CRÍTICA UNIVERSAL
+            if (isSaturado) {
+                if (t.id === 'K' && dL > 0) {
+                    alertas.push(`<strong>NEGRO (K) AL 100%:</strong> La muestra sigue clara. Para ganar profundidad, sube <strong>C: +1.5%, M: +1.5%, Y: +1.5%</strong>.`);
+                }
+                if (t.id === 'M' && da < 0) {
+                    if (db < 0) {
+                        alertas.push(`<strong>MAGENTA (M) AL 100%:</strong> Tono azulado. Baja <strong>Cian: -2.5%</strong> y sube <strong>Negro: +1.0%</strong>.`);
+                    } else {
+                        alertas.push(`<strong>MAGENTA (M) AL 100%:</strong> Tono sucio. Baja <strong>Amarillo: -2.0%</strong> y <strong>Cian: -1.0%</strong>.`);
+                    }
+                }
+                if (t.id === 'C' && dL < 0) {
+                    alertas.push(`<strong>CIAN (C) AL 100%:</strong> Color muy oscuro/frío. Baja <strong>Magenta: -2.0%</strong> y <strong>Amarillo: -1.5%</strong>.`);
+                }
+                if (t.id === 'Y' && db < 0) {
+                    alertas.push(`<strong>AMARILLO (Y) AL 100%:</strong> Falta calidez. Baja <strong>Cian: -2.0%</strong> para dejar que el amarillo resalte.`);
                 }
             }
 
-            htmlCartas += `<div class="color-instruction ${clase}"><span class="label-tinta">${t.nombre}</span><span class="val-ajuste">${textoAjuste}</span><small>${isSaturado ? 'AL TOPE' : (t.ajuste > 0 ? 'SUBIR' : 'BAJAR')}</small></div>`;
+            htmlCartas += `<div class="color-instruction ${clase}"><span style="font-size:0.7em">${t.nombre}</span><span class="val-ajuste">${textoAjuste}</span><small>${isSaturado ? 'LÍMITE' : (t.ajuste > 0 ? 'SUBIR' : 'BAJAR')}</small></div>`;
         });
 
-        document.getElementById('resTitulo').innerText = nombre;
+        document.getElementById('resTitulo').innerText = document.getElementById('colorName').value || "Muestra";
         document.getElementById('resDelta').innerText = `ΔE: ${dE}`;
         document.getElementById('gridCartas').innerHTML = htmlCartas;
-        document.getElementById('msgCompensacion').innerHTML = razonamiento;
+        document.getElementById('msgCompensacion').innerHTML = alertas.length > 0 ? `<div class="msg-alerta">${alertas.join('<br><br>')}</div>` : "";
         document.getElementById('resultado').style.display = 'block';
 
-        guardarEnHistorial(nombre, dE, tintas.map(t => `${t.id}:${t.ajuste}`).join(' '));
+        guardarEnHistorial(document.getElementById('colorName').value || "S/N", dE, tintas.map(t => `${t.id}:${t.ajuste}`).join(' '));
     }
 
     function guardarEnHistorial(nombre, de, ajuste) {
-        let history = JSON.parse(localStorage.getItem('alfa_v13_hist')) || [];
+        let history = JSON.parse(localStorage.getItem('alfa_v15_hist')) || [];
         history.unshift({ nombre, de, ajuste });
-        localStorage.setItem('alfa_v13_hist', JSON.stringify(history.slice(0, 10)));
+        localStorage.setItem('alfa_v15_hist', JSON.stringify(history.slice(0, 10)));
         cargarHistorial();
     }
 
     function cargarHistorial() {
-        let history = JSON.parse(localStorage.getItem('alfa_v13_hist')) || [];
+        let history = JSON.parse(localStorage.getItem('alfa_v15_hist')) || [];
         document.getElementById('cuerpoTabla').innerHTML = history.map(h => `<tr><td>${h.nombre}</td><td>${h.de}</td><td>${h.ajuste}</td></tr>`).join('');
     }
 
     function borrarHistorial() {
-        if(confirm("¿Borrar historial?")) { localStorage.removeItem('alfa_v13_hist'); cargarHistorial(); }
+        if(confirm("¿Borrar historial?")) { localStorage.removeItem('alfa_v15_hist'); cargarHistorial(); }
     }
 </script>
 </body>
