@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALFA v1.1 - Precision & Reasoning Suite</title>
+    <title>ALFA v1.2 - Expert Decision Suite</title>
     <style>
         :root {
             --bg-page: #212529;
@@ -27,12 +27,11 @@
         input { width: 90%; padding: 10px; background: #1a1a1a; border: 1px solid var(--color-border); border-radius: 5px; color: white; margin-bottom: 10px; }
 
         .button-group { display: flex; gap: 10px; margin-top: 20px; }
-        .btn-calc { flex: 2; padding: 15px; background: linear-gradient(135deg, var(--color-btn-coral), var(--color-btn-orange)); border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 1.1em; transition: 0.3s; }
-        .btn-calc:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255,107,129,0.3); }
+        .btn-calc { flex: 2; padding: 15px; background: linear-gradient(135deg, var(--color-btn-coral), var(--color-btn-orange)); border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 1.1em; }
         .btn-new { flex: 1; padding: 15px; background: #495057; border: none; border-radius: 10px; color: white; cursor: pointer; font-weight: bold; }
 
         .instrucciones-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 20px; }
-        .color-instruction { padding: 15px; border-radius: 12px; text-align: center; border: 2px solid transparent; background: #252525; transition: 0.3s; }
+        .color-instruction { padding: 15px; border-radius: 12px; text-align: center; border: 2px solid transparent; background: #252525; }
         .val-ajuste { font-size: 1.8em; font-weight: bold; display: block; margin: 5px 0; }
         .label-tinta { font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; }
         
@@ -40,16 +39,15 @@
         .bajar-card { border-color: #51cf66; }
         .bloqueado-card { border-color: var(--color-btn-orange); opacity: 0.6; background: #1a1a1a; }
 
-        #resultado { display: none; margin-top: 30px; text-align: left; border-top: 1px solid var(--color-border); padding-top: 20px; }
-        .msg-alerta { background:#3e2723; color:var(--color-btn-orange); padding:20px; border-radius:10px; border:1px solid orange; margin-top:20px; line-height: 1.6; }
+        #resultado { display: none; margin-top: 30px; text-align: left; }
+        .msg-alerta { background:#2c2c2c; border: 1px solid var(--color-btn-orange); padding:20px; border-radius:10px; margin-top:20px; }
+        .estrategia-box { margin-top: 15px; padding: 10px; border-left: 4px solid var(--color-text-main); background: #1a1a1a; }
 
         .historial-header { display: flex; justify-content: space-between; align-items: center; margin-top: 50px; border-bottom: 1px solid var(--color-text-main); padding-bottom: 10px; }
-        .btn-clear-hist { background: transparent; border: 1px solid #ff6b81; color: #ff6b81; padding: 5px 15px; border-radius: 5px; cursor: pointer; font-size: 0.8em; transition: 0.3s; }
-        .btn-clear-hist:hover { background: #ff6b81; color: white; }
-        
+        .btn-clear-hist { background: transparent; border: 1px solid #ff6b81; color: #ff6b81; padding: 5px 15px; border-radius: 5px; cursor: pointer; font-size: 0.8em; }
         table { width: 100%; border-collapse: collapse; font-size: 0.8em; margin-top: 10px; }
-        th { background: #343a40; color: var(--color-text-main); padding: 12px; }
-        td { padding: 12px; border-bottom: 1px solid var(--color-border); text-align: center; }
+        th { background: #343a40; color: var(--color-text-main); padding: 10px; }
+        td { padding: 10px; border-bottom: 1px solid var(--color-border); text-align: center; }
     </style>
 </head>
 <body>
@@ -57,56 +55,56 @@
 <div class="container">
     <img src="Logo.png" alt="ALFA" class="logo-header">
     <h1>ALPHA</h1>
-    <p style="font-size: 0.7em; opacity: 0.6; letter-spacing: 2px;">SMART ANALYTICS v1.1</p>
+    <p style="font-size: 0.7em; opacity: 0.6;">DECISION SUPPORT SYSTEM v1.2</p>
 
     <div class="card" style="margin-top:20px;">
         <h3>Identificación del Proyecto</h3>
-        <input type="text" id="colorName" placeholder="Nombre del color / Referencia del cliente">
+        <input type="text" id="colorName" placeholder="Nombre del color">
     </div>
 
     <div class="grid-inputs">
         <div class="card">
             <h3>Objetivo (LAB)</h3>
-            <label style="font-size:0.7em;">L*</label><input type="number" id="L1" step="0.01">
-            <label style="font-size:0.7em;">a*</label><input type="number" id="a1" step="0.01">
-            <label style="font-size:0.7em;">b*</label><input type="number" id="b1" step="0.01">
+            <input type="number" id="L1" placeholder="L*" step="0.01">
+            <input type="number" id="a1" placeholder="a*" step="0.01">
+            <input type="number" id="b1" placeholder="b*" step="0.01">
         </div>
         <div class="card">
-            <h3>Muestra Actual (LAB)</h3>
-            <label style="font-size:0.7em;">L*</label><input type="number" id="L2" step="0.01">
-            <label style="font-size:0.7em;">a*</label><input type="number" id="a2" step="0.01">
-            <label style="font-size:0.7em;">b*</label><input type="number" id="b2" step="0.01">
+            <h3>Muestra (LAB)</h3>
+            <input type="number" id="L2" placeholder="L*" step="0.01">
+            <input type="number" id="a2" placeholder="a*" step="0.01">
+            <input type="number" id="b2" placeholder="b*" step="0.01">
         </div>
     </div>
 
     <div class="card">
-        <h3>Carga Actual CMYK (%)</h3>
+        <h3>CMYK Actual (%)</h3>
         <div style="display: flex; gap: 10px;">
-            <div style="flex:1"><label style="font-size:0.7em;">C</label><input type="number" id="curC"></div>
-            <div style="flex:1"><label style="font-size:0.7em;">M</label><input type="number" id="curM"></div>
-            <div style="flex:1"><label style="font-size:0.7em;">Y</label><input type="number" id="curY"></div>
-            <div style="flex:1"><label style="font-size:0.7em;">K</label><input type="number" id="curK"></div>
+            <input type="number" id="curC" placeholder="C">
+            <input type="number" id="curM" placeholder="M">
+            <input type="number" id="curY" placeholder="Y">
+            <input type="number" id="curK" placeholder="K">
         </div>
     </div>
 
     <div class="button-group">
-        <button onclick="procesarAlfa()" class="btn-calc">CALCULAR AJUSTE MAESTRO</button>
+        <button onclick="procesarAlfa()" class="btn-calc">CALCULAR</button>
         <button onclick="nuevoCalculo()" class="btn-new">NUEVO</button>
     </div>
 
     <div id="resultado">
         <h2 id="resTitulo" style="color: var(--color-text-main); margin-bottom: 5px;"></h2>
-        <p id="resDelta" style="margin: 0 0 20px 0; font-weight: bold; font-size: 1.1em;"></p>
+        <p id="resDelta" style="margin: 0 0 20px 0; font-weight: bold;"></p>
         <div class="instrucciones-grid" id="gridCartas"></div>
         <div id="msgCompensacion"></div>
     </div>
 
     <div class="historial-header">
-        <h3 style="color: var(--color-text-main); margin: 0;">HISTORIAL DE MEDICIONES</h3>
-        <button onclick="borrarHistorial()" class="btn-clear-hist">LIMPIAR HISTORIAL</button>
+        <h3 style="color: var(--color-text-main); margin: 0;">HISTORIAL</h3>
+        <button onclick="borrarHistorial()" class="btn-clear-hist">BORRAR HISTORIAL</button>
     </div>
     <table id="tablaHistorial">
-        <thead><tr><th>Nombre</th><th>ΔE</th><th>Ajuste Propuesto</th></tr></thead>
+        <thead><tr><th>Nombre</th><th>ΔE</th><th>Ajuste</th></tr></thead>
         <tbody id="cuerpoTabla"></tbody>
     </table>
 </div>
@@ -115,24 +113,16 @@
     window.onload = cargarHistorial;
 
     function nuevoCalculo() {
-        const ids = ['colorName', 'L1', 'a1', 'b1', 'L2', 'a2', 'b2', 'curC', 'curM', 'curY', 'curK'];
-        ids.forEach(id => document.getElementById(id).value = "");
+        ['colorName', 'L1', 'a1', 'b1', 'L2', 'a2', 'b2', 'curC', 'curM', 'curY', 'curK'].forEach(id => document.getElementById(id).value = "");
         document.getElementById('resultado').style.display = 'none';
         document.getElementById('colorName').focus();
     }
 
     function procesarAlfa() {
-        const nombre = document.getElementById('colorName').value || "Muestra sin nombre";
-        const L1 = parseFloat(document.getElementById('L1').value) || 0;
-        const a1 = parseFloat(document.getElementById('a1').value) || 0;
-        const b1 = parseFloat(document.getElementById('b1').value) || 0;
-        const L2 = parseFloat(document.getElementById('L2').value) || 0;
-        const a2 = parseFloat(document.getElementById('a2').value) || 0;
-        const b2 = parseFloat(document.getElementById('b2').value) || 0;
-        
-        const dL = L2 - L1; // > 0 es más claro
-        const da = a2 - a1; // > 0 es más rojo, < 0 es más verde/azul
-        const db = b2 - b1; // > 0 es más amarillo, < 0 es más azul
+        const nombre = document.getElementById('colorName').value || "S/N";
+        const dL = (document.getElementById('L2').value - document.getElementById('L1').value) || 0;
+        const da = (document.getElementById('a2').value - document.getElementById('a1').value) || 0;
+        const db = (document.getElementById('b2').value - document.getElementById('b1').value) || 0;
         const dE = Math.sqrt(dL*dL + da*da + db*db).toFixed(2);
 
         const tintas = [
@@ -143,67 +133,59 @@
         ];
 
         let htmlCartas = "";
-        let advertenciaEspecial = "";
+        let saturadoM = (tintas[1].actual + parseFloat(tintas[1].ajuste)) > 100;
 
         tintas.forEach(t => {
             let isSaturado = (t.actual + parseFloat(t.ajuste)) > 100;
             let clase = isSaturado ? 'bloqueado-card' : (t.ajuste > 0 ? 'subir-card' : 'bajar-card');
-            let textoAjuste = isSaturado ? "MAX" : (t.ajuste > 0 ? "+" : "") + t.ajuste + "%";
-            
-            // LÓGICA DE RAZONAMIENTO PROFUNDO
-            if(isSaturado && t.id === 'M') {
-                if(dL > 0) { // Si la muestra está CLARA
-                    advertenciaEspecial = `
-                        <strong>ANÁLISIS PROFUNDO:</strong> El Magenta está al 100% pero el color sigue siendo claro y azulado.<br>
-                        <strong>RUTA DE MODIFICACIÓN MAESTRA:</strong><br>
-                        1. Aumenta <strong>Negro (K) +2.5%</strong> para corregir la claridad.<br>
-                        2. Reduce <strong>Cian (C) -3.0%</strong>. Al bajar el Cian, permites que el Magenta al 100% tome el control del tono y elimine el rastro azulado.`;
-                } else {
-                    advertenciaEspecial = `<strong>ESTRATEGIA REQUERIDA:</strong> Magenta saturado por densidad. Bajar <strong>Cian y Amarillo 2%</strong> para limpiar y definir el color.`;
-                }
-            }
-            
-            htmlCartas += `
-                <div class="color-instruction ${clase}">
-                    <span class="label-tinta">${t.nombre}</span>
-                    <span class="val-ajuste">${textoAjuste}</span>
-                    <small>${isSaturado ? 'LÍMITE' : (t.ajuste > 0 ? 'SUBIR' : 'BAJAR')}</small>
-                </div>`;
+            let textoAjuste = isSaturado ? "MAX" : (t.ajuste > 0 ? "+" + t.ajuste : t.ajuste) + "%";
+            htmlCartas += `<div class="color-instruction ${clase}"><span class="label-tinta">${t.nombre}</span><span class="val-ajuste">${textoAjuste}</span><small>${isSaturado ? 'TOPE' : (t.ajuste > 0 ? 'SUBIR' : 'BAJAR')}</small></div>`;
         });
 
         document.getElementById('resTitulo').innerText = nombre;
-        document.getElementById('resDelta').innerText = `Diferencia Total ΔE: ${dE}`;
+        document.getElementById('resDelta').innerText = `ΔE: ${dE}`;
         document.getElementById('gridCartas').innerHTML = htmlCartas;
         document.getElementById('resultado').style.display = 'block';
 
         const msgBox = document.getElementById('msgCompensacion');
-        msgBox.innerHTML = advertenciaEspecial ? `<div class="msg-alerta">${advertenciaEspecial}</div>` : "";
+        if(saturadoM) {
+            msgBox.innerHTML = `
+                <div class="msg-alerta">
+                    <strong style="color:var(--color-btn-orange)">⚠️ MAGENTA AL LÍMITE (100%): Elija la ruta según lo que ve</strong>
+                    <div class="estrategia-box">
+                        <strong>RUTA 1: Si el color se ve CLARO y AZULADO</strong><br>
+                        • Bajar <strong>Cian: -3.0%</strong><br>
+                        • Subir <strong>Negro: +2.5%</strong><br>
+                        <small>Esto permite que el Magenta domine y el Negro cubra la claridad.</small>
+                    </div>
+                    <div class="estrategia-box" style="border-left-color: var(--color-btn-coral)">
+                        <strong>RUTA 2: Si el color se ve ROJIZO o SUCIO (Oscuro)</strong><br>
+                        • Bajar <strong>Cian: -2.0%</strong><br>
+                        • Bajar <strong>Amarillo: -2.0%</strong><br>
+                        <small>Esto limpia la mezcla para que el Magenta resalte sin oscurecer más.</small>
+                    </div>
+                </div>`;
+        } else {
+            msgBox.innerHTML = "";
+        }
 
         guardarEnHistorial(nombre, dE, tintas.map(t => `${t.id}:${t.ajuste}`).join(' '));
     }
 
     function guardarEnHistorial(nombre, de, ajuste) {
-        let history = JSON.parse(localStorage.getItem('alfa_v11_hist')) || [];
-        history.unshift({ nombre, de, ajuste, hora: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) });
-        localStorage.setItem('alfa_v11_hist', JSON.stringify(history.slice(0, 15)));
+        let history = JSON.parse(localStorage.getItem('alfa_v12_hist')) || [];
+        history.unshift({ nombre, de, ajuste });
+        localStorage.setItem('alfa_v12_hist', JSON.stringify(history.slice(0, 10)));
         cargarHistorial();
     }
 
     function cargarHistorial() {
-        let history = JSON.parse(localStorage.getItem('alfa_v11_hist')) || [];
-        document.getElementById('cuerpoTabla').innerHTML = history.map(h => `
-            <tr>
-                <td style="color:white; font-weight:bold;">${h.nombre}</td>
-                <td><span style="background:${h.de > 1.5 ? '#442222' : '#113311'}; color:${h.de > 1.5 ? '#ff6b81' : '#51cf66'}; padding:4px 8px; border-radius:4px;">${h.de}</span></td>
-                <td style="font-family:monospace; opacity:0.8;">${h.ajuste}</td>
-            </tr>`).join('');
+        let history = JSON.parse(localStorage.getItem('alfa_v12_hist')) || [];
+        document.getElementById('cuerpoTabla').innerHTML = history.map(h => `<tr><td>${h.nombre}</td><td>${h.de}</td><td>${h.ajuste}</td></tr>`).join('');
     }
 
     function borrarHistorial() {
-        if(confirm("¿Seguro que deseas vaciar el historial de ALPHA?")) {
-            localStorage.removeItem('alfa_v11_hist');
-            cargarHistorial();
-        }
+        if(confirm("¿Borrar historial?")) { localStorage.removeItem('alfa_v12_hist'); cargarHistorial(); }
     }
 </script>
 </body>
