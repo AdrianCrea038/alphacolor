@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALFA v0.7 - Smart Color Control</title>
+    <title>ALFA v0.8 - Precision Color Suite</title>
     <style>
         :root {
             --bg-page: #212529;
@@ -15,211 +15,141 @@
             --color-btn-orange: #ffb74d;
         }
 
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background-color: var(--bg-page);
-            color: var(--color-text-body);
-            display: flex;
-            justify-content: center;
-            padding: 40px 20px;
-        }
-
-        .container {
-            max-width: 850px;
-            width: 100%;
-            background-color: var(--bg-container);
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            border-top: 5px solid var(--color-text-main);
-            text-align: center;
-        }
-
-        .logo-header { max-width: 100px; margin-bottom: 10px; }
-        h1 { color: var(--color-text-main); letter-spacing: 5px; text-transform: uppercase; margin: 0; font-size: 2.5em; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-page); color: var(--color-text-body); display: flex; justify-content: center; padding: 20px; }
+        .container { max-width: 900px; width: 100%; background-color: var(--bg-container); padding: 30px; border-radius: 20px; border-top: 5px solid var(--color-text-main); text-align: center; }
+        .logo-header { max-width: 90px; margin-bottom: 10px; }
+        h1 { color: var(--color-text-main); letter-spacing: 5px; text-transform: uppercase; margin: 0; }
         
-        .grid-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+        .grid-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
         .card { background-color: #2a2a2a; padding: 15px; border-radius: 12px; border: 1px solid var(--color-border); text-align: left; }
-        .card h3 { font-size: 0.8em; color: var(--color-text-main); border-bottom: 1px solid var(--color-border); padding-bottom: 5px; margin-bottom: 10px; text-transform: uppercase; }
+        .card h3 { font-size: 0.75em; color: var(--color-text-main); border-bottom: 1px solid var(--color-border); padding-bottom: 5px; margin-bottom: 10px; text-transform: uppercase; }
         
-        .full-width-card { grid-column: 1 / span 2; }
+        input { width: 90%; padding: 10px; background: #1a1a1a; border: 1px solid var(--color-border); border-radius: 5px; color: white; margin-bottom: 10px; }
 
-        label { display: block; font-size: 0.7em; opacity: 0.8; margin-bottom: 3px; }
-        input { width: 90%; padding: 10px; background: #1a1a1a; border: 1px solid var(--color-border); border-radius: 5px; color: white; margin-bottom: 10px; font-size: 1em; }
+        /* NUEVO DISEÑO DE RESULTADOS POR COLOR */
+        .instrucciones-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 20px; }
+        .color-instruction { padding: 15px; border-radius: 12px; text-align: center; border: 2px solid transparent; background: #252525; }
+        .val-ajuste { font-size: 1.8em; font-weight: bold; display: block; margin: 5px 0; }
+        .label-tinta { font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; }
         
-        .button-group { display: flex; gap: 10px; margin: 20px 0; }
-        button { flex: 1; padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; text-transform: uppercase; transition: 0.3s; }
-        
-        .btn-calc { background: linear-gradient(135deg, var(--color-btn-coral), var(--color-btn-orange)); color: black; font-size: 1.1em; }
-        .btn-new { background: #495057; color: white; }
+        .subir-card { border-color: var(--color-btn-coral); }
+        .bajar-card { border-color: #51cf66; }
+        .bloqueado-card { border-color: var(--color-btn-orange); opacity: 0.6; background: #1a1a1a; }
 
-        #resultado { background: #2a2a2a; padding: 20px; border-radius: 12px; margin-bottom: 30px; display: none; text-align: left; border-left: 5px solid var(--color-text-main); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        #resultado { display: none; margin-top: 30px; text-align: left; }
+        .btn-calc { width: 100%; padding: 15px; background: linear-gradient(135deg, var(--color-btn-coral), var(--color-btn-orange)); border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 1.1em; }
         
-        .history-section { margin-top: 40px; text-align: left; overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.85em; margin-top: 15px; }
-        th { background: #343a40; color: var(--color-text-main); padding: 12px; text-align: left; border-bottom: 2px solid var(--color-border); }
-        td { padding: 12px; border-bottom: 1px solid var(--color-border); }
-
-        .badge-de { padding: 4px 8px; border-radius: 4px; font-weight: bold; }
-        .signo-pos { color: var(--color-btn-coral); }
-        .signo-neg { color: #51cf66; }
-        .saturado { color: var(--color-btn-orange); font-weight: bold; text-decoration: line-through; opacity: 0.6; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8em; margin-top: 20px; }
+        th { background: #343a40; color: var(--color-text-main); padding: 10px; }
+        td { padding: 10px; border-bottom: 1px solid var(--color-border); text-align: center; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <img src="Logo.png" alt="ALFA" class="logo-header">
+    <img src="logo.png" alt="ALFA" class="logo-header">
     <h1>ALPHA</h1>
-    <p style="font-size: 0.7em; opacity: 0.6; margin-bottom: 25px; letter-spacing: 2px;">SMART ADJUSTMENT v0.7</p>
+    <p style="font-size: 0.7em; opacity: 0.6;">SISTEMA DE AJUSTE POR COLOR v0.8</p>
 
-    <div class="card full-width-card" style="border-color: var(--color-text-main);">
+    <div class="card" style="margin-top:20px;">
         <h3>Identificación del Proyecto</h3>
-        <input type="text" id="colorName" placeholder="Ej: Deep Marron NK675426">
+        <input type="text" id="colorName" placeholder="Nombre del color / Referencia">
     </div>
 
     <div class="grid-inputs">
         <div class="card">
             <h3>Objetivo (LAB)</h3>
-            <label>L*</label><input type="number" id="L1" step="0.01" value="23.9">
-            <label>a*</label><input type="number" id="a1" step="0.01" value="19.61">
-            <label>b*</label><input type="number" id="b1" step="0.01" value="1.45">
+            <input type="number" id="L1" placeholder="L*" step="0.01">
+            <input type="number" id="a1" placeholder="a*" step="0.01">
+            <input type="number" id="b1" placeholder="b*" step="0.01">
         </div>
         <div class="card">
-            <h3>Muestra Actual (LAB)</h3>
-            <label>L*</label><input type="number" id="L2" step="0.01" value="27.7">
-            <label>a*</label><input type="number" id="a2" step="0.01" value="18.91">
-            <label>b*</label><input type="number" id="b2" step="0.01" value="0.84">
+            <h3>Muestra (LAB)</h3>
+            <input type="number" id="L2" placeholder="L*" step="0.01">
+            <input type="number" id="a2" placeholder="a*" step="0.01">
+            <input type="number" id="b2" placeholder="b*" step="0.01">
         </div>
     </div>
 
-    <div class="card full-width-card">
-        <h3>Carga Actual CMYK (%)</h3>
+    <div class="card">
+        <h3>CMYK Actual (%)</h3>
         <div style="display: flex; gap: 10px;">
-            <div style="flex:1"><label>C</label><input type="number" id="curC" value="42"></div>
-            <div style="flex:1"><label>M</label><input type="number" id="curM" value="100"></div>
-            <div style="flex:1"><label>Y</label><input type="number" id="curY" value="69"></div>
-            <div style="flex:1"><label>K</label><input type="number" id="curK" value="76.5"></div>
+            <input type="number" id="curC" placeholder="C">
+            <input type="number" id="curM" placeholder="M">
+            <input type="number" id="curY" placeholder="Y">
+            <input type="number" id="curK" placeholder="K">
         </div>
     </div>
 
-    <div class="button-group">
-        <button onclick="procesarAlfa()" class="btn-calc">Calcular Ajuste</button>
-        <button onclick="nuevoCalculo()" class="btn-new">Nuevo</button>
+    <button onclick="procesarAlfa()" class="btn-calc" style="margin-top:20px;">CALCULAR AJUSTES</button>
+
+    <div id="resultado">
+        <h2 id="resTitulo" style="color: var(--color-text-main); margin-bottom: 5px;"></h2>
+        <p id="resDelta" style="margin: 0 0 20px 0; font-weight: bold;"></p>
+        
+        <div class="instrucciones-grid" id="gridCartas"></div>
+        <div id="msgCompensacion" style="margin-top:20px;"></div>
     </div>
 
-    <div id="resultado"></div>
-
-    <div class="history-section">
-        <h3 style="color: var(--color-text-main); border-bottom: 1px solid var(--color-text-main); padding-bottom: 10px;">HISTORIAL</h3>
+    <div style="margin-top:50px;">
+        <h3 style="color: var(--color-text-main); text-align: left;">HISTORIAL RECIENTE</h3>
         <table id="tablaHistorial">
-            <thead>
-                <tr>
-                    <th>Nombre / Ref.</th>
-                    <th>ΔE</th>
-                    <th>Ajuste Aplicable</th>
-                </tr>
-            </thead>
+            <thead><tr><th>Color</th><th>ΔE</th><th>Ajuste</th></tr></thead>
             <tbody id="cuerpoTabla"></tbody>
         </table>
     </div>
 </div>
 
 <script>
-    window.onload = mostrarHistorial;
-
-    function formatearSigno(valor) {
-        const num = parseFloat(valor);
-        return num > 0 ? `+${num}%` : `${num}%`;
-    }
-
     function procesarAlfa() {
-        const nombre = document.getElementById('colorName').value || "Sin nombre";
-        const L1 = parseFloat(document.getElementById('L1').value);
-        const L2 = parseFloat(document.getElementById('L2').value);
-        const a1 = parseFloat(document.getElementById('a1').value);
-        const a2 = parseFloat(document.getElementById('a2').value);
-        const b1 = parseFloat(document.getElementById('b1').value);
-        const b2 = parseFloat(document.getElementById('b2').value);
-        
-        const C = parseFloat(document.getElementById('curC').value);
-        const M = parseFloat(document.getElementById('curM').value);
-        const Y = parseFloat(document.getElementById('curY').value);
-        const K = parseFloat(document.getElementById('curK').value);
-
-        const dL = L2 - L1;
-        const da = a2 - a1;
-        const db = b2 - b1;
+        const nombre = document.getElementById('colorName').value || "S/N";
+        const dL = document.getElementById('L2').value - document.getElementById('L1').value;
+        const da = document.getElementById('a2').value - document.getElementById('a1').value;
+        const db = document.getElementById('b2').value - document.getElementById('b1').value;
         const dE = Math.sqrt(dL*dL + da*da + db*db).toFixed(2);
 
-        // Ajustes base
-        let adjC = (dL * 0.4).toFixed(1);
-        let adjM = (da * -1.6).toFixed(1);
-        let adjY = (db * -1.6).toFixed(1);
-        let adjK = (dL * 1.3).toFixed(1);
+        const tintas = [
+            { id: 'C', nombre: 'Cian', ajuste: (dL * 0.4).toFixed(1), actual: parseFloat(document.getElementById('curC').value) },
+            { id: 'M', nombre: 'Magenta', ajuste: (da * -1.6).toFixed(1), actual: parseFloat(document.getElementById('curM').value) },
+            { id: 'Y', nombre: 'Amarillo', ajuste: (db * -1.6).toFixed(1), actual: parseFloat(document.getElementById('curY').value) },
+            { id: 'K', nombre: 'Negro', ajuste: (dL * 1.3).toFixed(1), actual: parseFloat(document.getElementById('curK').value) }
+        ];
 
-        // Lógica de Bloqueo al 100%
-        let msgCompensacion = "";
-        let finalC = adjC, finalM = adjM, finalY = adjY, finalK = adjK;
-        let cSaturado = false, mSaturado = false, ySaturado = false;
-
-        if (M + parseFloat(adjM) > 100) {
-            mSaturado = true;
-            finalM = "LIMITE";
-            msgCompensacion = "⚠️ M al 100%: NO SUBIR. Bajar C e Y un 2% para ganar intensidad.";
-        }
-        if (C + parseFloat(adjC) > 100) { cSaturado = true; finalC = "LIMITE"; }
-        if (Y + parseFloat(adjY) > 100) { ySaturado = true; finalY = "LIMITE"; }
-
-        // Construir Resumen para Historial
-        let resumenHistorial = `C:${cSaturado ? 'MAX' : formatearSigno(adjC)} M:${mSaturado ? 'MAX' : formatearSigno(adjM)} Y:${ySaturado ? 'MAX' : formatearSigno(adjY)} K:${formatearSigno(adjK)}`;
+        document.getElementById('resTitulo').innerText = nombre;
+        document.getElementById('resDelta').innerText = `Diferencia Total ΔE: ${dE}`;
         
-        saveToHistory({ nombre, de: dE, ajuste: resumenHistorial });
+        let htmlCartas = "";
+        let saturacionGlobal = false;
 
-        // Mostrar Resultado Principal
-        const resDiv = document.getElementById('resultado');
-        resDiv.style.display = 'block';
-        resDiv.innerHTML = `
-            <h3 style="color:var(--color-text-main); margin-top:0;">${nombre} - ΔE ${dE}</h3>
-            <div style="font-size:1.2em; margin-bottom:10px;">
-                <b>Instrucción:</b><br>
-                C: <span class="${cSaturado ? 'saturado' : (adjC > 0 ? 'signo-pos' : 'signo-neg')}">${cSaturado ? 'MAX (No subir)' : formatearSigno(adjC)}</span> | 
-                M: <span class="${mSaturado ? 'saturado' : (adjM > 0 ? 'signo-pos' : 'signo-neg')}">${mSaturado ? 'MAX (No subir)' : formatearSigno(adjM)}</span> | 
-                Y: <span class="${ySaturado ? 'saturado' : (adjY > 0 ? 'signo-pos' : 'signo-neg')}">${ySaturado ? 'MAX (No subir)' : formatearSigno(adjY)}</span> | 
-                K: <span class="${adjK > 0 ? 'signo-pos' : 'signo-neg'}">${formatearSigno(adjK)}</span>
-            </div>
-            ${msgCompensacion ? `<div style="background:#3e2723; color:var(--color-btn-orange); padding:10px; border-radius:5px; border-left:4px solid orange;">${msgCompensacion}</div>` : ''}
-        `;
-        
-        mostrarHistorial();
-    }
+        tintas.forEach(t => {
+            let isSaturado = (t.actual + parseFloat(t.ajuste)) > 100;
+            let clase = isSaturado ? 'bloqueado-card' : (t.ajuste > 0 ? 'subir-card' : 'bajar-card');
+            let signo = t.ajuste > 0 ? "+" : "";
+            let textoAjuste = isSaturado ? "MAX" : `${signo}${t.ajuste}%`;
+            if(isSaturado) saturacionGlobal = true;
 
-    function nuevoCalculo() {
-        document.getElementById('colorName').value = "";
-        document.getElementById('L1').value = ""; document.getElementById('a1').value = ""; document.getElementById('b1').value = "";
-        document.getElementById('L2').value = ""; document.getElementById('a2').value = ""; document.getElementById('b2').value = "";
-        document.getElementById('resultado').style.display = 'none';
-        document.getElementById('colorName').focus();
-    }
+            htmlCartas += `
+                <div class="color-instruction ${clase}">
+                    <span class="label-tinta">${t.nombre}</span>
+                    <span class="val-ajuste">${textoAjuste}</span>
+                    <small>${isSaturado ? 'LÍMITE ALCANZADO' : (t.ajuste > 0 ? 'AUMENTAR' : 'REDUCIR')}</small>
+                </div>
+            `;
+        });
 
-    function saveToHistory(item) {
-        let history = JSON.parse(localStorage.getItem('alfa_history')) || [];
-        history.unshift({ ...item, hora: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
-        localStorage.setItem('alfa_history', JSON.stringify(history.slice(0, 10)));
-    }
+        document.getElementById('gridCartas').innerHTML = htmlCartas;
+        document.getElementById('resultado').style.display = 'block';
 
-    function mostrarHistorial() {
-        let history = JSON.parse(localStorage.getItem('alfa_history')) || [];
-        const tabla = document.getElementById('cuerpoTabla');
-        tabla.innerHTML = history.map(h => `
-            <tr>
-                <td style="color:white;">${h.nombre}</td>
-                <td><span class="badge-de" style="background:${h.de > 1.5 ? '#442222' : '#113311'}; color:${h.de > 1.5 ? '#ff6b81' : '#51cf66'}">${h.de}</span></td>
-                <td style="font-family: monospace;">${h.ajuste}</td>
-            </tr>
-        `).join('');
+        const msgBox = document.getElementById('msgCompensacion');
+        msgBox.innerHTML = saturacionGlobal 
+            ? `<div style="background:#3e2723; color:var(--color-btn-orange); padding:15px; border-radius:10px; border:1px solid orange;">
+               <strong>ESTRATEGIA DE COMPENSACIÓN:</strong> El Magenta/Cian está al tope. No intentes subir más. Para ganar profundidad, reduce un 2% los otros colores opuestos.</div>`
+            : "";
+
+        // Guardar Historial (Simple)
+        const fila = `<tr><td>${nombre}</td><td>${dE}</td><td>C:${tintas[0].ajuste} M:${tintas[1].ajuste} Y:${tintas[2].ajuste} K:${tintas[3].ajuste}</td></tr>`;
+        document.getElementById('cuerpoTabla').insertAdjacentHTML('afterbegin', fila);
     }
 </script>
-
 </body>
 </html>
