@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALPHA v3.1 - Restoration & Comparison</title>
+    <title>ALPHA v3.2 - CheckPoint Edition</title>
     <style>
         :root {
             --bg-page: #0f111a;
@@ -42,23 +42,26 @@
         td { padding: 12px; border-bottom: 1px solid #343a40; vertical-align: top; }
         
         .badge-de { background: #000; padding: 4px 8px; border-radius: 6px; font-weight: bold; border: 1px solid #333; }
-        .cuadrante-info { color: var(--blue); font-size: 0.85em; font-weight: bold; display: block; margin-bottom: 5px; }
         
-        /* Comparativa */
-        .diff-tag { font-size: 0.8em; padding: 1px 4px; border-radius: 3px; margin-left: 3px; font-weight: bold; }
-        .diff-plus { background: rgba(81, 207, 102, 0.2); color: var(--success); }
-        .diff-minus { background: rgba(255, 107, 129, 0.2); color: var(--coral); }
-
-        .ruta-box { background: rgba(0,0,0,0.4); padding: 10px; border-radius: 8px; margin-top: 8px; border: 1px solid #444; }
-        .check-point { display: block; padding: 6px; border-radius: 4px; margin-bottom: 4px; border: 1px solid #444; cursor: pointer; font-size: 0.9em; }
+        /* Estilos Check Point */
+        .ruta-box { background: rgba(0,0,0,0.4); padding: 8px; border-radius: 8px; margin-top: 8px; border: 1px solid #444; }
+        .check-point { 
+            display: block; padding: 6px; border-radius: 4px; margin-bottom: 4px; 
+            border: 1px solid #444; cursor: pointer; font-size: 0.9em; transition: 0.2s;
+        }
+        .check-point:hover { background: #252a3d; border-color: var(--accent); }
         .check-point.selected { border-color: var(--success); background: rgba(81, 207, 102, 0.1); color: var(--success); }
+        
+        .diff-tag { font-size: 0.8em; padding: 1px 4px; border-radius: 3px; font-weight: bold; }
+        .diff-plus { color: var(--success); }
+        .diff-minus { color: var(--coral); }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header">
-        <h1>ALPHA <span style="font-weight: 200; font-size: 0.5em;">v3.1 Full Restoration</span></h1>
+        <h1>ALPHA <span style="font-weight: 200; font-size: 0.5em;">v3.2 CheckPoint Edition</span></h1>
         <div style="display: flex; gap: 10px;">
             <button class="btn btn-sec" onclick="exportarProyecto()">Exportar .alpha</button>
             <input type="file" id="fileInput" style="display:none" onchange="importarProyecto(event)">
@@ -69,7 +72,7 @@
     <div class="project-config">
         <div class="input-group">
             <label>Nombre del Proyecto / OT</label>
-            <input type="text" id="projName" placeholder="Nombre...">
+            <input type="text" id="projName" placeholder="Identificación...">
         </div>
         <div class="input-group">
             <label>Medición Blanco de Tela (LAB)</label>
@@ -105,14 +108,14 @@
             </div>
         </div>
         <div class="card">
-            <h3>3. CMYK (%)</h3>
+            <h3>3. CMYK Actual (%)</h3>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
                 <input type="number" id="cC" placeholder="C">
                 <input type="number" id="cM" placeholder="M">
                 <input type="number" id="cY" placeholder="Y">
                 <input type="number" id="cK" placeholder="K">
             </div>
-            <button class="btn btn-main" id="btnProcesar" onclick="procesar()">CALCULAR RUTA</button>
+            <button class="btn btn-main" id="btnProcesar" onclick="procesar()">CALCULAR E HISTORIAR</button>
         </div>
     </div>
 
@@ -122,9 +125,9 @@
                 <tr>
                     <th>Fecha / Hora</th>
                     <th>Color / CMYK</th>
-                    <th>Cambio vs Anterior</th>
+                    <th>Comparativa</th>
                     <th>ΔE</th>
-                    <th>Cuadrante & Rutas</th>
+                    <th>Análisis y Rutas (Check Point)</th>
                     <th>Acción</th>
                 </tr>
             </thead>
@@ -142,7 +145,7 @@
         const r1L = parseFloat(document.getElementById('r1L').value);
         const r2L = parseFloat(document.getElementById('r2L').value) || r1L;
         const mL = parseFloat(document.getElementById('mL').value);
-        if (isNaN(r1L) || isNaN(mL)) return alert("Faltan datos LAB críticos.");
+        if (isNaN(r1L) || isNaN(mL)) return alert("Faltan datos LAB.");
 
         const refL = (r1L + r2L) / 2;
         const refA = (parseFloat(document.getElementById('r1a').value) + (parseFloat(document.getElementById('r2a').value) || parseFloat(document.getElementById('r1a').value))) / 2;
@@ -152,7 +155,7 @@
         const mb = parseFloat(document.getElementById('mb').value) || 0;
         const dE = Math.sqrt(Math.pow(mL-refL,2) + Math.pow(ma-refA,2) + Math.pow(mb-refB,2)).toFixed(2);
 
-        // Cuadrante
+        // Análisis de Cuadrante
         const da = ma - refA; const db = mb - refB;
         let cuadrante = (da > 0.4 ? "Sobra Rojo. " : (da < -0.4 ? "Sobra Verde. " : "")) + 
                         (db > 0.4 ? "Sobra Amar. " : (db < -0.4 ? "Sobra Azul. " : ""));
@@ -162,7 +165,7 @@
         const curY = parseFloat(document.getElementById('cY').value) || 0;
         const curK = parseFloat(document.getElementById('cK').value) || 0;
 
-        // Comparativa
+        // Comparativa de cambios
         let compHTML = "";
         if (cmykPrevio) {
             const dif = (n, p) => {
@@ -173,6 +176,16 @@
             compHTML = `C${dif(curC, cmykPrevio.C)} M${dif(curM, cmykPrevio.M)} Y${dif(curY, cmykPrevio.Y)} K${dif(curK, cmykPrevio.K)}`;
         }
 
+        // Definir rutas si hay tope (Canal >= 98)
+        let rutasDisp = [];
+        if (curC >= 98 || curM >= 98 || curY >= 98 || curK >= 98) {
+            if (curY >= 98) {
+                rutasDisp = [{id: 0, t: "Ruta A: Subir M +1.5% (Si sobra Verde)"}, {id: 1, t: "Ruta B: Subir K +0.8% (Oscurecer)"}];
+            } else {
+                rutasDisp = [{id: 0, t: "Ruta A: Subir canales secundarios +1.2%"}, {id: 1, t: "Ruta B: Ajuste manual complementario"}];
+            }
+        }
+
         const colorObj = {
             id: editandoId || Date.now(),
             nombre: document.getElementById('mName').value || "Color",
@@ -180,7 +193,8 @@
             de: dE,
             cuadrante: cuadrante || "Neutral",
             cmyk: { curC, curM, curY, curK },
-            cambio: compHTML || "Nuevo",
+            cambio: compHTML || "Inicial",
+            rutas: rutasDisp,
             rutaElegida: null
         };
 
@@ -188,7 +202,7 @@
             const idx = proyecto.colores.findIndex(c => c.id === editandoId);
             proyecto.colores[idx] = colorObj;
             editandoId = null;
-            document.getElementById('btnProcesar').innerText = "CALCULAR RUTA";
+            document.getElementById('btnProcesar').innerText = "CALCULAR E HISTORIAR";
         } else {
             proyecto.colores.unshift(colorObj);
         }
@@ -196,6 +210,12 @@
         cmykPrevio = null;
         render();
         limpiar();
+    }
+
+    function marcarRuta(colorId, rutaId) {
+        const col = proyecto.colores.find(c => c.id === colorId);
+        col.rutaElegida = rutaId;
+        render();
     }
 
     function revalidar(id) {
@@ -210,7 +230,7 @@
         document.getElementById('cC').value = c.cmyk.curC; document.getElementById('cM').value = c.cmyk.curM;
         document.getElementById('cY').value = c.cmyk.curY; document.getElementById('cK').value = c.cmyk.curK;
         
-        document.getElementById('btnProcesar').innerText = "ACTUALIZAR REGISTRO";
+        document.getElementById('btnProcesar').innerText = "ACTUALIZAR Y COMPARAR";
         window.scrollTo(0,0);
     }
 
@@ -222,8 +242,18 @@
                 <td><strong>${c.nombre}</strong><br><small>C:${c.cmyk.curC} M:${c.cmyk.curM} Y:${c.cmyk.curY} K:${c.cmyk.curK}</small></td>
                 <td>${c.cambio}</td>
                 <td><span class="badge-de" style="color:${c.de > 1.2 ? 'var(--coral)' : 'var(--success)'}">${c.de}</span></td>
-                <td><span class="cuadrante-info">${c.cuadrante}</span>
-                    ${c.cmyk.curY >= 98 || c.cmyk.curK >= 98 ? `<div class="ruta-box"><small>⚠️ TOPE: Ruta A (M+1.5%) / Ruta B (K+1%)</small></div>` : ''}
+                <td>
+                    <span style="color:var(--blue); font-weight:bold">${c.cuadrante}</span>
+                    ${c.rutas.length > 0 ? `
+                        <div class="ruta-box">
+                            <small style="color:var(--orange); display:block; margin-bottom:5px;">⚠️ TOPE DETECTADO - ELIGE RUTA:</small>
+                            ${c.rutas.map(r => `
+                                <div class="check-point ${c.rutaElegida === r.id ? 'selected' : ''}" onclick="marcarRuta(${c.id}, ${r.id})">
+                                    ${c.rutaElegida === r.id ? '✓ ' : ''}${r.t}
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : '<br><small>Balance de canales OK</small>'}
                 </td>
                 <td>
                     <button class="btn btn-rev" onclick="revalidar(${c.id})">REV</button>
@@ -243,7 +273,7 @@
     }
 
     function exportarProyecto() {
-        proyecto.nombre = document.getElementById('projName').value || "Alpha_Exp";
+        proyecto.nombre = document.getElementById('projName').value || "Alpha_v32";
         proyecto.tela = { L: document.getElementById('clothL').value, a: document.getElementById('clothA').value, b: document.getElementById('clothB').value };
         const blob = new Blob([JSON.stringify(proyecto)], {type: "application/json"});
         const a = document.createElement('a');
@@ -257,7 +287,7 @@
         reader.onload = (ev) => {
             const data = JSON.parse(ev.target.result);
             proyecto = data;
-            document.getElementById('projName').value = proyecto.nombre;
+            document.getElementById('projName').value = proyecto.nombre || "";
             if(proyecto.tela) {
                 document.getElementById('clothL').value = proyecto.tela.L;
                 document.getElementById('clothA').value = proyecto.tela.a;
