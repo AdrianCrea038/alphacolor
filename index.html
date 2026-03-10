@@ -3,26 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALPHA v4.2 - Professional Colorist Tool</title>
+    <title>ALPHA v4.3 - Color Matching System</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>ALPHA <span class="version">v4.2</span></h1>
+            <h1>ALPHA <span class="version">v4.3</span></h1>
             <div class="actions">
                 <button class="btn btn-sec" onclick="exportarProyecto()">Exportar .alpha</button>
                 <input type="file" id="fileInput" hidden onchange="importarProyecto(event)">
-                <button class="btn btn-sec" onclick="document.getElementById('fileInput').click()">Cargar</button>
+                <button class="btn btn-sec" onclick="document.getElementById('fileInput').click()">Cargar Proyecto</button>
                 <button class="btn btn-danger" onclick="nuevoProyecto()">Nuevo Proyecto</button>
             </div>
         </div>
 
-        <div class="project-config">
-            <input type="text" id="projName" placeholder="Nombre del Proyecto / Orden de Trabajo (OT)">
+        <div class="project-config" style="margin-bottom: 20px;">
+            <input type="text" id="projName" placeholder="Nombre del Proyecto / Orden de Trabajo (OT)" 
+                   style="background:transparent; border:none; border-bottom:1px solid #333; color:#40e0d0; font-size:1.2em; width:100%; outline:none; padding:10px 0;">
         </div>
 
         <div class="grid-main">
+            
             <div class="card">
                 <h3>1. Referencia (LAB Objetivo)</h3>
                 <div class="input-row">
@@ -30,8 +32,8 @@
                     <input type="number" id="r1a" placeholder="a1" step="0.01">
                     <input type="number" id="r1b" placeholder="b1" step="0.01">
                 </div>
-                <div class="input-row">
-                    <input type="number" id="r2L" placeholder="L2 (Opc)" step="0.01">
+                <div class="input-row" style="margin-top: 5px;">
+                    <input type="number" id="r2L" placeholder="L2 (Opcional)" step="0.01">
                     <input type="number" id="r2a" placeholder="a2" step="0.01">
                     <input type="number" id="r2b" placeholder="b2" step="0.01">
                 </div>
@@ -39,7 +41,7 @@
 
             <div class="card">
                 <h3>2. Muestra Actual (LAB)</h3>
-                <input type="text" id="mName" placeholder="Nombre del Color / ID">
+                <input type="text" id="mName" placeholder="Nombre del Color / ID Muestra">
                 <div class="input-row">
                     <input type="number" id="mL" placeholder="L" step="0.01">
                     <input type="number" id="ma" placeholder="a" step="0.01">
@@ -55,10 +57,10 @@
                     <input type="number" id="cY" placeholder="Y">
                     <input type="number" id="cK" placeholder="K">
                 </div>
-                <div class="action-buttons">
-    <button class="btn btn-main" id="btnProcesar" onclick="procesar()">CALCULAR</button>
-    <button class="btn btn-sec" onclick="limpiarCamposNuevo()">NUEVO COLOR</button>
-    </div>
+                <div class="action-buttons" style="display: flex; gap: 8px; margin-top: 5px;">
+                    <button class="btn btn-main" id="btnProcesar" onclick="procesar()" style="flex: 2;">CALCULAR</button>
+                    <button class="btn btn-sec" onclick="limpiarCamposNuevo()" style="flex: 1; background: #333;">NUEVO</button>
+                </div>
             </div>
         </div>
 
@@ -66,17 +68,19 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Hora</th>
-                        <th>Color / CMYK</th>
-                        <th>ΔE</th>
-                        <th>Tendencia y Ajustes Sugeridos</th>
-                        <th>Acciones</th>
+                        <th style="width: 10%;">Hora</th>
+                        <th style="width: 25%;">Color / CMYK</th>
+                        <th style="width: 10%;">ΔE</th>
+                        <th style="width: 40%;">Tendencia y Ajustes Sugeridos</th>
+                        <th style="width: 15%;">Acciones</th>
                     </tr>
                 </thead>
-                <tbody id="cuerpoTabla"></tbody>
+                <tbody id="cuerpoTabla">
+                    </tbody>
             </table>
         </div>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
