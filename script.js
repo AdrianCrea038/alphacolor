@@ -1,6 +1,6 @@
 /**
- * ALPHA COLOR SYSTEM - v4.6
- * Lógica Simplificada: 2 Rutas Máximas y Referencia Única.
+ * ALPHA COLOR SYSTEM - v4.7
+ * Lógica: Referencia Única + 2 Rutas Prioritarias.
  */
 
 // VARIABLES GLOBALES
@@ -16,12 +16,12 @@ function procesar() {
         return el ? parseFloat(el.value) || 0 : 0;
     };
     
-    // Referencia Única (L1, a1, b1)
+    // 1. Referencia Única (Solo L1, a1, b1)
     const rL = parseFloat(document.getElementById('r1L').value);
     const ra = val('r1a');
     const rb = val('r1b');
     
-    // Muestra
+    // 2. Muestra
     const mL = parseFloat(document.getElementById('mL').value);
     const ma = val('ma');
     const mb = val('mb');
@@ -31,7 +31,7 @@ function procesar() {
         return;
     }
 
-    // Cálculos de Diferencia
+    // Cálculos Diferenciales
     const dL = mL - rL;
     const da = ma - ra; 
     const db = mb - rb;
@@ -42,38 +42,39 @@ function procesar() {
 
     // --- GENERACIÓN DE RUTAS ---
     
-    // Eje Rojo/Verde
+    // Eje Rojo/Verde (da)
     if (da > 0.4) { 
-        todasLasRutas.push({ prioridad: Math.abs(da), texto: CMYK.C >= 98 ? "Bajar Magenta -2.0%" : `Subir Cyan ${dE > 3 ? '+3.0%' : '+1.5%'}` });
+        todasLasRutas.push({ prioridad: Math.abs(da), texto: CMYK.C >= 98 ? "C al límite: Bajar Magenta -2.0%" : `Subir Cyan ${dE > 3 ? '+3.0%' : '+1.5%'}` });
     } else if (da < -0.4) {
-        todasLasRutas.push({ prioridad: Math.abs(da), texto: CMYK.M >= 98 ? "Bajar Cyan -2.0%" : `Subir Magenta ${dE > 3 ? '+3.5%' : '+1.8%'}` });
+        todasLasRutas.push({ prioridad: Math.abs(da), texto: CMYK.M >= 98 ? "M al límite: Bajar Cyan -2.0%" : `Subir Magenta ${dE > 3 ? '+3.5%' : '+1.8%'}` });
     }
 
-    // Eje Amarillo/Azul
+    // Eje Amarillo/Azul (db)
     if (db > 0.4) {
         todasLasRutas.push({ prioridad: Math.abs(db), texto: `Bajar Amarillo ${dE > 3 ? '-3.5%' : '-1.5%'}` });
     } else if (db < -0.4) {
-        todasLasRutas.push({ prioridad: Math.abs(db), texto: CMYK.Y >= 98 ? "Bajar Cyan -1.0% y Mag -1.0%" : `Subir Amarillo ${dE > 3 ? '+3.0%' : '+1.8%'}` });
+        todasLasRutas.push({ prioridad: Math.abs(db), texto: CMYK.Y >= 98 ? "Y al límite: Bajar Cyan -1.0% y Mag -1.0%" : `Subir Amarillo ${dE > 3 ? '+3.0%' : '+1.8%'}` });
     }
 
-    // Luminosidad (Negro)
+    // Luminosidad (dL)
     if (dL > 0.6) {
         todasLasRutas.push({ prioridad: Math.abs(dL), texto: `Subir Negro (K) +1.5%` });
     } else if (dL < -0.6) {
         todasLasRutas.push({ prioridad: Math.abs(dL), texto: `Bajar Negro (K) -2.0%` });
     }
 
-    // --- FILTRAR SOLO LAS 2 RUTAS MÁS IMPORTANTES ---
+    // --- FILTRAR LAS 2 RUTAS MÁS CRÍTICAS ---
     let rutasFinales = todasLasRutas
         .sort((a, b) => b.prioridad - a.prioridad)
         .slice(0, 2)
         .map(r => ({ texto: r.texto, chequeado: false }));
 
+    // Alerta de Precisión
     if (dE < 1.0) {
-        rutasFinales.unshift({ texto: "✨ Color en rango óptimo", chequeado: false });
+        rutasFinales.unshift({ texto: "✨ PRECISIÓN ALTA (ΔE < 1.0)", chequeado: false });
     }
 
-    // Tendencia Visual
+    // Tendencia Visual Principal
     let tendencia = "En Punto";
     let clase = "t-verde";
     if (Math.abs(da) > Math.abs(db)) {
@@ -84,6 +85,7 @@ function procesar() {
         else if (db < -0.4) { tendencia = "Azulado"; clase = "t-azul"; }
     }
 
+    // Guardado
     const registro = {
         id: editandoId || Date.now(),
         nombre: document.getElementById('mName').value || "Muestra",
@@ -106,16 +108,16 @@ function procesar() {
 }
 
 /**
- * Función NUEVO: Limpia TODO (Referencia, Muestra y CMYK)
+ * Función que limpia TODOS los campos de la pantalla
  */
 function limpiarCamposNuevo() {
     editandoId = null;
     const btn = document.getElementById('btnProcesar');
     if (btn) btn.innerText = "CALCULAR";
 
-    // Todos los IDs posibles en el HTML
+    // IDs unificados para limpieza total
     const ids = [
-        'r1L', 'r1a', 'r1b', 'r2L', 'r2a', 'r2b', 
+        'r1L', 'r1a', 'r1b', 
         'mName', 'mL', 'ma', 'mb', 
         'cC', 'cM', 'cY', 'cK'
     ];
@@ -124,8 +126,6 @@ function limpiarCamposNuevo() {
         const el = document.getElementById(id);
         if (el) el.value = "";
     });
-    
-    console.log("Limpieza total completada.");
 }
 
 function render() {
@@ -185,7 +185,7 @@ function eliminar(id) {
 }
 
 function nuevoProyecto() {
-    if(confirm("¿Borrar todo el historial?")) {
+    if(confirm("¿Borrar todo el historial y empezar de cero?")) {
         proyecto = { nombre: "", colores: [] };
         render();
         limpiarCamposNuevo();
