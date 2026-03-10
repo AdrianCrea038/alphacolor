@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALPHA v3.8 - Precision Ink Control</title>
+    <title>ALPHA v3.9 - Tendencias Visuales</title>
     <style>
         :root {
             --bg-page: #0f111a;
@@ -14,15 +14,13 @@
             --text: #ced4da;
             --success: #51cf66;
             --blue: #4dabf7;
+            --dirty: #8d6e63;
         }
 
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg-page); color: var(--text); margin: 0; padding: 20px; }
         .container { max-width: 1400px; margin: auto; }
         
         .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--accent); padding-bottom: 15px; margin-bottom: 20px; }
-        
-        .project-config { background: var(--bg-card); padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #343a40; display: grid; grid-template-columns: 2fr 1.5fr; gap: 20px; }
-        .input-group label { display: block; font-size: 0.65em; letter-spacing: 1px; margin-bottom: 5px; color: var(--accent); text-transform: uppercase; }
         
         .grid-main { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 15px; margin-bottom: 20px; }
         .card { background: var(--bg-card); padding: 15px; border-radius: 12px; border: 1px solid #343a40; }
@@ -33,46 +31,30 @@
         .btn { padding: 8px 15px; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; font-size: 0.7em; }
         .btn-main { background: linear-gradient(135deg, var(--coral), var(--orange)); color: #000; width: 100%; font-size: 1.1em; margin-top: 10px; padding: 12px; display: block; text-align: center; }
         .btn-sec { background: #343a40; color: white; border: 1px solid #495057; }
-        .btn-danger { background: transparent; color: var(--coral); border: 1px solid var(--coral); }
         .btn-rev { background: var(--blue); color: #000; margin-right: 5px; }
 
         .table-container { background: var(--bg-card); border-radius: 12px; overflow: hidden; margin-top: 30px; border: 1px solid #343a40; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.82em; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
         th { background: #252a3d; color: var(--accent); padding: 12px; text-align: left; }
         td { padding: 12px; border-bottom: 1px solid #343a40; vertical-align: top; }
         
-        .badge-de { background: #000; padding: 4px 8px; border-radius: 6px; font-weight: bold; border: 1px solid #333; }
-        .ruta-box { background: rgba(0,0,0,0.4); padding: 8px; border-radius: 8px; margin-top: 8px; border: 1px solid #444; }
-        .check-point { display: block; padding: 6px; border-radius: 4px; margin-bottom: 4px; border: 1px solid #444; cursor: pointer; font-size: 0.9em; }
-        .check-point.selected { border-color: var(--success); background: rgba(81, 207, 102, 0.1); color: var(--success); }
-        .diff-tag { font-size: 0.8em; padding: 1px 4px; border-radius: 3px; font-weight: bold; }
-        .diff-plus { color: var(--success); } .diff-minus { color: var(--coral); }
+        .tendencia-tag { display: inline-block; padding: 4px 10px; border-radius: 4px; font-weight: bold; font-size: 0.9em; margin-top: 5px; }
+        .t-rojo { background: rgba(255, 107, 129, 0.2); color: #ff6b81; border: 1px solid #ff6b81; }
+        .t-verde { background: rgba(81, 207, 102, 0.2); color: #51cf66; border: 1px solid #51cf66; }
+        .t-azul { background: rgba(77, 171, 247, 0.2); color: #4dabf7; border: 1px solid #4dabf7; }
+        .t-amarillo { background: rgba(255, 183, 77, 0.2); color: #ffb74d; border: 1px solid #ffb74d; }
+        .t-sucio { background: rgba(141, 110, 99, 0.2); color: #8d6e63; border: 1px solid #8d6e63; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header">
-        <h1>ALPHA <span style="font-weight: 200; font-size: 0.5em;">v3.8 Precision Ink Control</span></h1>
+        <h1>ALPHA <span style="font-weight: 200; font-size: 0.5em;">v3.9 Tendencias Visuales</span></h1>
         <div style="display: flex; gap: 10px;">
             <button type="button" class="btn btn-sec" onclick="exportarProyecto()">Exportar .alpha</button>
             <input type="file" id="fileInput" style="display:none" onchange="importarProyecto(event)">
             <button type="button" class="btn btn-sec" onclick="document.getElementById('fileInput').click()">Cargar Proyecto</button>
-        </div>
-    </div>
-
-    <div class="project-config">
-        <div class="input-group">
-            <label>Proyecto / OT</label>
-            <input type="text" id="projName" placeholder="Nombre...">
-        </div>
-        <div class="input-group">
-            <label>Blanco de Tela (LAB)</label>
-            <div style="display: flex; gap: 5px;">
-                <input type="number" id="clothL" placeholder="L">
-                <input type="number" id="clothA" placeholder="a">
-                <input type="number" id="clothB" placeholder="b">
-            </div>
         </div>
     </div>
 
@@ -107,7 +89,7 @@
                 <input type="number" id="cY" placeholder="Y">
                 <input type="number" id="cK" placeholder="K">
             </div>
-            <button type="button" class="btn btn-main" id="btnProcesar" onclick="procesar()">CALCULAR E HISTORIAR</button>
+            <button type="button" class="btn btn-main" onclick="procesar()">ANALIZAR TENDENCIA</button>
         </div>
     </div>
 
@@ -116,10 +98,9 @@
             <thead>
                 <tr>
                     <th>Hora</th>
-                    <th>Color / CMYK</th>
-                    <th>Cambio</th>
+                    <th>Identificación</th>
                     <th>ΔE</th>
-                    <th>Corrección CMYK Sugerida</th>
+                    <th>Estado y Tendencia Visual</th>
                     <th>Acción</th>
                 </tr>
             </thead>
@@ -129,8 +110,7 @@
 </div>
 
 <script>
-    let proyecto = { nombre: "", tela: {L:0,a:0,b:0}, colores: [] };
-    let cmykPrevio = null;
+    let proyecto = { nombre: "", colores: [] };
     let editandoId = null;
 
     function procesar() {
@@ -138,18 +118,12 @@
         const r1L = parseFloat(document.getElementById('r1L').value);
         const mL = parseFloat(document.getElementById('mL').value);
 
-        if (isNaN(r1L) || isNaN(mL)) {
-            alert("LAB de Referencia y Muestra obligatorios.");
-            return;
-        }
+        if (isNaN(r1L) || isNaN(mL)) return alert("Datos LAB incompletos.");
 
-        const r1a = val('r1a'), r1b = val('r1b');
         const r2L = parseFloat(document.getElementById('r2L').value);
-        const r2a = val('r2a'), r2b = val('r2b');
-
         const fRefL = !isNaN(r2L) ? (r1L + r2L) / 2 : r1L;
-        const fRefA = !isNaN(r2a) ? (r1a + r2a) / 2 : r1a;
-        const fRefB = !isNaN(r2b) ? (r1b + r2b) / 2 : r1b;
+        const fRefA = !isNaN(val('r2a')) ? (val('r1a') + val('r2a')) / 2 : val('r1a');
+        const fRefB = !isNaN(val('r2b')) ? (val('r1b') + val('r2b')) / 2 : val('r1b');
 
         const ma = val('ma'), mb = val('mb');
         const dE = Math.sqrt(Math.pow(mL - fRefL, 2) + Math.pow(ma - fRefA, 2) + Math.pow(mb - fRefB, 2)).toFixed(2);
@@ -158,130 +132,86 @@
         const db = mb - fRefB;
         const dL = mL - fRefL;
 
-        let cuadranteTxt = "";
-        let ajustes = [];
+        let tendenciaPrincipal = "";
+        let claseCSS = "";
+        let suciedad = dL < -1.0 ? " Sucio/Oscuro" : (dL > 1.0 ? " Lavado/Claro" : "");
 
-        // LÓGICA DE AJUSTE POR CANAL SEPARADO
-        if (dL > 0.5) ajustes.push("Subir K/C/M/Y +1.5% (Oscurecer)");
-        else if (dL < -0.5) ajustes.push("Bajar K/C/M/Y -1.5% (Aclarar)");
-
-        if (da > 0.4) { cuadranteTxt += "Sobra Rojo. "; ajustes.push("Subir Cyan +1.0% / Bajar Magenta -0.5%"); }
-        else if (da < -0.4) { cuadranteTxt += "Sobra Verde. "; ajustes.push("Subir Magenta +1.0% / Bajar Cyan -0.5%"); }
-        
-        if (db > 0.4) { cuadranteTxt += "Sobra Amar. "; ajustes.push("Bajar Amarillo -1.0%"); }
-        else if (db < -0.4) { cuadranteTxt += "Sobra Azul. "; ajustes.push("Subir Amarillo +1.0%"); }
-
-        const curC = val('cC'), curM = val('cM'), curY = val('cY'), curK = val('cK');
-
-        let compHTML = "";
-        if (cmykPrevio) {
-            const dif = (n, p) => {
-                let d = (n - p).toFixed(1);
-                return d == 0 ? "" : (d > 0 ? `<span class="diff-tag diff-plus">+${d}%</span>` : `<span class="diff-tag diff-minus">${d}%</span>`);
-            };
-            compHTML = `C${dif(curC, cmykPrevio.C)} M${dif(curM, cmykPrevio.M)} Y${dif(curY, cmykPrevio.Y)} K${dif(curK, cmykPrevio.K)}`;
+        if (Math.abs(da) > Math.abs(db)) {
+            if (da > 0.4) { tendenciaPrincipal = "Rojizo" + suciedad; claseCSS = "t-rojo"; }
+            else if (da < -0.4) { tendenciaPrincipal = "Verdoso" + suciedad; claseCSS = "t-verde"; }
+        } else {
+            if (db > 0.4) { tendenciaPrincipal = "Amarillento" + suciedad; claseCSS = "t-amarillo"; }
+            else if (db < -0.4) { tendenciaPrincipal = "Azulado" + suciedad; claseCSS = "t-azul"; }
         }
 
-        let rutasDisp = ajustes.map((aj, idx) => ({ id: idx, t: aj }));
+        if (!tendenciaPrincipal && Math.abs(dL) > 0.8) {
+            tendenciaPrincipal = dL < 0 ? "Grisáceo Sucio" : "Grisáceo Pálido";
+            claseCSS = "t-sucio";
+        }
 
         const colorObj = {
             id: editandoId || Date.now(),
             nombre: document.getElementById('mName').value || "Muestra",
-            lab: { r1L, r1a, r1b, r2L, r2a, r2b, mL, ma, mb },
             de: dE,
-            cuadrante: cuadranteTxt || "Margen Óptimo",
-            cmyk: { curC, curM, curY, curK },
-            cambio: compHTML || "Inicial",
-            rutas: rutasDisp,
-            rutaElegida: null
+            tendencia: tendenciaPrincipal || "Color en Punto",
+            clase: claseCSS || "t-verde",
+            cmyk: { C: val('cC'), M: val('cM'), Y: val('cY'), K: val('cK') },
+            lab: { r1L, r1a: val('r1a'), r1b: val('r1b'), mL, ma, mb }
         };
 
         if (editandoId) {
             const idx = proyecto.colores.findIndex(c => c.id === editandoId);
             proyecto.colores[idx] = colorObj;
             editandoId = null;
-            document.getElementById('btnProcesar').innerText = "CALCULAR E HISTORIAR";
         } else {
             proyecto.colores.unshift(colorObj);
         }
 
-        cmykPrevio = null;
         render();
         limpiar();
     }
 
     function render() {
         const tbody = document.getElementById('cuerpoTabla');
-        if (!tbody) return;
-        
-        tbody.innerHTML = proyecto.colores.map(c => {
-            const ck = c.cmyk || {curC:0, curM:0, curY:0, curK:0};
-            return `
+        tbody.innerHTML = proyecto.colores.map(c => `
             <tr>
                 <td><small>${new Date(c.id).toLocaleTimeString()}</small></td>
-                <td><strong>${c.nombre}</strong><br><small>C:${ck.curC} M:${ck.curM} Y:${ck.curY} K:${ck.curK}</small></td>
-                <td>${c.cambio}</td>
-                <td><span class="badge-de" style="color:${c.de > 1.2 ? 'var(--coral)' : 'var(--success)'}">${c.de}</span></td>
+                <td><strong>${c.nombre}</strong><br><small>C:${c.cmyk.C} M:${c.cmyk.M} Y:${c.cmyk.Y} K:${c.cmyk.K}</small></td>
+                <td><span style="color:${c.de > 1.0 ? 'var(--coral)' : 'var(--success)'}; font-weight:bold">${c.de}</span></td>
                 <td>
-                    <span style="color:var(--blue); font-weight:bold; font-size: 0.9em;">${c.cuadrante}</span>
-                    <div class="ruta-box">
-                        ${(c.rutas || []).map(r => `
-                            <div class="check-point ${c.rutaElegida === r.id ? 'selected' : ''}" onclick="marcarRuta(${c.id}, ${r.id})">
-                                ${c.rutaElegida === r.id ? '✓ ' : ''}${r.t}
-                            </div>
-                        `).join('')}
-                    </div>
+                    <div class="tendencia-tag ${c.clase}">${c.tendencia}</div>
                 </td>
                 <td>
-                    <button type="button" class="btn btn-rev" onclick="revalidar(${c.id})">REV</button>
-                    <button type="button" class="btn btn-danger" onclick="eliminar(${c.id})">✕</button>
+                    <button class="btn btn-rev" onclick="revalidar(${c.id})">REV</button>
                 </td>
-            </tr>`;
-        }).join('');
+            </tr>`).join('');
     }
 
     function revalidar(id) {
         const c = proyecto.colores.find(col => col.id === id);
         if(!c) return;
-        const ck = c.cmyk || {curC:0, curM:0, curY:0, curK:0};
-        const lb = c.lab || {};
-
-        editandoId = id;
-        cmykPrevio = { C: ck.curC, M: ck.curM, Y: ck.curY, K: ck.curK };
-        
-        document.getElementById('r1L').value = lb.r1L; document.getElementById('r1a').value = lb.r1a; document.getElementById('r1b').value = lb.r1b;
-        document.getElementById('r2L').value = lb.r2L || ""; document.getElementById('r2a').value = lb.r2a || ""; document.getElementById('r2b').value = lb.r2b || "";
+        document.getElementById('r1L').value = c.lab.r1L;
         document.getElementById('mName').value = c.nombre;
-        document.getElementById('mL').value = lb.mL; document.getElementById('ma').value = lb.ma; document.getElementById('mb').value = lb.mb;
-        document.getElementById('cC').value = ck.curC; document.getElementById('cM').value = ck.curM;
-        document.getElementById('cY').value = ck.curY; document.getElementById('cK').value = ck.curK;
-        
-        document.getElementById('btnProcesar').innerText = "ACTUALIZAR REGISTRO";
+        document.getElementById('mL').value = c.lab.mL;
+        document.getElementById('ma').value = c.lab.ma;
+        document.getElementById('mb').value = c.lab.mb;
+        document.getElementById('cC').value = c.cmyk.C;
+        document.getElementById('cM').value = c.cmyk.M;
+        document.getElementById('cY').value = c.cmyk.Y;
+        document.getElementById('cK').value = c.cmyk.K;
+        editandoId = id;
         window.scrollTo(0,0);
     }
 
-    function marcarRuta(colorId, rutaId) {
-        const col = proyecto.colores.find(c => c.id === colorId);
-        if(col) { col.rutaElegida = rutaId; render(); }
-    }
-
-    function eliminar(id) {
-        proyecto.colores = proyecto.colores.filter(c => c.id !== id);
-        render();
-    }
-
     function limpiar() {
-        ['r1L','r1a','r1b','r2L','r2a','r2b','mName','mL','ma','mb','cC','cM','cY','cK'].forEach(id => {
-            const el = document.getElementById(id); if(el) el.value = "";
-        });
+        ['mName','mL','ma','mb','cC','cM','cY','cK'].forEach(id => document.getElementById(id).value = "");
     }
 
     function exportarProyecto() {
-        proyecto.nombre = document.getElementById('projName').value || "Alpha_v38";
         const blob = new Blob([JSON.stringify(proyecto)], {type: "application/json"});
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = proyecto.nombre + ".alpha";
+        a.download = "Proyecto_Alpha.alpha";
         a.click();
     }
 
@@ -289,7 +219,6 @@
         const reader = new FileReader();
         reader.onload = (ev) => {
             proyecto = JSON.parse(ev.target.result);
-            document.getElementById('projName').value = proyecto.nombre || "";
             render();
         };
         reader.readAsText(e.target.files[0]);
