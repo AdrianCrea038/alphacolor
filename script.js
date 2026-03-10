@@ -1,12 +1,11 @@
-let proyecto = { nombre: "", colores: [] };
-let editandoId = null;
+// ... (Mantén las variables iniciales y la función val igual)
 
 function procesar() {
     const val = (id) => parseFloat(document.getElementById(id).value) || 0;
     
     const r1L = parseFloat(document.getElementById('r1L').value);
     const mL = parseFloat(document.getElementById('mL').value);
-    if (isNaN(r1L) || isNaN(mL)) return alert("Faltan valores LAB de Referencia o Muestra");
+    if (isNaN(r1L) || isNaN(mL)) return alert("Faltan valores LAB");
 
     const r2L = parseFloat(document.getElementById('r2L').value);
     const fRefL = !isNaN(r2L) ? (r1L + r2L) / 2 : r1L;
@@ -21,11 +20,53 @@ function procesar() {
 
     const CMYK = { C: val('cC'), M: val('cM'), Y: val('cY'), K: val('cK') };
 
-    // --- LÓGICA DE RUTAS Y COMPENSACIÓN AL 100% ---
+    // --- CÁLCULO DE RUTAS CON PORCENTAJES ESPECÍFICOS ---
     let rutas = [];
     
-    // Tendencia Visual
-    let tendencia = "Color OK";
+    // 1. Eje Rojo/Verde (Delta a)
+    if (da > 0.4) { // Sobra Rojo / Falta Cyan
+        if (CMYK.C >= 100) {
+            rutas.push("C al 100%: BAJAR Magenta -2.0% y Amarillo -1.0%");
+        } else {
+            let ajuste = dE > 2.0 ? "+3.0%" : "+1.5%";
+            rutas.push(`SUBIR Cyan ${ajuste}`);
+        }
+    } else if (da < -0.4) { // Sobra Verde / Falta Magenta
+        if (CMYK.M >= 100) {
+            rutas.push("M al 100%: BAJAR Cyan -2.0% y Amarillo -1.0%");
+        } else {
+            let ajuste = dE > 2.0 ? "+2.5%" : "+1.2%";
+            rutas.push(`SUBIR Magenta ${ajuste}`);
+        }
+    }
+
+    // 2. Eje Amarillo/Azul (Delta b)
+    if (db > 0.4) { // Sobra Amarillo
+        let ajuste = dE > 2.0 ? "-3.0%" : "-1.5%";
+        rutas.push(`BAJAR Amarillo ${ajuste}`);
+    } else if (db < -0.4) { // Sobra Azul / Falta Amarillo
+        if (CMYK.Y >= 100) {
+            rutas.push("Y al 100%: BAJAR Cyan -1.0% y Magenta -1.0%");
+        } else {
+            let ajuste = dE > 2.0 ? "+3.0%" : "+2.0%";
+            rutas.push(`SUBIR Amarillo ${ajuste}`);
+        }
+    }
+
+    // 3. Luminosidad (Delta L)
+    if (dL > 0.7) { // Muy Claro
+        if (CMYK.K >= 100) {
+            rutas.push("K al 100%: SUBIR C, M, Y (+1.5%) para densificar");
+        } else {
+            let ajuste = dE > 1.5 ? "+1.5%" : "+0.8%";
+            rutas.push(`SUBIR Negro (K) ${ajuste}`);
+        }
+    } else if (dL < -0.7) { // Muy Oscuro
+        rutas.push("BAJAR Negro (K) -1.0% o reducir CMY general");
+    }
+
+    // --- TENDENCIA VISUAL ---
+    let tendencia = "Color en Punto";
     let clase = "t-verde";
     if (Math.abs(da) > Math.abs(db)) {
         if (da > 0.4) { tendencia = "Rojizo"; clase = "t-rojo"; }
@@ -34,45 +75,14 @@ function procesar() {
         if (db > 0.4) { tendencia = "Amarillento"; clase = "t-amar"; }
         else if (db < -0.4) { tendencia = "Azulado"; clase = "t-azul"; }
     }
-
-    // Generar Rutas basadas en límites
-    if (da > 0.4) { // Sobra Rojo (Falta Cyan)
-        if (CMYK.C >= 100) {
-            rutas.push("C al 100%: COMPENSAR Bajando Magenta -2% y Amarillo -1%");
-        } else {
-            rutas.push("Subir Cyan +1.5%");
-        }
-    } else if (da < -0.4) { // Sobra Verde (Falta Magenta)
-        if (CMYK.M >= 100) {
-            rutas.push("M al 100%: COMPENSAR Bajando Cyan -2%");
-        } else {
-            rutas.push("Subir Magenta +1.5%");
-        }
-    }
-
-    if (db > 0.4) { // Sobra Amarillo (Bajar Amarillo)
-        rutas.push("Bajar Amarillo -1.5%");
-    } else if (db < -0.4) { // Sobra Azul (Falta Amarillo)
-        if (CMYK.Y >= 100) {
-            rutas.push("Y al 100%: COMPENSAR Bajando Magenta -1% y Cyan -1%");
-        } else {
-            rutas.push("Subir Amarillo +2.0%");
-        }
-    }
-
-    if (dL > 0.8) { // Muy Claro
-        if (CMYK.K >= 100) {
-            rutas.push("K al 100%: Subir C, M, Y (+1%) para ganar densidad");
-        } else {
-            rutas.push("Subir Negro (K) +1.0%");
-        }
-    }
+    if (dL < -0.8) tendencia += " Sucio";
+    if (dL > 0.8) tendencia += " Pálido";
 
     const registro = {
         id: editandoId || Date.now(),
-        nombre: document.getElementById('mName').value || "Color",
+        nombre: document.getElementById('mName').value || "Muestra",
         de: dE,
-        tendencia: tendencia + (dL < -0.8 ? " Sucio" : (dL > 0.8 ? " Pálido" : "")),
+        tendencia: tendencia,
         clase: clase,
         cmyk: CMYK,
         rutas: rutas.map(r => ({ texto: r, chequeado: false })),
@@ -91,65 +101,4 @@ function procesar() {
     render();
     limpiar();
 }
-
-function render() {
-    const tbody = document.getElementById('cuerpoTabla');
-    tbody.innerHTML = proyecto.colores.map(c => `
-        <tr>
-            <td><small>${new Date(c.id).toLocaleTimeString()}</small></td>
-            <td><strong>${c.nombre}</strong><br><small>C:${c.cmyk.C} M:${c.cmyk.M} Y:${c.cmyk.Y} K:${c.cmyk.K}</small></td>
-            <td><b style="color:${c.de > 1.0 ? 'var(--coral)' : 'var(--success)'}">${c.de}</b></td>
-            <td>
-                <span class="tendencia-tag ${c.clase}">${c.tendencia}</span>
-                <div class="rutas-container">
-                    ${c.rutas.map((r, i) => `
-                        <label class="ruta-item ${r.chequeado ? 'done' : ''}">
-                            <input type="checkbox" ${r.chequeado ? 'checked' : ''} 
-                                   onchange="toggleCheck(${c.id}, ${i})"> 
-                            ${r.texto}
-                        </label>
-                    `).join('')}
-                </div>
-            </td>
-            <td>
-                <button class="btn btn-rev" onclick="revalidar(${c.id})">REV</button>
-                <button class="btn btn-del" onclick="eliminar(${c.id})">✕</button>
-            </td>
-        </tr>`).join('');
-}
-
-function toggleCheck(colorId, rutaIdx) {
-    const col = proyecto.colores.find(c => c.id === colorId);
-    if(col) {
-        col.rutas[rutaIdx].chequeado = !col.rutas[rutaIdx].chequeado;
-        render();
-    }
-}
-
-function revalidar(id) {
-    const c = proyecto.colores.find(col => col.id === id);
-    if(!c) return;
-    editandoId = id;
-    const lb = c.lab;
-    const ck = c.cmyk;
-    document.getElementById('r1L').value = lb.r1L; document.getElementById('r1a').value = lb.r1a; document.getElementById('r1b').value = lb.r1b;
-    document.getElementById('r2L').value = lb.r2L || "";
-    document.getElementById('mName').value = c.nombre;
-    document.getElementById('mL').value = lb.mL; document.getElementById('ma').value = lb.ma; document.getElementById('mb').value = lb.mb;
-    document.getElementById('cC').value = ck.C; document.getElementById('cM').value = ck.M;
-    document.getElementById('cY').value = ck.Y; document.getElementById('cK').value = ck.K;
-    document.getElementById('btnProcesar').innerText = "ACTUALIZAR REGISTRO";
-    window.scrollTo(0,0);
-}
-
-function eliminar(id) {
-    if(confirm("¿Eliminar este color?")) {
-        proyecto.colores = proyecto.colores.filter(c => c.id !== id);
-        render();
-    }
-}
-
-function limpiar() {
-    ['mName','mL','ma','mb','cC','cM','cY','cK'].forEach(id => document.getElementById(id).value = "");
-}
-// Las funciones de exportar/importar/nuevo se mantienen igual...
+// ... (Mantén las funciones render, revalidar, eliminar y toggleCheck que ya tienes)
