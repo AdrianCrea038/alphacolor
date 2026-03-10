@@ -2,248 +2,77 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALPHA v3.9.1 - Data Guard</title>
-    <style>
-        :root {
-            --bg-page: #0f111a;
-            --bg-card: #1a1d29;
-            --accent: #40e0d0;
-            --coral: #ff6b81;
-            --orange: #ffb74d;
-            --text: #ced4da;
-            --success: #51cf66;
-            --blue: #4dabf7;
-            --dirty: #8d6e63;
-        }
-
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-page); color: var(--text); margin: 0; padding: 20px; }
-        .container { max-width: 1400px; margin: auto; }
-        
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--accent); padding-bottom: 15px; margin-bottom: 20px; }
-        
-        .grid-main { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-        .card { background: var(--bg-card); padding: 15px; border-radius: 12px; border: 1px solid #343a40; }
-        .card h3 { color: var(--accent); font-size: 0.8em; text-transform: uppercase; margin-top: 0; border-bottom: 1px solid #343a40; padding-bottom: 5px; margin-bottom: 10px; }
-        
-        input { width: 100%; background: #0f111a; border: 1px solid #343a40; color: white; padding: 10px; border-radius: 5px; margin-bottom: 8px; box-sizing: border-box; }
-        
-        .btn { padding: 8px 15px; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; font-size: 0.7em; }
-        .btn-main { background: linear-gradient(135deg, var(--coral), var(--orange)); color: #000; width: 100%; font-size: 1.1em; margin-top: 10px; padding: 12px; display: block; text-align: center; }
-        .btn-sec { background: #343a40; color: white; border: 1px solid #495057; }
-        .btn-rev { background: var(--blue); color: #000; margin-right: 5px; }
-
-        .table-container { background: var(--bg-card); border-radius: 12px; overflow: hidden; margin-top: 30px; border: 1px solid #343a40; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
-        th { background: #252a3d; color: var(--accent); padding: 12px; text-align: left; }
-        td { padding: 12px; border-bottom: 1px solid #343a40; vertical-align: top; }
-        
-        .tendencia-tag { display: inline-block; padding: 4px 10px; border-radius: 4px; font-weight: bold; font-size: 0.9em; margin-top: 5px; }
-        .t-rojo { background: rgba(255, 107, 129, 0.2); color: #ff6b81; border: 1px solid #ff6b81; }
-        .t-verde { background: rgba(81, 207, 102, 0.2); color: #51cf66; border: 1px solid #51cf66; }
-        .t-azul { background: rgba(77, 171, 247, 0.2); color: #4dabf7; border: 1px solid #4dabf7; }
-        .t-amarillo { background: rgba(255, 183, 77, 0.2); color: #ffb74d; border: 1px solid #ffb74d; }
-        .t-sucio { background: rgba(141, 110, 99, 0.2); color: #8d6e63; border: 1px solid #8d6e63; }
-    </style>
+    <title>ALPHA v4.0 - Professional Split</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div class="container">
+        <div class="header">
+            <h1>ALPHA <span class="version">v4.0</span></h1>
+            <div class="actions">
+                <button class="btn btn-sec" onclick="exportarProyecto()">Exportar .alpha</button>
+                <input type="file" id="fileInput" hidden onchange="importarProyecto(event)">
+                <button class="btn btn-sec" onclick="document.getElementById('fileInput').click()">Cargar</button>
+                <button class="btn btn-danger" onclick="nuevoProyecto()">Nuevo Proyecto</button>
+            </div>
+        </div>
 
-<div class="container">
-    <div class="header">
-        <h1>ALPHA <span style="font-weight: 200; font-size: 0.5em;">v3.9.1 Stabilized</span></h1>
-        <div style="display: flex; gap: 10px;">
-            <button type="button" class="btn btn-sec" onclick="exportarProyecto()">Exportar .alpha</button>
-            <input type="file" id="fileInput" style="display:none" onchange="importarProyecto(event)">
-            <button type="button" class="btn btn-sec" onclick="document.getElementById('fileInput').click()">Cargar Proyecto</button>
+        <div class="project-config">
+            <input type="text" id="projName" placeholder="Nombre del Proyecto / OT">
+        </div>
+
+        <div class="grid-main">
+            <div class="card">
+                <h3>1. Referencia (LAB)</h3>
+                <div class="input-row">
+                    <input type="number" id="r1L" placeholder="L1" step="0.01">
+                    <input type="number" id="r1a" placeholder="a1" step="0.01">
+                    <input type="number" id="r1b" placeholder="b1" step="0.01">
+                </div>
+                <div class="input-row">
+                    <input type="number" id="r2L" placeholder="L2 (Opc)" step="0.01">
+                    <input type="number" id="r2a" placeholder="a2" step="0.01">
+                    <input type="number" id="r2b" placeholder="b2" step="0.01">
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>2. Muestra Actual</h3>
+                <input type="text" id="mName" placeholder="ID de Color">
+                <div class="input-row">
+                    <input type="number" id="mL" placeholder="L" step="0.01">
+                    <input type="number" id="ma" placeholder="a" step="0.01">
+                    <input type="number" id="mb" placeholder="b" step="0.01">
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>3. CMYK (%)</h3>
+                <div class="input-grid">
+                    <input type="number" id="cC" placeholder="C">
+                    <input type="number" id="cM" placeholder="M">
+                    <input type="number" id="cY" placeholder="Y">
+                    <input type="number" id="cK" placeholder="K">
+                </div>
+                <button class="btn btn-main" id="btnProcesar" onclick="procesar()">CALCULAR TENDENCIA</button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Hora</th>
+                        <th>Color / CMYK</th>
+                        <th>ΔE</th>
+                        <th>Tendencia Visual</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="cuerpoTabla"></tbody>
+            </table>
         </div>
     </div>
-
-    <div class="grid-main">
-        <div class="card">
-            <h3>1. Referencia (Objetivo)</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px;">
-                <input type="number" id="r1L" placeholder="L1" step="0.01">
-                <input type="number" id="r1a" placeholder="a1" step="0.01">
-                <input type="number" id="r1b" placeholder="b1" step="0.01">
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: 5px;">
-                <input type="number" id="r2L" placeholder="L2" step="0.01">
-                <input type="number" id="r2a" placeholder="a2" step="0.01">
-                <input type="number" id="r2b" placeholder="b2" step="0.01">
-            </div>
-        </div>
-        <div class="card">
-            <h3>2. Muestra Actual</h3>
-            <input type="text" id="mName" placeholder="ID Color">
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px;">
-                <input type="number" id="mL" placeholder="L" step="0.01">
-                <input type="number" id="ma" placeholder="a" step="0.01">
-                <input type="number" id="mb" placeholder="b" step="0.01">
-            </div>
-        </div>
-        <div class="card">
-            <h3>3. CMYK (%)</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
-                <input type="number" id="cC" placeholder="C">
-                <input type="number" id="cM" placeholder="M">
-                <input type="number" id="cY" placeholder="Y">
-                <input type="number" id="cK" placeholder="K">
-            </div>
-            <button type="button" class="btn btn-main" onclick="procesar()">ANALIZAR TENDENCIA</button>
-        </div>
-    </div>
-
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>Hora</th>
-                    <th>Identificación</th>
-                    <th>ΔE</th>
-                    <th>Estado y Tendencia Visual</th>
-                    <th>Acción</th>
-                </tr>
-            </thead>
-            <tbody id="cuerpoTabla"></tbody>
-        </table>
-    </div>
-</div>
-
-<script>
-    let proyecto = { nombre: "", colores: [] };
-    let editandoId = null;
-
-    function procesar() {
-        const val = (id) => parseFloat(document.getElementById(id).value) || 0;
-        const r1L = parseFloat(document.getElementById('r1L').value);
-        const mL = parseFloat(document.getElementById('mL').value);
-
-        if (isNaN(r1L) || isNaN(mL)) return alert("Datos LAB incompletos.");
-
-        const r2L = parseFloat(document.getElementById('r2L').value);
-        const fRefL = !isNaN(r2L) ? (r1L + r2L) / 2 : r1L;
-        const fRefA = !isNaN(val('r2a')) ? (val('r1a') + val('r2a')) / 2 : val('r1a');
-        const fRefB = !isNaN(val('r2b')) ? (val('r1b') + val('r2b')) / 2 : val('r1b');
-
-        const ma = val('ma'), mb = val('mb');
-        const dE = Math.sqrt(Math.pow(mL - fRefL, 2) + Math.pow(ma - fRefA, 2) + Math.pow(mb - fRefB, 2)).toFixed(2);
-
-        const da = ma - fRefA; 
-        const db = mb - fRefB;
-        const dL = mL - fRefL;
-
-        let tendenciaPrincipal = "";
-        let claseCSS = "";
-        let suciedad = dL < -1.0 ? " Sucio/Oscuro" : (dL > 1.0 ? " Lavado/Claro" : "");
-
-        if (Math.abs(da) > Math.abs(db)) {
-            if (da > 0.4) { tendenciaPrincipal = "Rojizo" + suciedad; claseCSS = "t-rojo"; }
-            else if (da < -0.4) { tendenciaPrincipal = "Verdoso" + suciedad; claseCSS = "t-verde"; }
-        } else {
-            if (db > 0.4) { tendenciaPrincipal = "Amarillento" + suciedad; claseCSS = "t-amarillo"; }
-            else if (db < -0.4) { tendenciaPrincipal = "Azulado" + suciedad; claseCSS = "t-azul"; }
-        }
-
-        if (!tendenciaPrincipal && Math.abs(dL) > 0.8) {
-            tendenciaPrincipal = dL < 0 ? "Grisáceo Sucio" : "Grisáceo Pálido";
-            claseCSS = "t-sucio";
-        }
-
-        const colorObj = {
-            id: editandoId || Date.now(),
-            nombre: document.getElementById('mName').value || "Muestra",
-            de: dE,
-            tendencia: tendenciaPrincipal || "Color en Punto",
-            clase: claseCSS || "t-verde",
-            cmyk: { C: val('cC'), M: val('cM'), Y: val('cY'), K: val('cK') },
-            lab: { r1L, r1a: val('r1a'), r1b: val('r1b'), mL, ma, mb }
-        };
-
-        if (editandoId) {
-            const idx = proyecto.colores.findIndex(c => c.id === editandoId);
-            proyecto.colores[idx] = colorObj;
-            editandoId = null;
-        } else {
-            proyecto.colores.unshift(colorObj);
-        }
-
-        render();
-        limpiar();
-    }
-
-    function render() {
-        const tbody = document.getElementById('cuerpoTabla');
-        if (!tbody) return;
-
-        tbody.innerHTML = proyecto.colores.map(c => {
-            // SOLUCIÓN AL ERROR DE CONSOLA: Validación de CMYK
-            const ck = c.cmyk || { C: 0, M: 0, Y: 0, K: 0 };
-            
-            return `
-            <tr>
-                <td><small>${new Date(c.id).toLocaleTimeString()}</small></td>
-                <td><strong>${c.nombre || 'S/N'}</strong><br><small>C:${ck.C} M:${ck.M} Y:${ck.Y} K:${ck.K}</small></td>
-                <td><span style="color:${c.de > 1.0 ? 'var(--coral)' : 'var(--success)'}; font-weight:bold">${c.de || 0}</span></td>
-                <td>
-                    <div class="tendencia-tag ${c.clase || 't-verde'}">${c.tendencia || 'Sin tendencia'}</div>
-                </td>
-                <td>
-                    <button class="btn btn-rev" onclick="revalidar(${c.id})">REV</button>
-                </td>
-            </tr>`;
-        }).join('');
-    }
-
-    function revalidar(id) {
-        const c = proyecto.colores.find(col => col.id === id);
-        if(!c) return;
-        
-        const ck = c.cmyk || { C: 0, M: 0, Y: 0, K: 0 };
-        const lb = c.lab || { r1L: 0, r1a: 0, r1b: 0, mL: 0, ma: 0, mb: 0 };
-
-        document.getElementById('r1L').value = lb.r1L || "";
-        document.getElementById('mName').value = c.nombre || "";
-        document.getElementById('mL').value = lb.mL || "";
-        document.getElementById('ma').value = lb.ma || "";
-        document.getElementById('mb').value = lb.mb || "";
-        document.getElementById('cC').value = ck.C || 0;
-        document.getElementById('cM').value = ck.M || 0;
-        document.getElementById('cY').value = ck.Y || 0;
-        document.getElementById('cK').value = ck.K || 0;
-        editandoId = id;
-        window.scrollTo(0,0);
-    }
-
-    function limpiar() {
-        ['mName','mL','ma','mb','cC','cM','cY','cK'].forEach(id => {
-            const el = document.getElementById(id);
-            if(el) el.value = "";
-        });
-    }
-
-    function exportarProyecto() {
-        const blob = new Blob([JSON.stringify(proyecto)], {type: "application/json"});
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = "Proyecto_Alpha.alpha";
-        a.click();
-    }
-
-    function importarProyecto(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            try {
-                const data = JSON.parse(ev.target.result);
-                if (data && Array.isArray(data.colores)) {
-                    proyecto = data;
-                    render();
-                }
-            } catch(e) { alert("Archivo no válido."); }
-        };
-        reader.readAsText(file);
-    }
-</script>
+    <script src="script.js"></script>
 </body>
 </html>
