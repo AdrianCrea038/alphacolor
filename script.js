@@ -1,6 +1,6 @@
 /**
- * ALPHA COLOR SYSTEM - v4.5
- * Sistema de ajuste de color profesional con Alerta de Precisión
+ * ALPHA COLOR SYSTEM - v4.6
+ * Lógica Simplificada: 2 Rutas Máximas y Referencia Única.
  */
 
 // VARIABLES GLOBALES
@@ -8,92 +8,72 @@ let proyecto = { nombre: "", colores: [] };
 let editandoId = null;
 
 /**
- * Función Principal de Cálculo: 
- * Gestiona tendencias, compensación de Negro (K) y Alerta de Precisión.
+ * Función Principal de Cálculo
  */
 function procesar() {
-    console.log("Iniciando cálculo...");
-
     const val = (id) => {
         const el = document.getElementById(id);
         return el ? parseFloat(el.value) || 0 : 0;
     };
     
-    // Validar entradas obligatorias
-    const r1L = parseFloat(document.getElementById('r1L').value);
-    const mL = parseFloat(document.getElementById('mL').value);
+    // Referencia Única (L1, a1, b1)
+    const rL = parseFloat(document.getElementById('r1L').value);
+    const ra = val('r1a');
+    const rb = val('r1b');
     
-    if (isNaN(r1L) || isNaN(mL)) {
-        alert("Error: Debes ingresar al menos L1 de Referencia y L de la Muestra.");
+    // Muestra
+    const mL = parseFloat(document.getElementById('mL').value);
+    const ma = val('ma');
+    const mb = val('mb');
+    
+    if (isNaN(rL) || isNaN(mL)) {
+        alert("Error: Ingresa los valores 'L' de Referencia y Muestra.");
         return;
     }
 
-    // Promedios de Referencia
-    const r2L = parseFloat(document.getElementById('r2L').value);
-    const fRefL = !isNaN(r2L) ? (r1L + r2L) / 2 : r1L;
-    const fRefA = !isNaN(val('r2a')) ? (val('r1a') + val('r2a')) / 2 : val('r1a');
-    const fRefB = !isNaN(val('r2b')) ? (val('r1b') + val('r2b')) / 2 : val('r1b');
-
-    // Diferenciales y Cálculo de Delta E
-    const ma = val('ma'), mb = val('mb');
-    const dE = Math.sqrt(Math.pow(mL - fRefL, 2) + Math.pow(ma - fRefA, 2) + Math.pow(mb - fRefB, 2)).toFixed(2);
-    const da = ma - fRefA; 
-    const db = mb - fRefB;
-    const dL = mL - fRefL;
+    // Cálculos de Diferencia
+    const dL = mL - rL;
+    const da = ma - ra; 
+    const db = mb - rb;
+    const dE = Math.sqrt(Math.pow(dL, 2) + Math.pow(da, 2) + Math.pow(db, 2)).toFixed(2);
 
     const CMYK = { C: val('cC'), M: val('cM'), Y: val('cY'), K: val('cK') };
-    let rutas = [];
+    let todasLasRutas = [];
 
-    // --- LÓGICA DE COMPENSACIÓN MATEMÁTICA ---
+    // --- GENERACIÓN DE RUTAS ---
     
-    // 1. Alerta por exceso de Negro (K) - Clave para colores oscuros
-    if (CMYK.K > 75 && dL < -0.5) {
-        rutas.push(`EXCESO DE CARGA: Bajar Negro (K) -3.0% para recuperar matiz`);
-    }
-
-    // 2. Eje Rojo/Verde (Delta a)
+    // Eje Rojo/Verde
     if (da > 0.4) { 
-        if (CMYK.C >= 98) {
-            rutas.push("C al límite: BAJAR Magenta -2.5% para neutralizar");
-        } else {
-            let ajuste = dE > 3 ? "+3.5%" : "+1.5%";
-            rutas.push(`SUBIR Cyan ${ajuste}`);
-        }
-    } else if (da < -0.4) { 
-        if (CMYK.M >= 98) {
-            rutas.push("M al límite: BAJAR Cyan -2.0% y Amar -1.0%");
-        } else {
-            let ajuste = dE > 3 ? "+4.0%" : "+2.0%"; 
-            rutas.push(`SUBIR Magenta ${ajuste}`);
-        }
+        todasLasRutas.push({ prioridad: Math.abs(da), texto: CMYK.C >= 98 ? "Bajar Magenta -2.0%" : `Subir Cyan ${dE > 3 ? '+3.0%' : '+1.5%'}` });
+    } else if (da < -0.4) {
+        todasLasRutas.push({ prioridad: Math.abs(da), texto: CMYK.M >= 98 ? "Bajar Cyan -2.0%" : `Subir Magenta ${dE > 3 ? '+3.5%' : '+1.8%'}` });
     }
 
-    // 3. Eje Amarillo/Azul (Delta b)
-    if (db > 0.4) { 
-        let ajuste = dE > 3 ? "-4.0%" : "-1.5%";
-        rutas.push(`BAJAR Amarillo ${ajuste}`);
-    } else if (db < -0.4) { 
-        if (CMYK.Y >= 98) {
-            rutas.push("Y al límite: BAJAR Magenta -1.5% y Cyan -1.5%");
-        } else {
-            let ajuste = dE > 3 ? "+3.5%" : "+2.0%";
-            rutas.push(`SUBIR Amarillo ${ajuste}`);
-        }
+    // Eje Amarillo/Azul
+    if (db > 0.4) {
+        todasLasRutas.push({ prioridad: Math.abs(db), texto: `Bajar Amarillo ${dE > 3 ? '-3.5%' : '-1.5%'}` });
+    } else if (db < -0.4) {
+        todasLasRutas.push({ prioridad: Math.abs(db), texto: CMYK.Y >= 98 ? "Bajar Cyan -1.0% y Mag -1.0%" : `Subir Amarillo ${dE > 3 ? '+3.0%' : '+1.8%'}` });
     }
 
-    // 4. Ajuste por Luminosidad (L)
-    if (dL > 0.7 && CMYK.K < 95) {
-        rutas.push(`SUBIR Negro (K) +1.2% (Color Pálido)`);
-    } else if (dL < -0.7 && CMYK.K > 15) {
-        rutas.push(`BAJAR Negro (K) -2.5% (Color Muy Oscuro)`);
+    // Luminosidad (Negro)
+    if (dL > 0.6) {
+        todasLasRutas.push({ prioridad: Math.abs(dL), texto: `Subir Negro (K) +1.5%` });
+    } else if (dL < -0.6) {
+        todasLasRutas.push({ prioridad: Math.abs(dL), texto: `Bajar Negro (K) -2.0%` });
     }
 
-    // --- ALERTA DE PRECISIÓN (ΔE < 1.0) ---
+    // --- FILTRAR SOLO LAS 2 RUTAS MÁS IMPORTANTES ---
+    let rutasFinales = todasLasRutas
+        .sort((a, b) => b.prioridad - a.prioridad)
+        .slice(0, 2)
+        .map(r => ({ texto: r.texto, chequeado: false }));
+
     if (dE < 1.0) {
-        rutas.unshift(`✨ PRECISIÓN ALTA: El color está en rango aceptable (ΔE < 1.0)`);
+        rutasFinales.unshift({ texto: "✨ Color en rango óptimo", chequeado: false });
     }
 
-    // --- DETERMINAR TENDENCIA VISUAL ---
+    // Tendencia Visual
     let tendencia = "En Punto";
     let clase = "t-verde";
     if (Math.abs(da) > Math.abs(db)) {
@@ -103,21 +83,15 @@ function procesar() {
         if (db > 0.4) { tendencia = "Amarillento"; clase = "t-amar"; }
         else if (db < -0.4) { tendencia = "Azulado"; clase = "t-azul"; }
     }
-    if (dL < -0.8) tendencia += " Sucio"; else if (dL > 0.8) tendencia += " Pálido";
 
-    // Crear Registro
     const registro = {
         id: editandoId || Date.now(),
         nombre: document.getElementById('mName').value || "Muestra",
-        de: dE,
-        tendencia: tendencia,
-        clase: clase,
-        cmyk: CMYK,
-        rutas: rutas.map(r => ({ texto: r, chequeado: false })),
-        lab: { r1L, r1a: val('r1a'), r1b: val('r1b'), r2L, r2a: val('r2a'), r2b: val('r2b'), mL, ma, mb }
+        de: dE, tendencia, clase, cmyk: CMYK,
+        rutas: rutasFinales,
+        lab: { rL, ra, rb, mL, ma, mb }
     };
 
-    // Guardar o Actualizar
     if (editandoId) {
         const idx = proyecto.colores.findIndex(c => c.id === editandoId);
         if (idx !== -1) proyecto.colores[idx] = registro;
@@ -128,16 +102,35 @@ function procesar() {
     }
 
     render();
-    limpiar();
+    limpiarCamposNuevo();
 }
 
 /**
- * Dibuja la tabla de resultados
+ * Función NUEVO: Limpia TODO (Referencia, Muestra y CMYK)
  */
+function limpiarCamposNuevo() {
+    editandoId = null;
+    const btn = document.getElementById('btnProcesar');
+    if (btn) btn.innerText = "CALCULAR";
+
+    // Todos los IDs posibles en el HTML
+    const ids = [
+        'r1L', 'r1a', 'r1b', 'r2L', 'r2a', 'r2b', 
+        'mName', 'mL', 'ma', 'mb', 
+        'cC', 'cM', 'cY', 'cK'
+    ];
+
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
+    });
+    
+    console.log("Limpieza total completada.");
+}
+
 function render() {
     const tbody = document.getElementById('cuerpoTabla');
     if (!tbody) return;
-
     tbody.innerHTML = proyecto.colores.map(c => `
         <tr>
             <td><small>${new Date(c.id).toLocaleTimeString()}</small></td>
@@ -160,26 +153,18 @@ function render() {
         </tr>`).join('');
 }
 
-/**
- * Funciones de Gestión y Limpieza
- */
 function toggleCheck(colorId, rutaIdx) {
     const col = proyecto.colores.find(c => c.id === colorId);
-    if(col) {
-        col.rutas[rutaIdx].chequeado = !col.rutas[rutaIdx].chequeado;
-        render();
-    }
+    if(col) { col.rutas[rutaIdx].chequeado = !col.rutas[rutaIdx].chequeado; render(); }
 }
 
 function revalidar(id) {
     const c = proyecto.colores.find(col => col.id === id);
     if(!c) return;
     editandoId = id;
-    
-    document.getElementById('r1L').value = c.lab.r1L;
-    document.getElementById('r1a').value = c.lab.r1a;
-    document.getElementById('r1b').value = c.lab.r1b;
-    document.getElementById('r2L').value = c.lab.r2L || "";
+    document.getElementById('r1L').value = c.lab.rL;
+    document.getElementById('r1a').value = c.lab.ra;
+    document.getElementById('r1b').value = c.lab.rb;
     document.getElementById('mName').value = c.nombre;
     document.getElementById('mL').value = c.lab.mL;
     document.getElementById('ma').value = c.lab.ma;
@@ -188,7 +173,6 @@ function revalidar(id) {
     document.getElementById('cM').value = c.cmyk.M;
     document.getElementById('cY').value = c.cmyk.Y;
     document.getElementById('cK').value = c.cmyk.K;
-
     document.getElementById('btnProcesar').innerText = "ACTUALIZAR";
     window.scrollTo(0,0);
 }
@@ -200,27 +184,11 @@ function eliminar(id) {
     }
 }
 
-function limpiarCamposNuevo() {
-    console.log("Limpiando campos...");
-    editandoId = null;
-    const btn = document.getElementById('btnProcesar');
-    if(btn) btn.innerText = "CALCULAR";
-    
-    const campos = ['mName','mL','ma','mb','cC','cM','cY','cK'];
-    campos.forEach(id => {
-        const el = document.getElementById(id);
-        if(el) el.value = "";
-    });
-}
-
-function limpiar() { 
-    limpiarCamposNuevo(); 
-}
-
 function nuevoProyecto() {
-    if(confirm("¿Nuevo Proyecto?")) {
+    if(confirm("¿Borrar todo el historial?")) {
         proyecto = { nombre: "", colores: [] };
         render();
+        limpiarCamposNuevo();
     }
 }
 
@@ -240,7 +208,7 @@ function importarProyecto(e) {
             proyecto = JSON.parse(ev.target.result);
             document.getElementById('projName').value = proyecto.nombre || "";
             render();
-        } catch(err) { alert("Archivo inválido"); }
+        } catch(err) { alert("Archivo no válido"); }
     };
     reader.readAsText(e.target.files[0]);
 }
