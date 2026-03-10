@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALPHA v3.2 - CheckPoint Edition</title>
+    <title>ALPHA v3.3 - Calculation Fix</title>
     <style>
         :root {
             --bg-page: #0f111a;
@@ -31,7 +31,7 @@
         input { width: 100%; background: #0f111a; border: 1px solid #343a40; color: white; padding: 10px; border-radius: 5px; margin-bottom: 8px; box-sizing: border-box; }
         
         .btn { padding: 8px 15px; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; font-size: 0.7em; }
-        .btn-main { background: linear-gradient(135deg, var(--coral), var(--orange)); color: #000; width: 100%; font-size: 1.1em; margin-top: 10px; padding: 12px; }
+        .btn-main { background: linear-gradient(135deg, var(--coral), var(--orange)); color: #000; width: 100%; font-size: 1.1em; margin-top: 10px; padding: 12px; cursor: pointer; }
         .btn-sec { background: #343a40; color: white; border: 1px solid #495057; }
         .btn-danger { background: transparent; color: var(--coral); border: 1px solid var(--coral); }
         .btn-rev { background: var(--blue); color: #000; margin-right: 5px; }
@@ -43,13 +43,11 @@
         
         .badge-de { background: #000; padding: 4px 8px; border-radius: 6px; font-weight: bold; border: 1px solid #333; }
         
-        /* Estilos Check Point */
         .ruta-box { background: rgba(0,0,0,0.4); padding: 8px; border-radius: 8px; margin-top: 8px; border: 1px solid #444; }
         .check-point { 
             display: block; padding: 6px; border-radius: 4px; margin-bottom: 4px; 
-            border: 1px solid #444; cursor: pointer; font-size: 0.9em; transition: 0.2s;
+            border: 1px solid #444; cursor: pointer; font-size: 0.9em; 
         }
-        .check-point:hover { background: #252a3d; border-color: var(--accent); }
         .check-point.selected { border-color: var(--success); background: rgba(81, 207, 102, 0.1); color: var(--success); }
         
         .diff-tag { font-size: 0.8em; padding: 1px 4px; border-radius: 3px; font-weight: bold; }
@@ -61,7 +59,7 @@
 
 <div class="container">
     <div class="header">
-        <h1>ALPHA <span style="font-weight: 200; font-size: 0.5em;">v3.2 CheckPoint Edition</span></h1>
+        <h1>ALPHA <span style="font-weight: 200; font-size: 0.5em;">v3.3 Fix & Quad</span></h1>
         <div style="display: flex; gap: 10px;">
             <button class="btn btn-sec" onclick="exportarProyecto()">Exportar .alpha</button>
             <input type="file" id="fileInput" style="display:none" onchange="importarProyecto(event)">
@@ -75,7 +73,7 @@
             <input type="text" id="projName" placeholder="Identificación...">
         </div>
         <div class="input-group">
-            <label>Medición Blanco de Tela (LAB)</label>
+            <label>Blanco de Tela (LAB)</label>
             <div style="display: flex; gap: 5px;">
                 <input type="number" id="clothL" placeholder="L">
                 <input type="number" id="clothA" placeholder="a">
@@ -86,14 +84,14 @@
 
     <div class="grid-main">
         <div class="card">
-            <h3>1. Referencia (Doble Medida)</h3>
+            <h3>1. Referencia (Objetivo)</h3>
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px;">
                 <input type="number" id="r1L" placeholder="L1" step="0.01">
                 <input type="number" id="r1a" placeholder="a1" step="0.01">
                 <input type="number" id="r1b" placeholder="b1" step="0.01">
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: 5px;">
-                <input type="number" id="r2L" placeholder="L2" step="0.01">
+                <input type="number" id="r2L" placeholder="L2 (Opc)" step="0.01">
                 <input type="number" id="r2a" placeholder="a2" step="0.01">
                 <input type="number" id="r2b" placeholder="b2" step="0.01">
             </div>
@@ -108,7 +106,7 @@
             </div>
         </div>
         <div class="card">
-            <h3>3. CMYK Actual (%)</h3>
+            <h3>3. CMYK (%)</h3>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
                 <input type="number" id="cC" placeholder="C">
                 <input type="number" id="cM" placeholder="M">
@@ -125,9 +123,9 @@
                 <tr>
                     <th>Fecha / Hora</th>
                     <th>Color / CMYK</th>
-                    <th>Comparativa</th>
+                    <th>Cambio</th>
                     <th>ΔE</th>
-                    <th>Análisis y Rutas (Check Point)</th>
+                    <th>Cuadrante & Check Point</th>
                     <th>Acción</th>
                 </tr>
             </thead>
@@ -142,21 +140,34 @@
     let editandoId = null;
 
     function procesar() {
+        // Captura de valores
         const r1L = parseFloat(document.getElementById('r1L').value);
-        const r2L = parseFloat(document.getElementById('r2L').value) || r1L;
-        const mL = parseFloat(document.getElementById('mL').value);
-        if (isNaN(r1L) || isNaN(mL)) return alert("Faltan datos LAB.");
-
-        const refL = (r1L + r2L) / 2;
-        const refA = (parseFloat(document.getElementById('r1a').value) + (parseFloat(document.getElementById('r2a').value) || parseFloat(document.getElementById('r1a').value))) / 2;
-        const refB = (parseFloat(document.getElementById('r1b').value) + (parseFloat(document.getElementById('r2b').value) || parseFloat(document.getElementById('r1b').value))) / 2;
+        const r1a = parseFloat(document.getElementById('r1a').value);
+        const r1b = parseFloat(document.getElementById('r1b').value);
         
-        const ma = parseFloat(document.getElementById('ma').value) || 0;
-        const mb = parseFloat(document.getElementById('mb').value) || 0;
-        const dE = Math.sqrt(Math.pow(mL-refL,2) + Math.pow(ma-refA,2) + Math.pow(mb-refB,2)).toFixed(2);
+        const mL = parseFloat(document.getElementById('mL').value);
+        const ma = parseFloat(document.getElementById('ma').value);
+        const mb = parseFloat(document.getElementById('mb').value);
 
-        // Análisis de Cuadrante
-        const da = ma - refA; const db = mb - refB;
+        // Validación básica: al menos una referencia y una muestra
+        if (isNaN(r1L) || isNaN(mL)) {
+            alert("Por favor ingresa al menos L de Referencia y L de Muestra.");
+            return;
+        }
+
+        // Lógica de promedio si existe segunda medida
+        const r2L = parseFloat(document.getElementById('r2L').value);
+        const r2a = parseFloat(document.getElementById('r2a').value);
+        const r2b = parseFloat(document.getElementById('r2b').value);
+
+        const finalRefL = !isNaN(r2L) ? (r1L + r2L) / 2 : r1L;
+        const finalRefA = !isNaN(r2a) ? (r1a + r2a) / 2 : r1a;
+        const finalRefB = !isNaN(r2b) ? (r1b + r2b) / 2 : r1b;
+
+        const dE = Math.sqrt(Math.pow(mL - finalRefL, 2) + Math.pow(ma - finalRefA, 2) + Math.pow(mb - finalRefB, 2)).toFixed(2);
+
+        // Cuadrante
+        const da = ma - finalRefA; const db = mb - finalRefB;
         let cuadrante = (da > 0.4 ? "Sobra Rojo. " : (da < -0.4 ? "Sobra Verde. " : "")) + 
                         (db > 0.4 ? "Sobra Amar. " : (db < -0.4 ? "Sobra Azul. " : ""));
 
@@ -165,7 +176,7 @@
         const curY = parseFloat(document.getElementById('cY').value) || 0;
         const curK = parseFloat(document.getElementById('cK').value) || 0;
 
-        // Comparativa de cambios
+        // Comparativa
         let compHTML = "";
         if (cmykPrevio) {
             const dif = (n, p) => {
@@ -176,35 +187,31 @@
             compHTML = `C${dif(curC, cmykPrevio.C)} M${dif(curM, cmykPrevio.M)} Y${dif(curY, cmykPrevio.Y)} K${dif(curK, cmykPrevio.K)}`;
         }
 
-        // Definir rutas si hay tope (Canal >= 98)
+        // Rutas automáticas
         let rutasDisp = [];
-        if (curC >= 98 || curM >= 98 || curY >= 98 || curK >= 98) {
-            if (curY >= 98) {
-                rutasDisp = [{id: 0, t: "Ruta A: Subir M +1.5% (Si sobra Verde)"}, {id: 1, t: "Ruta B: Subir K +0.8% (Oscurecer)"}];
-            } else {
-                rutasDisp = [{id: 0, t: "Ruta A: Subir canales secundarios +1.2%"}, {id: 1, t: "Ruta B: Ajuste manual complementario"}];
-            }
+        if (curY >= 98 || curK >= 98 || curC >= 98 || curM >= 98) {
+            rutasDisp = [{id: 0, t: "Ruta A: Neutralizar Cuadrante (+1.5% Opuesto)"}, {id: 1, t: "Ruta B: Reforzar K +1.0%"}];
         }
 
-        const colorObj = {
+        const nuevoColor = {
             id: editandoId || Date.now(),
             nombre: document.getElementById('mName').value || "Color",
-            lab: { r1L, r2L, r1a: parseFloat(document.getElementById('r1a').value), r2a: parseFloat(document.getElementById('r2a').value), r1b: parseFloat(document.getElementById('r1b').value), r2b: parseFloat(document.getElementById('r2b').value), mL, ma, mb },
+            lab: { r1L, r1a, r1b, r2L, r2a, r2b, mL, ma, mb },
             de: dE,
-            cuadrante: cuadrante || "Neutral",
+            cuadrante: cuadrante || "Tolerancia OK",
             cmyk: { curC, curM, curY, curK },
-            cambio: compHTML || "Inicial",
+            cambio: compHTML || "Inició",
             rutas: rutasDisp,
             rutaElegida: null
         };
 
         if (editandoId) {
             const idx = proyecto.colores.findIndex(c => c.id === editandoId);
-            proyecto.colores[idx] = colorObj;
+            proyecto.colores[idx] = nuevoColor;
             editandoId = null;
             document.getElementById('btnProcesar').innerText = "CALCULAR E HISTORIAR";
         } else {
-            proyecto.colores.unshift(colorObj);
+            proyecto.colores.unshift(nuevoColor);
         }
 
         cmykPrevio = null;
@@ -216,22 +223,6 @@
         const col = proyecto.colores.find(c => c.id === colorId);
         col.rutaElegida = rutaId;
         render();
-    }
-
-    function revalidar(id) {
-        editandoId = id;
-        const c = proyecto.colores.find(col => col.id === id);
-        cmykPrevio = { C: c.cmyk.curC, M: c.cmyk.curM, Y: c.cmyk.curY, K: c.cmyk.curK };
-        
-        document.getElementById('r1L').value = c.lab.r1L; document.getElementById('r2L').value = c.lab.r2L;
-        document.getElementById('r1a').value = c.lab.r1a; document.getElementById('r2a').value = c.lab.r2a;
-        document.getElementById('r1b').value = c.lab.r1b; document.getElementById('r2b').value = c.lab.r2b;
-        document.getElementById('mName').value = c.nombre;
-        document.getElementById('cC').value = c.cmyk.curC; document.getElementById('cM').value = c.cmyk.curM;
-        document.getElementById('cY').value = c.cmyk.curY; document.getElementById('cK').value = c.cmyk.curK;
-        
-        document.getElementById('btnProcesar').innerText = "ACTUALIZAR Y COMPARAR";
-        window.scrollTo(0,0);
     }
 
     function render() {
@@ -246,14 +237,13 @@
                     <span style="color:var(--blue); font-weight:bold">${c.cuadrante}</span>
                     ${c.rutas.length > 0 ? `
                         <div class="ruta-box">
-                            <small style="color:var(--orange); display:block; margin-bottom:5px;">⚠️ TOPE DETECTADO - ELIGE RUTA:</small>
                             ${c.rutas.map(r => `
                                 <div class="check-point ${c.rutaElegida === r.id ? 'selected' : ''}" onclick="marcarRuta(${c.id}, ${r.id})">
                                     ${c.rutaElegida === r.id ? '✓ ' : ''}${r.t}
                                 </div>
                             `).join('')}
                         </div>
-                    ` : '<br><small>Balance de canales OK</small>'}
+                    ` : ''}
                 </td>
                 <td>
                     <button class="btn btn-rev" onclick="revalidar(${c.id})">REV</button>
@@ -261,6 +251,22 @@
                 </td>
             </tr>
         `).join('');
+    }
+
+    function revalidar(id) {
+        editandoId = id;
+        const c = proyecto.colores.find(col => col.id === id);
+        cmykPrevio = { C: c.cmyk.curC, M: c.cmyk.curM, Y: c.cmyk.curY, K: c.cmyk.curK };
+        
+        document.getElementById('r1L').value = c.lab.r1L; document.getElementById('r1a').value = c.lab.r1a; document.getElementById('r1b').value = c.lab.r1b;
+        document.getElementById('r2L').value = c.lab.r2L || ""; document.getElementById('r2a').value = c.lab.r2a || ""; document.getElementById('r2b').value = c.lab.r2b || "";
+        document.getElementById('mName').value = c.nombre;
+        document.getElementById('mL').value = c.lab.mL; document.getElementById('ma').value = c.lab.ma; document.getElementById('mb').value = c.lab.mb;
+        document.getElementById('cC').value = c.cmyk.curC; document.getElementById('cM').value = c.cmyk.curM;
+        document.getElementById('cY').value = c.cmyk.curY; document.getElementById('cK').value = c.cmyk.curK;
+        
+        document.getElementById('btnProcesar').innerText = "ACTUALIZAR REGISTRO";
+        window.scrollTo(0,0);
     }
 
     function eliminar(id) {
@@ -273,7 +279,7 @@
     }
 
     function exportarProyecto() {
-        proyecto.nombre = document.getElementById('projName').value || "Alpha_v32";
+        proyecto.nombre = document.getElementById('projName').value || "Alpha_v33";
         proyecto.tela = { L: document.getElementById('clothL').value, a: document.getElementById('clothA').value, b: document.getElementById('clothB').value };
         const blob = new Blob([JSON.stringify(proyecto)], {type: "application/json"});
         const a = document.createElement('a');
@@ -285,9 +291,8 @@
     function importarProyecto(e) {
         const reader = new FileReader();
         reader.onload = (ev) => {
-            const data = JSON.parse(ev.target.result);
-            proyecto = data;
-            document.getElementById('projName').value = proyecto.nombre || "";
+            proyecto = JSON.parse(ev.target.result);
+            document.getElementById('projName').value = proyecto.nombre;
             if(proyecto.tela) {
                 document.getElementById('clothL').value = proyecto.tela.L;
                 document.getElementById('clothA').value = proyecto.tela.a;
