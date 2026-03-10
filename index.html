@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALPHA v3.3 - Calculation Fix</title>
+    <title>ALPHA v3.4 - Fix Final</title>
     <style>
         :root {
             --bg-page: #0f111a;
@@ -31,7 +31,7 @@
         input { width: 100%; background: #0f111a; border: 1px solid #343a40; color: white; padding: 10px; border-radius: 5px; margin-bottom: 8px; box-sizing: border-box; }
         
         .btn { padding: 8px 15px; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; font-size: 0.7em; }
-        .btn-main { background: linear-gradient(135deg, var(--coral), var(--orange)); color: #000; width: 100%; font-size: 1.1em; margin-top: 10px; padding: 12px; cursor: pointer; }
+        .btn-main { background: linear-gradient(135deg, var(--coral), var(--orange)); color: #000; width: 100%; font-size: 1.1em; margin-top: 10px; padding: 12px; display: block; text-align: center; }
         .btn-sec { background: #343a40; color: white; border: 1px solid #495057; }
         .btn-danger { background: transparent; color: var(--coral); border: 1px solid var(--coral); }
         .btn-rev { background: var(--blue); color: #000; margin-right: 5px; }
@@ -42,28 +42,22 @@
         td { padding: 12px; border-bottom: 1px solid #343a40; vertical-align: top; }
         
         .badge-de { background: #000; padding: 4px 8px; border-radius: 6px; font-weight: bold; border: 1px solid #333; }
-        
         .ruta-box { background: rgba(0,0,0,0.4); padding: 8px; border-radius: 8px; margin-top: 8px; border: 1px solid #444; }
-        .check-point { 
-            display: block; padding: 6px; border-radius: 4px; margin-bottom: 4px; 
-            border: 1px solid #444; cursor: pointer; font-size: 0.9em; 
-        }
+        .check-point { display: block; padding: 6px; border-radius: 4px; margin-bottom: 4px; border: 1px solid #444; cursor: pointer; font-size: 0.9em; }
         .check-point.selected { border-color: var(--success); background: rgba(81, 207, 102, 0.1); color: var(--success); }
-        
         .diff-tag { font-size: 0.8em; padding: 1px 4px; border-radius: 3px; font-weight: bold; }
-        .diff-plus { color: var(--success); }
-        .diff-minus { color: var(--coral); }
+        .diff-plus { color: var(--success); } .diff-minus { color: var(--coral); }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header">
-        <h1>ALPHA <span style="font-weight: 200; font-size: 0.5em;">v3.3 Fix & Quad</span></h1>
+        <h1>ALPHA <span style="font-weight: 200; font-size: 0.5em;">v3.4 Production Ready</span></h1>
         <div style="display: flex; gap: 10px;">
-            <button class="btn btn-sec" onclick="exportarProyecto()">Exportar .alpha</button>
+            <button type="button" class="btn btn-sec" onclick="exportarProyecto()">Exportar .alpha</button>
             <input type="file" id="fileInput" style="display:none" onchange="importarProyecto(event)">
-            <button class="btn btn-sec" onclick="document.getElementById('fileInput').click()">Cargar Proyecto</button>
+            <button type="button" class="btn btn-sec" onclick="document.getElementById('fileInput').click()">Cargar Proyecto</button>
         </div>
     </div>
 
@@ -91,14 +85,14 @@
                 <input type="number" id="r1b" placeholder="b1" step="0.01">
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: 5px;">
-                <input type="number" id="r2L" placeholder="L2 (Opc)" step="0.01">
+                <input type="number" id="r2L" placeholder="L2" step="0.01">
                 <input type="number" id="r2a" placeholder="a2" step="0.01">
                 <input type="number" id="r2b" placeholder="b2" step="0.01">
             </div>
         </div>
         <div class="card">
             <h3>2. Muestra Actual</h3>
-            <input type="text" id="mName" placeholder="ID del Color">
+            <input type="text" id="mName" placeholder="Nombre/ID Color">
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px;">
                 <input type="number" id="mL" placeholder="L" step="0.01">
                 <input type="number" id="ma" placeholder="a" step="0.01">
@@ -113,7 +107,7 @@
                 <input type="number" id="cY" placeholder="Y">
                 <input type="number" id="cK" placeholder="K">
             </div>
-            <button class="btn btn-main" id="btnProcesar" onclick="procesar()">CALCULAR E HISTORIAR</button>
+            <button type="button" class="btn btn-main" id="btnProcesar" onclick="procesar()">CALCULAR AHORA</button>
         </div>
     </div>
 
@@ -121,9 +115,9 @@
         <table>
             <thead>
                 <tr>
-                    <th>Fecha / Hora</th>
+                    <th>Hora</th>
                     <th>Color / CMYK</th>
-                    <th>Cambio</th>
+                    <th>Comparativa</th>
                     <th>ΔE</th>
                     <th>Cuadrante & Check Point</th>
                     <th>Acción</th>
@@ -140,43 +134,31 @@
     let editandoId = null;
 
     function procesar() {
-        // Captura de valores
-        const r1L = parseFloat(document.getElementById('r1L').value);
-        const r1a = parseFloat(document.getElementById('r1a').value);
-        const r1b = parseFloat(document.getElementById('r1b').value);
-        
-        const mL = parseFloat(document.getElementById('mL').value);
-        const ma = parseFloat(document.getElementById('ma').value);
-        const mb = parseFloat(document.getElementById('mb').value);
+        console.log("Iniciando proceso..."); // Para depuración en consola
 
-        // Validación básica: al menos una referencia y una muestra
+        const val = (id) => parseFloat(document.getElementById(id).value);
+
+        const r1L = val('r1L'), r1a = val('r1a'), r1b = val('r1b');
+        const mL = val('mL'), ma = val('ma'), mb = val('mb');
+
         if (isNaN(r1L) || isNaN(mL)) {
-            alert("Por favor ingresa al menos L de Referencia y L de Muestra.");
+            alert("Error: L de Referencia y L de Muestra son obligatorios.");
             return;
         }
 
-        // Lógica de promedio si existe segunda medida
-        const r2L = parseFloat(document.getElementById('r2L').value);
-        const r2a = parseFloat(document.getElementById('r2a').value);
-        const r2b = parseFloat(document.getElementById('r2b').value);
-
+        const r2L = val('r2L'), r2a = val('r2a'), r2b = val('r2b');
         const finalRefL = !isNaN(r2L) ? (r1L + r2L) / 2 : r1L;
         const finalRefA = !isNaN(r2a) ? (r1a + r2a) / 2 : r1a;
         const finalRefB = !isNaN(r2b) ? (r1b + r2b) / 2 : r1b;
 
-        const dE = Math.sqrt(Math.pow(mL - finalRefL, 2) + Math.pow(ma - finalRefA, 2) + Math.pow(mb - finalRefB, 2)).toFixed(2);
+        const dE = Math.sqrt(Math.pow(mL - finalRefL, 2) + Math.pow((ma||0) - finalRefA, 2) + Math.pow((mb||0) - finalRefB, 2)).toFixed(2);
 
-        // Cuadrante
-        const da = ma - finalRefA; const db = mb - finalRefB;
+        const da = (ma||0) - finalRefA; const db = (mb||0) - finalRefB;
         let cuadrante = (da > 0.4 ? "Sobra Rojo. " : (da < -0.4 ? "Sobra Verde. " : "")) + 
                         (db > 0.4 ? "Sobra Amar. " : (db < -0.4 ? "Sobra Azul. " : ""));
 
-        const curC = parseFloat(document.getElementById('cC').value) || 0;
-        const curM = parseFloat(document.getElementById('cM').value) || 0;
-        const curY = parseFloat(document.getElementById('cY').value) || 0;
-        const curK = parseFloat(document.getElementById('cK').value) || 0;
+        const curC = val('cC') || 0, curM = val('cM') || 0, curY = val('cY') || 0, curK = val('cK') || 0;
 
-        // Comparativa
         let compHTML = "";
         if (cmykPrevio) {
             const dif = (n, p) => {
@@ -187,20 +169,19 @@
             compHTML = `C${dif(curC, cmykPrevio.C)} M${dif(curM, cmykPrevio.M)} Y${dif(curY, cmykPrevio.Y)} K${dif(curK, cmykPrevio.K)}`;
         }
 
-        // Rutas automáticas
         let rutasDisp = [];
-        if (curY >= 98 || curK >= 98 || curC >= 98 || curM >= 98) {
-            rutasDisp = [{id: 0, t: "Ruta A: Neutralizar Cuadrante (+1.5% Opuesto)"}, {id: 1, t: "Ruta B: Reforzar K +1.0%"}];
+        if (curY >= 98 || curK >= 98 || curC >= 98 || curM >= 98 || dE > 1.5) {
+            rutasDisp = [{id: 0, t: "Ruta A: Neutralizar (+1.5% opuesto)"}, {id: 1, t: "Ruta B: Refuerzo K +1.0%"}];
         }
 
         const nuevoColor = {
             id: editandoId || Date.now(),
-            nombre: document.getElementById('mName').value || "Color",
+            nombre: document.getElementById('mName').value || "Muestra",
             lab: { r1L, r1a, r1b, r2L, r2a, r2b, mL, ma, mb },
             de: dE,
-            cuadrante: cuadrante || "Tolerancia OK",
+            cuadrante: cuadrante || "Dentro de margen",
             cmyk: { curC, curM, curY, curK },
-            cambio: compHTML || "Inició",
+            cambio: compHTML || "Inicial",
             rutas: rutasDisp,
             rutaElegida: null
         };
@@ -209,7 +190,7 @@
             const idx = proyecto.colores.findIndex(c => c.id === editandoId);
             proyecto.colores[idx] = nuevoColor;
             editandoId = null;
-            document.getElementById('btnProcesar').innerText = "CALCULAR E HISTORIAR";
+            document.getElementById('btnProcesar').innerText = "CALCULAR AHORA";
         } else {
             proyecto.colores.unshift(nuevoColor);
         }
@@ -219,17 +200,11 @@
         limpiar();
     }
 
-    function marcarRuta(colorId, rutaId) {
-        const col = proyecto.colores.find(c => c.id === colorId);
-        col.rutaElegida = rutaId;
-        render();
-    }
-
     function render() {
         const tbody = document.getElementById('cuerpoTabla');
         tbody.innerHTML = proyecto.colores.map(c => `
             <tr>
-                <td><small>${new Date(c.id).toLocaleString()}</small></td>
+                <td><small>${new Date(c.id).toLocaleTimeString()}</small></td>
                 <td><strong>${c.nombre}</strong><br><small>C:${c.cmyk.curC} M:${c.cmyk.curM} Y:${c.cmyk.curY} K:${c.cmyk.curK}</small></td>
                 <td>${c.cambio}</td>
                 <td><span class="badge-de" style="color:${c.de > 1.2 ? 'var(--coral)' : 'var(--success)'}">${c.de}</span></td>
@@ -246,11 +221,17 @@
                     ` : ''}
                 </td>
                 <td>
-                    <button class="btn btn-rev" onclick="revalidar(${c.id})">REV</button>
-                    <button class="btn btn-danger" onclick="eliminar(${c.id})">✕</button>
+                    <button type="button" class="btn btn-rev" onclick="revalidar(${c.id})">REV</button>
+                    <button type="button" class="btn btn-danger" onclick="eliminar(${c.id})">✕</button>
                 </td>
             </tr>
         `).join('');
+    }
+
+    function marcarRuta(colorId, rutaId) {
+        const col = proyecto.colores.find(c => c.id === colorId);
+        col.rutaElegida = rutaId;
+        render();
     }
 
     function revalidar(id) {
@@ -265,7 +246,7 @@
         document.getElementById('cC').value = c.cmyk.curC; document.getElementById('cM').value = c.cmyk.curM;
         document.getElementById('cY').value = c.cmyk.curY; document.getElementById('cK').value = c.cmyk.curK;
         
-        document.getElementById('btnProcesar').innerText = "ACTUALIZAR REGISTRO";
+        document.getElementById('btnProcesar').innerText = "ACTUALIZAR CAMBIOS";
         window.scrollTo(0,0);
     }
 
@@ -279,7 +260,7 @@
     }
 
     function exportarProyecto() {
-        proyecto.nombre = document.getElementById('projName').value || "Alpha_v33";
+        proyecto.nombre = document.getElementById('projName').value || "Alpha_v34";
         proyecto.tela = { L: document.getElementById('clothL').value, a: document.getElementById('clothA').value, b: document.getElementById('clothB').value };
         const blob = new Blob([JSON.stringify(proyecto)], {type: "application/json"});
         const a = document.createElement('a');
@@ -292,7 +273,7 @@
         const reader = new FileReader();
         reader.onload = (ev) => {
             proyecto = JSON.parse(ev.target.result);
-            document.getElementById('projName').value = proyecto.nombre;
+            document.getElementById('projName').value = proyecto.nombre || "";
             if(proyecto.tela) {
                 document.getElementById('clothL').value = proyecto.tela.L;
                 document.getElementById('clothA').value = proyecto.tela.a;
