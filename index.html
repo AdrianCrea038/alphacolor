@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALPHA v2.5 - Smart CMYK Validation</title>
+    <title>ALPHA v2.6 - Advanced Color Routing</title>
     <style>
         :root {
             --bg-page: #0f111a;
@@ -29,9 +29,11 @@
         
         input { width: 100%; background: #0f111a; border: 1px solid #343a40; color: white; padding: 10px; border-radius: 5px; margin-bottom: 8px; box-sizing: border-box; }
         
-        .btn { padding: 10px 20px; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; }
-        .btn-main { background: linear-gradient(135deg, var(--coral), var(--orange)); color: #000; width: 100%; font-size: 1.1em; margin-top: 10px; }
-        .btn-sec { background: #343a40; color: white; font-size: 0.75em; border: 1px solid #495057; }
+        .btn { padding: 8px 15px; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; font-size: 0.7em; }
+        .btn-main { background: linear-gradient(135deg, var(--coral), var(--orange)); color: #000; width: 100%; font-size: 1.1em; margin-top: 10px; padding: 12px; }
+        .btn-sec { background: #343a40; color: white; border: 1px solid #495057; }
+        .btn-danger { background: transparent; color: var(--coral); border: 1px solid var(--coral); margin-left: 5px; }
+        .btn-danger:hover { background: var(--coral); color: white; }
         
         .table-container { background: var(--bg-card); border-radius: 12px; overflow: hidden; margin-top: 30px; border: 1px solid #343a40; }
         table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
@@ -39,18 +41,16 @@
         td { padding: 15px; border-bottom: 1px solid #343a40; vertical-align: middle; }
         
         .badge-de { background: #000; padding: 4px 10px; border-radius: 6px; font-weight: bold; border: 1px solid #333; }
-        .revalidando-ui { border: 2px solid var(--orange) !important; background: #2d241a !important; }
-        
         .ruta-box { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; margin-top: 8px; border-left: 4px solid var(--orange); }
         .ruta-label { color: var(--orange); font-weight: bold; font-size: 0.75em; display: block; margin-bottom: 4px; text-transform: uppercase; }
-        .ruta-option { font-size: 0.9em; margin-bottom: 3px; display: block; }
+        .ruta-option { font-size: 0.85em; margin-bottom: 4px; display: block; line-height: 1.4; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header">
-        <h1>ALPHA <span style="font-weight: 200; font-size: 0.5em;">v2.5 Multi-Route Validation</span></h1>
+        <h1>ALPHA <span style="font-weight: 200; font-size: 0.5em;">v2.6 Routing & Clean</span></h1>
         <div style="display: flex; gap: 10px;">
             <button class="btn btn-sec" onclick="exportarProyecto()">Exportar .alpha</button>
             <input type="file" id="fileInput" style="display:none" onchange="importarProyecto(event)">
@@ -62,10 +62,10 @@
     <div class="project-config">
         <div class="input-group">
             <label>Nombre del Proyecto / OT</label>
-            <input type="text" id="projName" placeholder="Identificación del trabajo...">
+            <input type="text" id="projName" placeholder="Nombre del trabajo...">
         </div>
         <div class="input-group">
-            <label>Blanco de Tela (Proyecto)</label>
+            <label>Blanco de Tela</label>
             <div style="display: flex; gap: 8px;">
                 <input type="number" id="clothL" placeholder="L*">
                 <input type="number" id="clothA" placeholder="a*">
@@ -117,10 +117,10 @@
                 <tr>
                     <th>#</th>
                     <th>Color</th>
-                    <th>Estándar (Prom)</th>
-                    <th>Medición</th>
+                    <th>Estándar</th>
+                    <th>Muestra</th>
                     <th>ΔE</th>
-                    <th>Ajuste ALPHA & Rutas de Compensación</th>
+                    <th>Ajuste & Rutas Alternas</th>
                     <th>Acción</th>
                 </tr>
             </thead>
@@ -136,7 +136,7 @@
     function procesar() {
         const r1L = parseFloat(document.getElementById('r1L').value);
         const mL = parseFloat(document.getElementById('mL').value);
-        if (isNaN(r1L) || isNaN(mL)) return alert("Ingrese valores de referencia y muestra.");
+        if (isNaN(r1L) || isNaN(mL)) return alert("Datos LAB incompletos.");
 
         const refProm = {
             L: (r1L + (parseFloat(document.getElementById('r2L').value) || r1L)) / 2,
@@ -156,33 +156,32 @@
         const db = mb - refProm.b;
         const dE = Math.sqrt(dL*dL + da*da + db*db).toFixed(2);
 
-        // Ajuste Base
         let adjC = (dL * 0.4).toFixed(1);
         let adjM = (da * -1.6).toFixed(1);
         let adjY = (db * -1.6).toFixed(1);
         let adjK = (dL * 1.3).toFixed(1);
 
-        // Validación de Canales 100%
         let rutasHTML = `<span style="color:var(--accent); font-weight:bold">C:${adjC} M:${adjM} Y:${adjY} K:${adjK}</span>`;
         let colisiones = [];
-        if ((curC + parseFloat(adjC)) >= 100) colisiones.push("CIAN");
-        if ((curM + parseFloat(adjM)) >= 100) colisiones.push("MAGENTA");
-        if ((curY + parseFloat(adjY)) >= 100) colisiones.push("AMARILLO");
-        if ((curK + parseFloat(adjK)) >= 100) colisiones.push("NEGRO");
+        if ((curC + parseFloat(adjC)) >= 100) colisiones.push("C");
+        if ((curM + parseFloat(adjM)) >= 100) colisiones.push("M");
+        if ((curY + parseFloat(adjY)) >= 100) colisiones.push("Y");
+        if ((curK + parseFloat(adjK)) >= 100) colisiones.push("K");
 
         if (colisiones.length > 0) {
-            rutasHTML += `<div class="ruta-box"><span class="ruta-label">TOPE: ${colisiones.join(' + ')} AL 100%</span>`;
-            if (colisiones.includes("MAGENTA")) {
-                rutasHTML += `<span class="ruta-option"><strong>Ruta Tono:</strong> Baja Y -2.0% | Baja C -1.0%</span>`;
-                rutasHTML += `<span class="ruta-option"><strong>Ruta Prof:</strong> Sube K +1.5% | Baja C -2.0%</span>`;
-            } else if (colisiones.includes("CIAN")) {
-                rutasHTML += `<span class="ruta-option"><strong>Ruta Azul:</strong> Sube M +1.0% | Sube K +1.2%</span>`;
-                rutasHTML += `<span class="ruta-option"><strong>Ruta Limpia:</strong> Baja Y -1.5% (Evita verdosos)</span>`;
-            } else if (colisiones.includes("NEGRO")) {
-                rutasHTML += `<span class="ruta-option"><strong>Ruta CMY:</strong> Sube C, M, Y +1.5% parejo</span>`;
-                rutasHTML += `<span class="ruta-option"><strong>Ruta Contrast:</strong> Bajar C y M -1.2%</span>`;
-            } else {
-                rutasHTML += `<span class="ruta-option">Compensar subiendo canales secundarios +1.2%</span>`;
+            rutasHTML += `<div class="ruta-box"><span class="ruta-label">TOPE DETECTADO EN: ${colisiones.join(' + ')}</span>`;
+            
+            if (colisiones.includes("Y")) {
+                rutasHTML += `<span class="ruta-option"><strong>Ruta Naranja:</strong> Sube M +1.5% | Sube K +0.8%</span>`;
+                rutasHTML += `<span class="ruta-option"><strong>Ruta Verde:</strong> Sube C +1.2% | Sube K +0.5%</span>`;
+            } else if (colisiones.includes("M")) {
+                rutasHTML += `<span class="ruta-option"><strong>Ruta Violeta:</strong> Sube C +1.5% | Sube K +1.0%</span>`;
+                rutasHTML += `<span class="ruta-option"><strong>Ruta Roja:</strong> Sube Y +2.0% | Sube K +0.5%</span>`;
+            } else if (colisiones.includes("C")) {
+                rutasHTML += `<span class="ruta-option"><strong>Ruta Cyan-Deep:</strong> Sube K +1.8% | Sube M +0.8%</span>`;
+                rutasHTML += `<span class="ruta-option"><strong>Ruta Teal:</strong> Sube Y +1.0% | Sube K +0.6%</span>`;
+            } else if (colisiones.includes("K")) {
+                rutasHTML += `<span class="ruta-option"><strong>Ruta Rich Black:</strong> Sube C +1.5%, M +1.5%, Y +1.2%</span>`;
             }
             rutasHTML += `</div>`;
         }
@@ -194,10 +193,9 @@
             col.ajusteFull = rutasHTML;
             editandoId = null;
             document.getElementById('btnAccion').innerText = "CALCULAR RUTA";
-            document.getElementById('cardMuestra').classList.remove('revalidando-ui');
         } else {
             proyecto.colores.push({
-                id: proyecto.colores.length + 1,
+                id: Date.now(),
                 nombre: document.getElementById('mName').value || "Color " + (proyecto.colores.length + 1),
                 referencia: refProm,
                 muestra: { L: mL, a: ma, b: mb },
@@ -209,6 +207,13 @@
         limpiar();
     }
 
+    function eliminarColor(id) {
+        if(confirm("¿Seguro que deseas eliminar este color del proyecto?")) {
+            proyecto.colores = proyecto.colores.filter(c => c.id !== id);
+            render();
+        }
+    }
+
     function prepararReval(id) {
         editandoId = id;
         let col = proyecto.colores.find(c => c.id === id);
@@ -217,21 +222,23 @@
         document.getElementById('r1b').value = col.referencia.b;
         document.getElementById('mName').value = col.nombre;
         document.getElementById('btnAccion').innerText = "ACTUALIZAR COLOR";
-        document.getElementById('cardMuestra').classList.add('revalidando-ui');
         window.scrollTo(0,0);
     }
 
     function render() {
         const tbody = document.getElementById('cuerpoTabla');
-        tbody.innerHTML = proyecto.colores.map(c => `
+        tbody.innerHTML = proyecto.colores.map((c, index) => `
             <tr>
-                <td>${c.id}</td>
+                <td>${index + 1}</td>
                 <td><strong>${c.nombre}</strong></td>
-                <td>L:${c.referencia.L.toFixed(1)} a:${c.referencia.a.toFixed(1)} b:${c.referencia.b.toFixed(1)}</td>
-                <td>L:${c.muestra.L.toFixed(1)} a:${c.muestra.a.toFixed(1)} b:${c.muestra.b.toFixed(1)}</td>
+                <td>L:${c.referencia.L.toFixed(1)}</td>
+                <td>L:${c.muestra.L.toFixed(1)}</td>
                 <td><span class="badge-de" style="color:${c.delta < 1 ? 'var(--success)' : 'var(--coral)'}">${c.delta}</span></td>
                 <td>${c.ajusteFull}</td>
-                <td><button class="btn btn-sec" onclick="prepararReval(${c.id})">REVALIDAR</button></td>
+                <td>
+                    <button class="btn btn-sec" onclick="prepararReval(${c.id})">REV</button>
+                    <button class="btn btn-danger" onclick="eliminarColor(${c.id})">✕</button>
+                </td>
             </tr>
         `).join('');
     }
@@ -241,8 +248,7 @@
     }
 
     function exportarProyecto() {
-        proyecto.nombre = document.getElementById('projName').value || "Alpha_Project";
-        proyecto.tela = { L: document.getElementById('clothL').value, a: document.getElementById('clothA').value, b: document.getElementById('clothB').value };
+        proyecto.nombre = document.getElementById('projName').value || "Alpha_Export";
         const blob = new Blob([JSON.stringify(proyecto)], {type: "application/json"});
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -255,21 +261,18 @@
         reader.onload = (ev) => {
             proyecto = JSON.parse(ev.target.result);
             document.getElementById('projName').value = proyecto.nombre;
-            document.getElementById('clothL').value = proyecto.tela.L;
-            document.getElementById('clothA').value = proyecto.tela.a;
-            document.getElementById('clothB').value = proyecto.tela.b;
             render();
         };
         reader.readAsText(e.target.files[0]);
     }
 
     function guardarBorrador() {
-        localStorage.setItem('alpha_v25_save', JSON.stringify(proyecto));
+        localStorage.setItem('alpha_v26_save', JSON.stringify(proyecto));
         alert("Borrador guardado.");
     }
 
     window.onload = () => {
-        const d = localStorage.getItem('alpha_v25_save');
+        const d = localStorage.getItem('alpha_v26_save');
         if(d) { proyecto = JSON.parse(d); render(); }
     };
 </script>
