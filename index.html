@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALPHA v3.4 - Fix Final</title>
+    <title>ALPHA v3.5 - Anti-Error Build</title>
     <style>
         :root {
             --bg-page: #0f111a;
@@ -53,7 +53,7 @@
 
 <div class="container">
     <div class="header">
-        <h1>ALPHA <span style="font-weight: 200; font-size: 0.5em;">v3.4 Production Ready</span></h1>
+        <h1>ALPHA <span style="font-weight: 200; font-size: 0.5em;">v3.5 Final Patch</span></h1>
         <div style="display: flex; gap: 10px;">
             <button type="button" class="btn btn-sec" onclick="exportarProyecto()">Exportar .alpha</button>
             <input type="file" id="fileInput" style="display:none" onchange="importarProyecto(event)">
@@ -63,8 +63,8 @@
 
     <div class="project-config">
         <div class="input-group">
-            <label>Nombre del Proyecto / OT</label>
-            <input type="text" id="projName" placeholder="Identificación...">
+            <label>Proyecto / Orden de Trabajo</label>
+            <input type="text" id="projName" placeholder="Nombre...">
         </div>
         <div class="input-group">
             <label>Blanco de Tela (LAB)</label>
@@ -92,7 +92,7 @@
         </div>
         <div class="card">
             <h3>2. Muestra Actual</h3>
-            <input type="text" id="mName" placeholder="Nombre/ID Color">
+            <input type="text" id="mName" placeholder="ID Color">
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px;">
                 <input type="number" id="mL" placeholder="L" step="0.01">
                 <input type="number" id="ma" placeholder="a" step="0.01">
@@ -107,7 +107,7 @@
                 <input type="number" id="cY" placeholder="Y">
                 <input type="number" id="cK" placeholder="K">
             </div>
-            <button type="button" class="btn btn-main" id="btnProcesar" onclick="procesar()">CALCULAR AHORA</button>
+            <button type="button" class="btn btn-main" id="btnProcesar" onclick="procesar()">CALCULAR E HISTORIAR</button>
         </div>
     </div>
 
@@ -117,9 +117,9 @@
                 <tr>
                     <th>Hora</th>
                     <th>Color / CMYK</th>
-                    <th>Comparativa</th>
+                    <th>Cambio</th>
                     <th>ΔE</th>
-                    <th>Cuadrante & Check Point</th>
+                    <th>Cuadrante & Rutas</th>
                     <th>Acción</th>
                 </tr>
             </thead>
@@ -134,52 +134,50 @@
     let editandoId = null;
 
     function procesar() {
-        console.log("Iniciando proceso..."); // Para depuración en consola
-
         const val = (id) => parseFloat(document.getElementById(id).value);
-
-        const r1L = val('r1L'), r1a = val('r1a'), r1b = val('r1b');
-        const mL = val('mL'), ma = val('ma'), mb = val('mb');
+        const r1L = val('r1L'), mL = val('mL');
 
         if (isNaN(r1L) || isNaN(mL)) {
-            alert("Error: L de Referencia y L de Muestra son obligatorios.");
+            alert("Error: Faltan datos LAB de Referencia o Muestra.");
             return;
         }
 
+        const r1a = val('r1a')||0, r1b = val('r1b')||0;
         const r2L = val('r2L'), r2a = val('r2a'), r2b = val('r2b');
-        const finalRefL = !isNaN(r2L) ? (r1L + r2L) / 2 : r1L;
-        const finalRefA = !isNaN(r2a) ? (r1a + r2a) / 2 : r1a;
-        const finalRefB = !isNaN(r2b) ? (r1b + r2b) / 2 : r1b;
+        
+        const fRefL = !isNaN(r2L) ? (r1L + r2L) / 2 : r1L;
+        const fRefA = !isNaN(r2a) ? (r1a + r2a) / 2 : r1a;
+        const fRefB = !isNaN(r2b) ? (r1b + r2b) / 2 : r1b;
 
-        const dE = Math.sqrt(Math.pow(mL - finalRefL, 2) + Math.pow((ma||0) - finalRefA, 2) + Math.pow((mb||0) - finalRefB, 2)).toFixed(2);
+        const ma = val('ma')||0, mb = val('mb')||0;
+        const dE = Math.sqrt(Math.pow(mL - fRefL, 2) + Math.pow(ma - fRefA, 2) + Math.pow(mb - fRefB, 2)).toFixed(2);
 
-        const da = (ma||0) - finalRefA; const db = (mb||0) - finalRefB;
+        const da = ma - fRefA; const db = mb - fRefB;
         let cuadrante = (da > 0.4 ? "Sobra Rojo. " : (da < -0.4 ? "Sobra Verde. " : "")) + 
                         (db > 0.4 ? "Sobra Amar. " : (db < -0.4 ? "Sobra Azul. " : ""));
 
-        const curC = val('cC') || 0, curM = val('cM') || 0, curY = val('cY') || 0, curK = val('cK') || 0;
+        const curC = val('cC')||0, curM = val('cM')||0, curY = val('cY')||0, curK = val('cK')||0;
 
         let compHTML = "";
         if (cmykPrevio) {
             const dif = (n, p) => {
                 let d = (n - p).toFixed(1);
-                if (d == 0) return "";
-                return d > 0 ? `<span class="diff-tag diff-plus">+${d}%</span>` : `<span class="diff-tag diff-minus">${d}%</span>`;
+                return d == 0 ? "" : (d > 0 ? `<span class="diff-tag diff-plus">+${d}%</span>` : `<span class="diff-tag diff-minus">${d}%</span>`);
             };
             compHTML = `C${dif(curC, cmykPrevio.C)} M${dif(curM, cmykPrevio.M)} Y${dif(curY, cmykPrevio.Y)} K${dif(curK, cmykPrevio.K)}`;
         }
 
         let rutasDisp = [];
-        if (curY >= 98 || curK >= 98 || curC >= 98 || curM >= 98 || dE > 1.5) {
-            rutasDisp = [{id: 0, t: "Ruta A: Neutralizar (+1.5% opuesto)"}, {id: 1, t: "Ruta B: Refuerzo K +1.0%"}];
+        if (curY >= 98 || curK >= 98 || dE > 1.2) {
+            rutasDisp = [{id: 0, t: "Ruta A: Opuesto +1.5%"}, {id: 1, t: "Ruta B: Refuerzo K +1.0%"}];
         }
 
-        const nuevoColor = {
+        const colorObj = {
             id: editandoId || Date.now(),
             nombre: document.getElementById('mName').value || "Muestra",
             lab: { r1L, r1a, r1b, r2L, r2a, r2b, mL, ma, mb },
             de: dE,
-            cuadrante: cuadrante || "Dentro de margen",
+            cuadrante: cuadrante || "Margen OK",
             cmyk: { curC, curM, curY, curK },
             cambio: compHTML || "Inicial",
             rutas: rutasDisp,
@@ -188,11 +186,11 @@
 
         if (editandoId) {
             const idx = proyecto.colores.findIndex(c => c.id === editandoId);
-            proyecto.colores[idx] = nuevoColor;
+            proyecto.colores[idx] = colorObj;
             editandoId = null;
-            document.getElementById('btnProcesar').innerText = "CALCULAR AHORA";
+            document.getElementById('btnProcesar').innerText = "CALCULAR E HISTORIAR";
         } else {
-            proyecto.colores.unshift(nuevoColor);
+            proyecto.colores.unshift(colorObj);
         }
 
         cmykPrevio = null;
@@ -202,17 +200,25 @@
 
     function render() {
         const tbody = document.getElementById('cuerpoTabla');
-        tbody.innerHTML = proyecto.colores.map(c => `
+        if (!tbody) return;
+        
+        tbody.innerHTML = proyecto.colores.map(c => {
+            // Protección contra datos indefinidos (Error de consola fixed)
+            const cmyk = c.cmyk || {curC:0, curM:0, curY:0, curK:0};
+            const lab = c.lab || {};
+            const rutas = c.rutas || [];
+
+            return `
             <tr>
                 <td><small>${new Date(c.id).toLocaleTimeString()}</small></td>
-                <td><strong>${c.nombre}</strong><br><small>C:${c.cmyk.curC} M:${c.cmyk.curM} Y:${c.cmyk.curY} K:${c.cmyk.curK}</small></td>
-                <td>${c.cambio}</td>
-                <td><span class="badge-de" style="color:${c.de > 1.2 ? 'var(--coral)' : 'var(--success)'}">${c.de}</span></td>
+                <td><strong>${c.nombre || 'S/N'}</strong><br><small>C:${cmyk.curC} M:${cmyk.curM} Y:${cmyk.curY} K:${cmyk.curK}</small></td>
+                <td>${c.cambio || ''}</td>
+                <td><span class="badge-de" style="color:${c.de > 1.2 ? 'var(--coral)' : 'var(--success)'}">${c.de || 0}</span></td>
                 <td>
-                    <span style="color:var(--blue); font-weight:bold">${c.cuadrante}</span>
-                    ${c.rutas.length > 0 ? `
+                    <span style="color:var(--blue); font-weight:bold">${c.cuadrante || ''}</span>
+                    ${rutas.length > 0 ? `
                         <div class="ruta-box">
-                            ${c.rutas.map(r => `
+                            ${rutas.map(r => `
                                 <div class="check-point ${c.rutaElegida === r.id ? 'selected' : ''}" onclick="marcarRuta(${c.id}, ${r.id})">
                                     ${c.rutaElegida === r.id ? '✓ ' : ''}${r.t}
                                 </div>
@@ -224,19 +230,20 @@
                     <button type="button" class="btn btn-rev" onclick="revalidar(${c.id})">REV</button>
                     <button type="button" class="btn btn-danger" onclick="eliminar(${c.id})">✕</button>
                 </td>
-            </tr>
-        `).join('');
+            </tr>`;
+        }).join('');
     }
 
     function marcarRuta(colorId, rutaId) {
         const col = proyecto.colores.find(c => c.id === colorId);
-        col.rutaElegida = rutaId;
-        render();
+        if(col) { col.rutaElegida = rutaId; render(); }
     }
 
     function revalidar(id) {
         editandoId = id;
         const c = proyecto.colores.find(col => col.id === id);
+        if(!c) return;
+        
         cmykPrevio = { C: c.cmyk.curC, M: c.cmyk.curM, Y: c.cmyk.curY, K: c.cmyk.curK };
         
         document.getElementById('r1L').value = c.lab.r1L; document.getElementById('r1a').value = c.lab.r1a; document.getElementById('r1b').value = c.lab.r1b;
@@ -246,7 +253,7 @@
         document.getElementById('cC').value = c.cmyk.curC; document.getElementById('cM').value = c.cmyk.curM;
         document.getElementById('cY').value = c.cmyk.curY; document.getElementById('cK').value = c.cmyk.curK;
         
-        document.getElementById('btnProcesar').innerText = "ACTUALIZAR CAMBIOS";
+        document.getElementById('btnProcesar').innerText = "ACTUALIZAR REGISTRO";
         window.scrollTo(0,0);
     }
 
@@ -256,11 +263,14 @@
     }
 
     function limpiar() {
-        ['r1L','r1a','r1b','r2L','r2a','r2b','mName','mL','ma','mb','cC','cM','cY','cK'].forEach(id => document.getElementById(id).value = "");
+        ['r1L','r1a','r1b','r2L','r2a','r2b','mName','mL','ma','mb','cC','cM','cY','cK'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.value = "";
+        });
     }
 
     function exportarProyecto() {
-        proyecto.nombre = document.getElementById('projName').value || "Alpha_v34";
+        proyecto.nombre = document.getElementById('projName').value || "Alpha_v35";
         proyecto.tela = { L: document.getElementById('clothL').value, a: document.getElementById('clothA').value, b: document.getElementById('clothB').value };
         const blob = new Blob([JSON.stringify(proyecto)], {type: "application/json"});
         const a = document.createElement('a');
@@ -270,18 +280,30 @@
     }
 
     function importarProyecto(e) {
+        const file = e.target.files[0];
+        if (!file) return;
         const reader = new FileReader();
         reader.onload = (ev) => {
-            proyecto = JSON.parse(ev.target.result);
-            document.getElementById('projName').value = proyecto.nombre || "";
-            if(proyecto.tela) {
-                document.getElementById('clothL').value = proyecto.tela.L;
-                document.getElementById('clothA').value = proyecto.tela.a;
-                document.getElementById('clothB').value = proyecto.tela.b;
+            try {
+                const data = JSON.parse(ev.target.result);
+                // Validación de estructura mínima
+                if (data && Array.isArray(data.colores)) {
+                    proyecto = data;
+                    document.getElementById('projName').value = proyecto.nombre || "";
+                    if(proyecto.tela) {
+                        document.getElementById('clothL').value = proyecto.tela.L || "";
+                        document.getElementById('clothA').value = proyecto.tela.a || "";
+                        document.getElementById('clothB').value = proyecto.tela.b || "";
+                    }
+                    render();
+                } else {
+                    alert("El archivo no tiene el formato ALPHA correcto.");
+                }
+            } catch(err) {
+                alert("Error al leer el archivo JSON.");
             }
-            render();
         };
-        reader.readAsText(e.target.files[0]);
+        reader.readAsText(file);
     }
 </script>
 </body>
