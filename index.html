@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALPHA v2.8 - Quadrant Analysis & CheckPoints</title>
+    <title>ALPHA v2.8.1 - Fix & Quadrant</title>
     <style>
         :root {
             --bg-page: #0f111a;
@@ -25,7 +25,7 @@
         .input-group label { display: block; font-size: 0.65em; letter-spacing: 1px; margin-bottom: 5px; color: var(--accent); text-transform: uppercase; }
         
         .grid-main { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-        .card { background: var(--bg-card); padding: 15px; border-radius: 12px; border: 1px solid #343a40; position: relative; }
+        .card { background: var(--bg-card); padding: 15px; border-radius: 12px; border: 1px solid #343a40; }
         .card h3 { color: var(--accent); font-size: 0.8em; text-transform: uppercase; margin-top: 0; border-bottom: 1px solid #343a40; padding-bottom: 5px; margin-bottom: 10px; }
         
         input { width: 100%; background: #0f111a; border: 1px solid #343a40; color: white; padding: 10px; border-radius: 5px; margin-bottom: 8px; box-sizing: border-box; }
@@ -42,10 +42,10 @@
         
         .badge-de { background: #000; padding: 4px 8px; border-radius: 6px; font-weight: bold; border: 1px solid #333; }
         
-        /* Rutas y Cuadrantes */
-        .ruta-box { background: rgba(0,0,0,0.4); padding: 10px; border-radius: 8px; margin-top: 8px; border: 1px border solid #444; }
+        .ruta-box { background: rgba(0,0,0,0.4); padding: 10px; border-radius: 8px; margin-top: 8px; border: 1px solid #444; }
         .cuadrante-info { color: var(--blue); font-size: 0.85em; font-weight: bold; margin-bottom: 8px; display: block; border-bottom: 1px solid #333; padding-bottom: 4px; }
         
+        /* Check Point Mejorado */
         .check-point { 
             display: block; padding: 8px; border-radius: 6px; margin-bottom: 5px; 
             border: 1px solid #444; cursor: pointer; transition: 0.2s; background: #1a1d29;
@@ -54,16 +54,13 @@
         .check-point.selected { 
             border-color: var(--success); background: rgba(81, 207, 102, 0.1); color: var(--success);
         }
-        .check-point.selected::after { content: " [SELECCIONADO]"; font-size: 0.8em; font-weight: bold; }
-        
-        .small-label { font-size: 0.7em; color: #888; text-transform: uppercase; margin-bottom: 2px; display: block; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header">
-        <h1>ALPHA <span style="font-weight: 200; font-size: 0.5em;">v2.8 Quadrant Control</span></h1>
+        <h1>ALPHA <span style="font-weight: 200; font-size: 0.5em;">v2.8.1 Fix Loader</span></h1>
         <div style="display: flex; gap: 10px;">
             <button class="btn btn-sec" onclick="exportarProyecto()">Exportar .alpha</button>
             <input type="file" id="fileInput" style="display:none" onchange="importarProyecto(event)">
@@ -74,7 +71,7 @@
     <div class="project-config">
         <div class="input-group">
             <label>Nombre del Proyecto</label>
-            <input type="text" id="projName" placeholder="Ej: NIKE_BLACK_BATCH_01">
+            <input type="text" id="projName" placeholder="Identificación...">
         </div>
         <div class="input-group">
             <label>Blanco de Tela (LAB)</label>
@@ -120,12 +117,12 @@
         <table>
             <thead>
                 <tr>
-                    <th>#</th>
+                    <th>Hora</th>
                     <th>Color</th>
-                    <th>Delta E</th>
-                    <th>Análisis de Cuadrante</th>
+                    <th>ΔE</th>
+                    <th>Cuadrante / Análisis</th>
                     <th>Ajuste / Check Point</th>
-                    <th>Acción</th>
+                    <th>Eliminar</th>
                 </tr>
             </thead>
             <tbody id="cuerpoTabla"></tbody>
@@ -134,7 +131,7 @@
 </div>
 
 <script>
-    let proyecto = { nombre: "", colores: [] };
+    let proyecto = { nombre: "", tela: {L:0, a:0, b:0}, colores: [] };
 
     function procesar() {
         const rL = parseFloat(document.getElementById('rL').value);
@@ -151,40 +148,40 @@
         const db = mb - rb;
         const dE = Math.sqrt(dL*dL + da*da + db*db).toFixed(2);
 
-        // ANALISIS DE CUADRANTE
+        // ANALISIS DE CUADRANTE PARA DECISION
         let cuadranteMsg = "";
-        if (da > 0.5 && db > 0.5) cuadranteMsg = "CUADRANTE: Cálido (Hacia Rojo/Amarillo)";
-        else if (da < -0.5 && db > 0.5) cuadranteMsg = "CUADRANTE: Frío-Lima (Hacia Verde)";
-        else if (da < -0.5 && db < -0.5) cuadranteMsg = "CUADRANTE: Frío-Cyan (Hacia Azul)";
-        else if (da > 0.5 && db < -0.5) cuadranteMsg = "CUADRANTE: Cálido-Magenta (Hacia Violeta)";
-        else cuadranteMsg = "ZONA NEUTRAL: Desviación leve";
+        if (da > 0.4) cuadranteMsg += "Sobra Rojo (+a). ";
+        if (da < -0.4) cuadranteMsg += "Sobra Verde (-a). ";
+        if (db > 0.4) cuadranteMsg += "Sobra Amarillo (+b). ";
+        if (db < -0.4) cuadranteMsg += "Sobra Azul (-b). ";
+        if (cuadranteMsg === "") cuadranteMsg = "Neutral / En Tolerancia";
 
         const curC = parseFloat(document.getElementById('cC').value) || 0;
         const curM = parseFloat(document.getElementById('cM').value) || 0;
         const curY = parseFloat(document.getElementById('cY').value) || 0;
         const curK = parseFloat(document.getElementById('cK').value) || 0;
 
-        // Rutas Sugeridas si hay tope
+        // Generar Rutas Dinámicas
         let rutas = [];
         if (curK >= 98 || curY >= 98 || curM >= 98 || curC >= 98) {
             if (curY >= 98) {
                 rutas = [
-                    { t: "Ruta A: Reforzar con M +1.5% (Si el color se ve muy verdoso)", id: 0 },
-                    { t: "Ruta B: Reforzar con K +1.0% (Si el color está pálido/claro)", id: 1 }
+                    { t: "Ruta A: Subir M +1.5% (Si el cuadrante indica Sobra Verde)", id: 0 },
+                    { t: "Ruta B: Subir K +0.8% (Para oscurecer sin amarillear)", id: 1 }
                 ];
             } else if (curK >= 98) {
                 rutas = [
-                    { t: "Ruta A: Subir C+1.2% y M+0.8% (Para dar profundidad fría)", id: 0 },
-                    { t: "Ruta B: Subir M+1.0% y Y+1.0% (Para dar profundidad cálida)", id: 1 }
+                    { t: "Ruta A: CMY +1.2% parejo (Profundidad)", id: 0 },
+                    { t: "Ruta B: C +1.5% y M +1.0% (Si el cuadrante es Cálido)", id: 1 }
                 ];
             } else {
-                rutas = [{ t: "Subir canales complementarios +1.5%", id: 0 }];
+                rutas = [{ t: "Compensación Manual sugerida", id: 0 }];
             }
         }
 
         const nuevo = {
             id: Date.now(),
-            nombre: document.getElementById('mName').value || "Muestra",
+            nombre: document.getElementById('mName').value || "Color",
             de: dE,
             cuadrante: cuadranteMsg,
             cmyk: `C:${curC} M:${curM} Y:${curY} K:${curK}`,
@@ -201,7 +198,6 @@
         const col = proyecto.colores.find(c => c.id === colorId);
         col.rutaElegida = rutaId;
         render();
-        localStorage.setItem('alpha_v28_backup', JSON.stringify(proyecto));
     }
 
     function render() {
@@ -209,19 +205,19 @@
         tbody.innerHTML = proyecto.colores.map(c => `
             <tr>
                 <td><small>${new Date(c.id).toLocaleTimeString()}</small></td>
-                <td><strong>${c.nombre}</strong><br><small style="color:#666">${c.cmyk}</small></td>
+                <td><strong>${c.nombre}</strong><br><small>${c.cmyk || ''}</small></td>
                 <td><span class="badge-de" style="color:${c.de > 2 ? 'var(--coral)' : 'var(--success)'}">${c.de}</span></td>
-                <td><span class="cuadrante-info">${c.cuadrante}</span></td>
+                <td><span class="cuadrante-info">${c.cuadrante || 'Análisis no disponible'}</span></td>
                 <td>
                     <div class="ruta-box">
-                        ${c.rutas.length > 0 ? 
+                        ${c.rutas && c.rutas.length > 0 ? 
                             c.rutas.map(r => `
                                 <div class="check-point ${c.rutaElegida === r.id ? 'selected' : ''}" 
                                      onclick="marcarCheckPoint(${c.id}, ${r.id})">
-                                    ${r.t}
+                                    ${c.rutaElegida === r.id ? '✓ ' : ''}${r.t}
                                 </div>
                             `).join('') : 
-                            '<span style="color:var(--success)">Ajuste estándar OK</span>'
+                            '<span style="color:var(--success)">Sin colisión de canal</span>'
                         }
                     </div>
                 </td>
@@ -240,22 +236,38 @@
     }
 
     function exportarProyecto() {
+        proyecto.nombre = document.getElementById('projName').value || "Alpha_Export";
         const blob = new Blob([JSON.stringify(proyecto)], {type: "application/json"});
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = (document.getElementById('projName').value || "Proyecto") + ".alpha";
+        a.download = proyecto.nombre + ".alpha";
         a.click();
     }
 
+    // CARGA CORREGIDA: Ahora maneja archivos de versiones anteriores
     function importarProyecto(e) {
+        const file = e.target.files[0];
+        if (!file) return;
         const reader = new FileReader();
         reader.onload = (ev) => {
-            proyecto = JSON.parse(ev.target.result);
-            render();
+            try {
+                const data = JSON.parse(ev.target.result);
+                // Migración de datos viejos a v2.8
+                proyecto.nombre = data.nombre || "Proyecto Importado";
+                proyecto.colores = (data.colores || []).map(c => ({
+                    ...c,
+                    rutas: c.rutas || [],
+                    cuadrante: c.cuadrante || "Historial antiguo"
+                }));
+                document.getElementById('projName').value = proyecto.nombre;
+                render();
+            } catch(err) {
+                alert("Error: El archivo no es compatible o está dañado.");
+                console.error(err);
+            }
         };
-        reader.readAsText(e.target.files[0]);
+        reader.readAsText(file);
     }
 </script>
-
 </body>
 </html>
