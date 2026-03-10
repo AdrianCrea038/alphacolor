@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALPHA v2.3 - Full Lab Control</title>
+    <title>ALPHA v2.4 - Full Control & Routes</title>
     <style>
         :root {
             --bg-page: #0f111a;
@@ -12,6 +12,7 @@
             --coral: #ff6b81;
             --orange: #ffb74d;
             --text: #ced4da;
+            --success: #51cf66;
         }
 
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg-page); color: var(--text); margin: 0; padding: 20px; }
@@ -19,38 +20,41 @@
         
         .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--accent); padding-bottom: 15px; margin-bottom: 20px; }
         
-        /* Sección Superior: Proyecto y Tela */
+        /* Configuración Global */
         .project-config { background: var(--bg-card); padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #343a40; display: grid; grid-template-columns: 2fr 1.5fr; gap: 20px; }
         .input-group label { display: block; font-size: 0.65em; letter-spacing: 1px; margin-bottom: 5px; color: var(--accent); text-transform: uppercase; }
         
-        /* Grid de Trabajo */
+        /* Grid Principal */
         .grid-main { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-        .card { background: var(--bg-card); padding: 15px; border-radius: 12px; border: 1px solid #343a40; position: relative; }
+        .card { background: var(--bg-card); padding: 15px; border-radius: 12px; border: 1px solid #343a40; transition: 0.3s; }
         .card h3 { color: var(--accent); font-size: 0.8em; text-transform: uppercase; margin-top: 0; border-bottom: 1px solid #343a40; padding-bottom: 5px; margin-bottom: 10px; }
         
-        input { width: 100%; background: #0f111a; border: 1px solid #343a40; color: white; padding: 8px; border-radius: 5px; margin-bottom: 8px; box-sizing: border-box; }
+        input { width: 100%; background: #0f111a; border: 1px solid #343a40; color: white; padding: 10px; border-radius: 5px; margin-bottom: 8px; box-sizing: border-box; }
         input:focus { border-color: var(--accent); outline: none; }
         
-        .btn { padding: 10px 20px; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; text-transform: uppercase; }
+        .btn { padding: 10px 20px; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; }
         .btn-main { background: linear-gradient(135deg, var(--coral), var(--orange)); color: #000; width: 100%; font-size: 1.1em; margin-top: 10px; }
         .btn-sec { background: #343a40; color: white; font-size: 0.75em; border: 1px solid #495057; }
         
-        /* Tabla */
-        .table-container { background: var(--bg-card); border-radius: 12px; overflow: hidden; margin-top: 30px; border: 1px solid #343a40; }
+        /* Tabla de Resultados */
+        .table-container { background: var(--bg-card); border-radius: 12px; overflow: hidden; margin-top: 30px; border: 1px solid #343a40; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
         th { background: #252a3d; color: var(--accent); padding: 15px; text-align: left; }
         td { padding: 15px; border-bottom: 1px solid #343a40; vertical-align: middle; }
         
-        .badge-de { background: #000; padding: 4px 8px; border-radius: 5px; font-weight: bold; }
-        .revalidando-ui { border: 2px solid var(--orange) !important; background: #2d241a !important; }
-        .alert-text { color: var(--orange); font-size: 0.8em; margin-top: 5px; border-left: 2px solid var(--orange); padding-left: 8px; }
+        .badge-de { background: #000; padding: 4px 10px; border-radius: 6px; font-weight: bold; border: 1px solid #333; }
+        .revalidando-active { border: 2px solid var(--orange) !important; background: #2d241a !important; }
+        
+        /* Estilo de las 2 Rutas */
+        .ruta-box { background: rgba(0,0,0,0.3); padding: 8px; border-radius: 5px; margin-top: 8px; border-left: 3px solid var(--orange); }
+        .ruta-label { color: var(--orange); font-weight: bold; font-size: 0.75em; display: block; margin-bottom: 3px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header">
-        <h1>ALPHA <span style="font-weight: 200; font-size: 0.5em;">v2.3 Lab Engine</span></h1>
+        <h1>ALPHA <span style="font-weight: 200; font-size: 0.5em;">v2.4 Project Manager</span></h1>
         <div style="display: flex; gap: 10px;">
             <button class="btn btn-sec" onclick="exportarProyecto()">Exportar .alpha</button>
             <input type="file" id="fileInput" style="display:none" onchange="importarProyecto(event)">
@@ -62,14 +66,14 @@
     <div class="project-config">
         <div class="input-group">
             <label>Nombre del Proyecto / OT</label>
-            <input type="text" id="projName" placeholder="Ingrese nombre del proyecto...">
+            <input type="text" id="projName" placeholder="Ej: Black NK1022684">
         </div>
         <div class="input-group">
-            <label>Blanco de Tela (Compensación de Sustrato)</label>
+            <label>Blanco de Tela (Sustrato Único)</label>
             <div style="display: flex; gap: 8px;">
-                <input type="number" id="clothL" placeholder="L*">
-                <input type="number" id="clothA" placeholder="a*">
-                <input type="number" id="clothB" placeholder="b*">
+                <input type="number" id="clothL" placeholder="L*" step="0.01">
+                <input type="number" id="clothA" placeholder="a*" step="0.01">
+                <input type="number" id="clothB" placeholder="b*" step="0.01">
             </div>
         </div>
     </div>
@@ -77,26 +81,25 @@
     <div class="grid-main">
         <div class="card" id="cardRef">
             <h3>1. Referencia (Doble Medida)</h3>
-            <p style="font-size: 0.6em; margin-bottom: 5px;">Mide el estándar dos veces para este color:</p>
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px;">
-                <input type="number" id="r1L" placeholder="L1">
-                <input type="number" id="r1a" placeholder="a1">
-                <input type="number" id="r1b" placeholder="b1">
+                <input type="number" id="r1L" placeholder="L1" step="0.01">
+                <input type="number" id="r1a" placeholder="a1" step="0.01">
+                <input type="number" id="r1b" placeholder="b1" step="0.01">
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px;">
-                <input type="number" id="r2L" placeholder="L2">
-                <input type="number" id="r2a" placeholder="a2">
-                <input type="number" id="r2b" placeholder="b2">
+                <input type="number" id="r2L" placeholder="L2" step="0.01">
+                <input type="number" id="r2a" placeholder="a2" step="0.01">
+                <input type="number" id="r2b" placeholder="b2" step="0.01">
             </div>
         </div>
 
         <div class="card" id="cardMuestra">
-            <h3 id="tituloMuestra">2. Muestra a Comparar</h3>
-            <input type="text" id="mName" placeholder="Nombre del Color (Ej: Navy Blue)">
+            <h3 id="tituloMuestra">2. Muestra actual</h3>
+            <input type="text" id="mName" placeholder="Nombre del Color">
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px;">
-                <input type="number" id="mL" placeholder="L*">
-                <input type="number" id="ma" placeholder="a*">
-                <input type="number" id="mb" placeholder="b*">
+                <input type="number" id="mL" placeholder="L*" step="0.01">
+                <input type="number" id="ma" placeholder="a*" step="0.01">
+                <input type="number" id="mb" placeholder="b*" step="0.01">
             </div>
         </div>
 
@@ -108,7 +111,7 @@
                 <input type="number" id="curY" placeholder="Y">
                 <input type="number" id="curK" placeholder="K">
             </div>
-            <button class="btn btn-main" id="btnAccion" onclick="ejecutarCalculo()">PROCESAR COLOR</button>
+            <button class="btn btn-main" id="btnAccion" onclick="procesar()">AGREGAR AL PROYECTO</button>
         </div>
     </div>
 
@@ -121,7 +124,7 @@
                     <th>Referencia (Prom)</th>
                     <th>Muestra</th>
                     <th>ΔE</th>
-                    <th>Ajuste ALPHA</th>
+                    <th>Ajuste ALPHA (Rutas)</th>
                     <th>Acción</th>
                 </tr>
             </thead>
@@ -131,58 +134,66 @@
 </div>
 
 <script>
-    let proyecto = { nombre: "", tela: {L:0, a:0, b:0}, colores: [] };
+    let proyecto = { nombre: "", tela: {L:0,a:0,b:0}, colores: [] };
     let editandoId = null;
 
-    function ejecutarCalculo() {
+    function procesar() {
         const r1L = parseFloat(document.getElementById('r1L').value);
-        const r2L = parseFloat(document.getElementById('r2L').value);
         const mL = parseFloat(document.getElementById('mL').value);
-        
-        if (isNaN(r1L) || isNaN(mL)) return alert("Complete los valores mínimos de Referencia y Muestra.");
+        if (isNaN(r1L) || isNaN(mL)) return alert("Faltan datos de lectura.");
 
-        // Promediar Referencia para este color específico
+        // Promedio de referencia por color
         const refProm = {
-            L: (r1L + (isNaN(r2L) ? r1L : r2L)) / 2,
+            L: (r1L + (parseFloat(document.getElementById('r2L').value) || r1L)) / 2,
             a: (parseFloat(document.getElementById('r1a').value) + (parseFloat(document.getElementById('r2a').value) || parseFloat(document.getElementById('r1a').value))) / 2,
             b: (parseFloat(document.getElementById('r1b').value) + (parseFloat(document.getElementById('r2b').value) || parseFloat(document.getElementById('r1b').value))) / 2
         };
 
         const ma = parseFloat(document.getElementById('ma').value) || 0;
         const mb = parseFloat(document.getElementById('mb').value) || 0;
-        const curC = parseFloat(document.getElementById('curC').value) || 0;
-        const curM = parseFloat(document.getElementById('curM').value) || 0;
-        const curY = parseFloat(document.getElementById('curY').value) || 0;
-        const curK = parseFloat(document.getElementById('curK').value) || 0;
+        const C = parseFloat(document.getElementById('curC').value) || 0;
+        const M = parseFloat(document.getElementById('curM').value) || 0;
+        const Y = parseFloat(document.getElementById('curY').value) || 0;
+        const K = parseFloat(document.getElementById('curK').value) || 0;
 
-        // Cálculos de Diferencia
         const dL = mL - refProm.L;
         const da = ma - refProm.a;
         const db = mb - refProm.b;
         const dE = Math.sqrt(dL*dL + da*da + db*db).toFixed(2);
 
-        // Algoritmo de Ajuste Sugerido
+        // Lógica de ajuste básica
         let adjC = (dL * 0.4).toFixed(1);
         let adjM = (da * -1.6).toFixed(1);
         let adjY = (db * -1.6).toFixed(1);
         let adjK = (dL * 1.3).toFixed(1);
 
-        let alerta = "";
-        if((curM + parseFloat(adjM)) >= 100) {
-            alerta = db < 0 ? "⚠️ M al 100%: Baja C -2.5%, sube K +1.0%" : "⚠️ M al 100%: Baja Y -2.0%, C -1.0%";
-        } else if ((curK + parseFloat(adjK)) >= 100 && dL > 0) {
-            alerta = "⚠️ K al 100%: Sube C, M, Y +1.5% c/u para oscurecer.";
+        let rutasHTML = `<span style="color:var(--accent); font-weight:bold">C:${adjC} M:${adjM} Y:${adjY} K:${adjK}</span>`;
+
+        // Lógica de Doble Ruta para colisiones al 100%
+        if((M + parseFloat(adjM)) >= 100) {
+            rutasHTML += `
+                <div class="ruta-box">
+                    <span class="ruta-label">COLISIÓN MAGENTA 100%</span>
+                    Ruta A: Baja C -2.5% | Sube K +1.5%<br>
+                    Ruta B: Baja Y -2.0% | Baja C -1.0%
+                </div>`;
+        } else if ((K + parseFloat(adjK)) >= 100 && dL > 0) {
+            rutasHTML += `
+                <div class="ruta-box">
+                    <span class="ruta-label">COLISIÓN NEGRO 100%</span>
+                    Ruta A: Subir C, M, Y +1.5% c/u (Profundidad)<br>
+                    Ruta B: Bajar C y M -1.2% (Contraste)
+                </div>`;
         }
 
         if (editandoId !== null) {
             let col = proyecto.colores.find(c => c.id === editandoId);
             col.muestra = { L: mL, a: ma, b: mb };
             col.delta = dE;
-            col.ajuste = `C:${adjC} M:${adjM} Y:${adjY} K:${adjK}`;
-            col.alerta = alerta;
+            col.ajusteRutas = rutasHTML;
             editandoId = null;
-            document.getElementById('btnAccion').innerText = "PROCESAR COLOR";
-            document.getElementById('cardMuestra').classList.remove('revalidando-ui');
+            document.getElementById('btnAccion').innerText = "AGREGAR AL PROYECTO";
+            document.getElementById('cardMuestra').classList.remove('revalidando-active');
         } else {
             proyecto.colores.push({
                 id: proyecto.colores.length + 1,
@@ -190,29 +201,22 @@
                 referencia: refProm,
                 muestra: { L: mL, a: ma, b: mb },
                 delta: dE,
-                ajuste: `C:${adjC} M:${adjM} Y:${adjY} K:${adjK}`,
-                alerta: alerta
+                ajusteRutas: rutasHTML
             });
         }
-
         render();
-        limpiarInputsColor();
+        limpiar();
     }
 
     function prepararReval(id) {
         editandoId = id;
         let col = proyecto.colores.find(c => c.id === id);
-        
-        // Bloquear Referencias Originales
         document.getElementById('r1L').value = col.referencia.L;
         document.getElementById('r1a').value = col.referencia.a;
         document.getElementById('r1b').value = col.referencia.b;
-        document.getElementById('r2L').value = "";
-        
         document.getElementById('mName').value = col.nombre;
-        document.getElementById('tituloMuestra').innerText = "REVALIDANDO: " + col.nombre;
-        document.getElementById('btnAccion').innerText = "GUARDAR AJUSTE";
-        document.getElementById('cardMuestra').classList.add('revalidando-ui');
+        document.getElementById('btnAccion').innerText = "GUARDAR REVALIDACIÓN";
+        document.getElementById('cardMuestra').classList.add('revalidando-active');
         window.scrollTo(0,0);
     }
 
@@ -224,27 +228,20 @@
                 <td><strong>${c.nombre}</strong></td>
                 <td>L:${c.referencia.L.toFixed(1)} a:${c.referencia.a.toFixed(1)} b:${c.referencia.b.toFixed(1)}</td>
                 <td>L:${c.muestra.L.toFixed(1)} a:${c.muestra.a.toFixed(1)} b:${c.muestra.b.toFixed(1)}</td>
-                <td><span class="badge-de" style="color:${c.delta < 1 ? 'var(--accent)' : 'var(--coral)'}">${c.delta}</span></td>
-                <td>
-                    <span style="color:var(--accent); font-weight:bold">${c.ajuste}</span>
-                    ${c.alerta ? `<div class="alert-text">${c.alerta}</div>` : ''}
-                </td>
+                <td><span class="badge-de" style="color:${c.delta < 1 ? 'var(--success)' : 'var(--coral)'}">${c.delta}</span></td>
+                <td>${c.ajusteRutas}</td>
                 <td><button class="btn btn-sec" onclick="prepararReval(${c.id})">REVALIDAR</button></td>
             </tr>
         `).join('');
     }
 
-    function limpiarInputsColor() {
+    function limpiar() {
         ['r1L','r1a','r1b','r2L','r2a','r2b','mName','mL','ma','mb','curC','curM','curY','curK'].forEach(i => document.getElementById(i).value="");
     }
 
     function exportarProyecto() {
         proyecto.nombre = document.getElementById('projName').value || "Alpha_Project";
-        proyecto.tela = { 
-            L: document.getElementById('clothL').value, 
-            a: document.getElementById('clothA').value, 
-            b: document.getElementById('clothB').value 
-        };
+        proyecto.tela = { L: document.getElementById('clothL').value, a: document.getElementById('clothA').value, b: document.getElementById('clothB').value };
         const blob = new Blob([JSON.stringify(proyecto)], {type: "application/json"});
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -266,18 +263,13 @@
     }
 
     function guardarBorrador() {
-        proyecto.nombre = document.getElementById('projName').value;
-        localStorage.setItem('alpha_v23_draft', JSON.stringify(proyecto));
-        alert("Proyecto guardado en el navegador.");
+        localStorage.setItem('alpha_v24_local', JSON.stringify(proyecto));
+        alert("Borrador guardado localmente.");
     }
 
     window.onload = () => {
-        const d = localStorage.getItem('alpha_v23_draft');
-        if(d) { 
-            proyecto = JSON.parse(d); 
-            document.getElementById('projName').value = proyecto.nombre;
-            render(); 
-        }
+        const d = localStorage.getItem('alpha_v24_local');
+        if(d) { proyecto = JSON.parse(d); render(); }
     };
 </script>
 </body>
