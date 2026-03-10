@@ -1,22 +1,27 @@
-// VARIABLES GLOBALES (Fundamentales para que no den error)
+// 1. VARIABLES GLOBALES AL INICIO
 let proyecto = { nombre: "", colores: [] };
 let editandoId = null;
 
-/**
- * Función Principal: Calcula diferencias, tendencia y genera checklist
- */
+// 2. FUNCIÓN PRINCIPAL DE CÁLCULO
 function procesar() {
-    const val = (id) => parseFloat(document.getElementById(id).value) || 0;
+    console.log("Iniciando cálculo..."); // Para depuración en consola (F12)
+
+    // Función interna para obtener valores numéricos
+    const val = (id) => {
+        const el = document.getElementById(id);
+        return el ? parseFloat(el.value) || 0 : 0;
+    };
     
     // Obtener valores LAB obligatorios
     const r1L = parseFloat(document.getElementById('r1L').value);
     const mL = parseFloat(document.getElementById('mL').value);
     
     if (isNaN(r1L) || isNaN(mL)) {
-        return alert("Error: Debes ingresar al menos L1 de Referencia y L de la Muestra.");
+        alert("Error: Debes ingresar al menos L1 de Referencia y L de la Muestra.");
+        return;
     }
 
-    // Promedios de Referencia (Soporta 1 o 2 lecturas)
+    // Promedios de Referencia
     const r2L = parseFloat(document.getElementById('r2L').value);
     const fRefL = !isNaN(r2L) ? (r1L + r2L) / 2 : r1L;
     const fRefA = !isNaN(val('r2a')) ? (val('r1a') + val('r2a')) / 2 : val('r1a');
@@ -32,18 +37,18 @@ function procesar() {
     const CMYK = { C: val('cC'), M: val('cM'), Y: val('cY'), K: val('cK') };
     let rutas = [];
     
-    // Lógica de Ajustes de Color
-    if (da > 0.4) { // Sobra Rojo (Falta Cyan)
+    // Lógica de Ajustes
+    if (da > 0.4) { 
         if (CMYK.C >= 100) rutas.push("C al 100%: BAJAR Magenta -2.0% y Amarillo -1.0%");
         else rutas.push(`SUBIR Cyan ${dE > 2 ? '+3.0%' : '+1.5%'}`);
-    } else if (da < -0.4) { // Sobra Verde (Falta Magenta)
+    } else if (da < -0.4) {
         if (CMYK.M >= 100) rutas.push("M al 100%: BAJAR Cyan -2.0%");
         else rutas.push(`SUBIR Magenta ${dE > 2 ? '+2.5%' : '+1.2%'}`);
     }
 
-    if (db > 0.4) { // Sobra Amarillo
+    if (db > 0.4) {
         rutas.push(`BAJAR Amarillo ${dE > 2 ? '-3.0%' : '-1.5%'}`);
-    } else if (db < -0.4) { // Sobra Azul (Falta Amarillo)
+    } else if (db < -0.4) {
         if (CMYK.Y >= 100) rutas.push("Y al 100%: BAJAR Cyan -1.0% y Magenta -1.0%");
         else rutas.push(`SUBIR Amarillo ${dE > 2 ? '+3.0%' : '+2.0%'}`);
     }
@@ -51,7 +56,7 @@ function procesar() {
     if (dL > 0.7) rutas.push(`SUBIR Negro (K) ${dE > 1.5 ? '+1.5%' : '+0.8%'}`);
     else if (dL < -0.7) rutas.push("BAJAR Negro (K) -1.0% o carga CMY");
 
-    // Determinar Tendencia Visual
+    // Tendencia Visual
     let tendencia = "En Punto";
     let clase = "t-verde";
     if (Math.abs(da) > Math.abs(db)) {
@@ -63,7 +68,7 @@ function procesar() {
     }
     if (dL < -0.8) tendencia += " Sucio"; else if (dL > 0.8) tendencia += " Pálido";
 
-    // Crear Registro de Color
+    // Crear el Objeto de Registro
     const registro = {
         id: editandoId || Date.now(),
         nombre: document.getElementById('mName').value || "Muestra",
@@ -75,7 +80,7 @@ function procesar() {
         lab: { r1L, r1a: val('r1a'), r1b: val('r1b'), r2L, r2a: val('r2a'), r2b: val('r2b'), mL, ma, mb }
     };
 
-    // Guardar o Actualizar
+    // Guardar
     if (editandoId) {
         const idx = proyecto.colores.findIndex(c => c.id === editandoId);
         if (idx !== -1) proyecto.colores[idx] = registro;
@@ -89,9 +94,7 @@ function procesar() {
     limpiar();
 }
 
-/**
- * Dibuja la tabla con los datos
- */
+// 3. RENDERIZADO DE TABLA
 function render() {
     const tbody = document.getElementById('cuerpoTabla');
     if (!tbody) return;
@@ -106,7 +109,7 @@ function render() {
                 <div class="rutas-container">
                     ${c.rutas.map((r, i) => `
                         <div class="ruta-item ${r.chequeado ? 'done' : ''}" onclick="toggleCheck(${c.id}, ${i})">
-                            <input type="checkbox" ${r.chequeado ? 'checked' : ''}> ${r.texto}
+                            <input type="checkbox" ${r.chequeado ? 'checked' : ''} onclick="event.stopPropagation()"> ${r.texto}
                         </div>
                     `).join('')}
                 </div>
@@ -118,9 +121,7 @@ function render() {
         </tr>`).join('');
 }
 
-/**
- * Funciones de Utilidad
- */
+// 4. FUNCIONES AUXILIARES
 function toggleCheck(colorId, rutaIdx) {
     const col = proyecto.colores.find(c => c.id === colorId);
     if(col) {
@@ -134,7 +135,6 @@ function revalidar(id) {
     if(!c) return;
     editandoId = id;
     
-    // Cargar datos a los inputs
     document.getElementById('r1L').value = c.lab.r1L;
     document.getElementById('r1a').value = c.lab.r1a;
     document.getElementById('r1b').value = c.lab.r1b;
@@ -161,7 +161,9 @@ function eliminar(id) {
 
 function limpiarCamposNuevo() {
     editandoId = null;
-    document.getElementById('btnProcesar').innerText = "CALCULAR";
+    const btn = document.getElementById('btnProcesar');
+    if(btn) btn.innerText = "CALCULAR";
+    
     ['mName','mL','ma','mb','cC','cM','cY','cK'].forEach(id => {
         const el = document.getElementById(id);
         if(el) el.value = "";
@@ -171,7 +173,7 @@ function limpiarCamposNuevo() {
 function limpiar() { limpiarCamposNuevo(); }
 
 function nuevoProyecto() {
-    if(confirm("¿Borrar todo el proyecto actual?")) {
+    if(confirm("¿Borrar todo el proyecto?")) {
         proyecto = { nombre: "", colores: [] };
         render();
     }
@@ -193,7 +195,7 @@ function importarProyecto(e) {
             proyecto = JSON.parse(ev.target.result);
             document.getElementById('projName').value = proyecto.nombre || "";
             render();
-        } catch(err) { alert("Archivo no válido"); }
+        } catch(err) { alert("Archivo inválido"); }
     };
     reader.readAsText(e.target.files[0]);
 }
