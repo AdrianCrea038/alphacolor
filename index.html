@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALPHA v3.5 - Anti-Error Build</title>
+    <title>ALPHA v3.8 - Precision Ink Control</title>
     <style>
         :root {
             --bg-page: #0f111a;
@@ -53,7 +53,7 @@
 
 <div class="container">
     <div class="header">
-        <h1>ALPHA <span style="font-weight: 200; font-size: 0.5em;">v3.5 Final Patch</span></h1>
+        <h1>ALPHA <span style="font-weight: 200; font-size: 0.5em;">v3.8 Precision Ink Control</span></h1>
         <div style="display: flex; gap: 10px;">
             <button type="button" class="btn btn-sec" onclick="exportarProyecto()">Exportar .alpha</button>
             <input type="file" id="fileInput" style="display:none" onchange="importarProyecto(event)">
@@ -63,7 +63,7 @@
 
     <div class="project-config">
         <div class="input-group">
-            <label>Proyecto / Orden de Trabajo</label>
+            <label>Proyecto / OT</label>
             <input type="text" id="projName" placeholder="Nombre...">
         </div>
         <div class="input-group">
@@ -119,7 +119,7 @@
                     <th>Color / CMYK</th>
                     <th>Cambio</th>
                     <th>ΔE</th>
-                    <th>Cuadrante & Rutas</th>
+                    <th>Corrección CMYK Sugerida</th>
                     <th>Acción</th>
                 </tr>
             </thead>
@@ -134,29 +134,44 @@
     let editandoId = null;
 
     function procesar() {
-        const val = (id) => parseFloat(document.getElementById(id).value);
-        const r1L = val('r1L'), mL = val('mL');
+        const val = (id) => parseFloat(document.getElementById(id).value) || 0;
+        const r1L = parseFloat(document.getElementById('r1L').value);
+        const mL = parseFloat(document.getElementById('mL').value);
 
         if (isNaN(r1L) || isNaN(mL)) {
-            alert("Error: Faltan datos LAB de Referencia o Muestra.");
+            alert("LAB de Referencia y Muestra obligatorios.");
             return;
         }
 
-        const r1a = val('r1a')||0, r1b = val('r1b')||0;
-        const r2L = val('r2L'), r2a = val('r2a'), r2b = val('r2b');
-        
+        const r1a = val('r1a'), r1b = val('r1b');
+        const r2L = parseFloat(document.getElementById('r2L').value);
+        const r2a = val('r2a'), r2b = val('r2b');
+
         const fRefL = !isNaN(r2L) ? (r1L + r2L) / 2 : r1L;
         const fRefA = !isNaN(r2a) ? (r1a + r2a) / 2 : r1a;
         const fRefB = !isNaN(r2b) ? (r1b + r2b) / 2 : r1b;
 
-        const ma = val('ma')||0, mb = val('mb')||0;
+        const ma = val('ma'), mb = val('mb');
         const dE = Math.sqrt(Math.pow(mL - fRefL, 2) + Math.pow(ma - fRefA, 2) + Math.pow(mb - fRefB, 2)).toFixed(2);
 
-        const da = ma - fRefA; const db = mb - fRefB;
-        let cuadrante = (da > 0.4 ? "Sobra Rojo. " : (da < -0.4 ? "Sobra Verde. " : "")) + 
-                        (db > 0.4 ? "Sobra Amar. " : (db < -0.4 ? "Sobra Azul. " : ""));
+        const da = ma - fRefA; 
+        const db = mb - fRefB;
+        const dL = mL - fRefL;
 
-        const curC = val('cC')||0, curM = val('cM')||0, curY = val('cY')||0, curK = val('cK')||0;
+        let cuadranteTxt = "";
+        let ajustes = [];
+
+        // LÓGICA DE AJUSTE POR CANAL SEPARADO
+        if (dL > 0.5) ajustes.push("Subir K/C/M/Y +1.5% (Oscurecer)");
+        else if (dL < -0.5) ajustes.push("Bajar K/C/M/Y -1.5% (Aclarar)");
+
+        if (da > 0.4) { cuadranteTxt += "Sobra Rojo. "; ajustes.push("Subir Cyan +1.0% / Bajar Magenta -0.5%"); }
+        else if (da < -0.4) { cuadranteTxt += "Sobra Verde. "; ajustes.push("Subir Magenta +1.0% / Bajar Cyan -0.5%"); }
+        
+        if (db > 0.4) { cuadranteTxt += "Sobra Amar. "; ajustes.push("Bajar Amarillo -1.0%"); }
+        else if (db < -0.4) { cuadranteTxt += "Sobra Azul. "; ajustes.push("Subir Amarillo +1.0%"); }
+
+        const curC = val('cC'), curM = val('cM'), curY = val('cY'), curK = val('cK');
 
         let compHTML = "";
         if (cmykPrevio) {
@@ -167,17 +182,14 @@
             compHTML = `C${dif(curC, cmykPrevio.C)} M${dif(curM, cmykPrevio.M)} Y${dif(curY, cmykPrevio.Y)} K${dif(curK, cmykPrevio.K)}`;
         }
 
-        let rutasDisp = [];
-        if (curY >= 98 || curK >= 98 || dE > 1.2) {
-            rutasDisp = [{id: 0, t: "Ruta A: Opuesto +1.5%"}, {id: 1, t: "Ruta B: Refuerzo K +1.0%"}];
-        }
+        let rutasDisp = ajustes.map((aj, idx) => ({ id: idx, t: aj }));
 
         const colorObj = {
             id: editandoId || Date.now(),
             nombre: document.getElementById('mName').value || "Muestra",
             lab: { r1L, r1a, r1b, r2L, r2a, r2b, mL, ma, mb },
             de: dE,
-            cuadrante: cuadrante || "Margen OK",
+            cuadrante: cuadranteTxt || "Margen Óptimo",
             cmyk: { curC, curM, curY, curK },
             cambio: compHTML || "Inicial",
             rutas: rutasDisp,
@@ -203,28 +215,22 @@
         if (!tbody) return;
         
         tbody.innerHTML = proyecto.colores.map(c => {
-            // Protección contra datos indefinidos (Error de consola fixed)
-            const cmyk = c.cmyk || {curC:0, curM:0, curY:0, curK:0};
-            const lab = c.lab || {};
-            const rutas = c.rutas || [];
-
+            const ck = c.cmyk || {curC:0, curM:0, curY:0, curK:0};
             return `
             <tr>
                 <td><small>${new Date(c.id).toLocaleTimeString()}</small></td>
-                <td><strong>${c.nombre || 'S/N'}</strong><br><small>C:${cmyk.curC} M:${cmyk.curM} Y:${cmyk.curY} K:${cmyk.curK}</small></td>
-                <td>${c.cambio || ''}</td>
-                <td><span class="badge-de" style="color:${c.de > 1.2 ? 'var(--coral)' : 'var(--success)'}">${c.de || 0}</span></td>
+                <td><strong>${c.nombre}</strong><br><small>C:${ck.curC} M:${ck.curM} Y:${ck.curY} K:${ck.curK}</small></td>
+                <td>${c.cambio}</td>
+                <td><span class="badge-de" style="color:${c.de > 1.2 ? 'var(--coral)' : 'var(--success)'}">${c.de}</span></td>
                 <td>
-                    <span style="color:var(--blue); font-weight:bold">${c.cuadrante || ''}</span>
-                    ${rutas.length > 0 ? `
-                        <div class="ruta-box">
-                            ${rutas.map(r => `
-                                <div class="check-point ${c.rutaElegida === r.id ? 'selected' : ''}" onclick="marcarRuta(${c.id}, ${r.id})">
-                                    ${c.rutaElegida === r.id ? '✓ ' : ''}${r.t}
-                                </div>
-                            `).join('')}
-                        </div>
-                    ` : ''}
+                    <span style="color:var(--blue); font-weight:bold; font-size: 0.9em;">${c.cuadrante}</span>
+                    <div class="ruta-box">
+                        ${(c.rutas || []).map(r => `
+                            <div class="check-point ${c.rutaElegida === r.id ? 'selected' : ''}" onclick="marcarRuta(${c.id}, ${r.id})">
+                                ${c.rutaElegida === r.id ? '✓ ' : ''}${r.t}
+                            </div>
+                        `).join('')}
+                    </div>
                 </td>
                 <td>
                     <button type="button" class="btn btn-rev" onclick="revalidar(${c.id})">REV</button>
@@ -234,27 +240,29 @@
         }).join('');
     }
 
-    function marcarRuta(colorId, rutaId) {
-        const col = proyecto.colores.find(c => c.id === colorId);
-        if(col) { col.rutaElegida = rutaId; render(); }
-    }
-
     function revalidar(id) {
-        editandoId = id;
         const c = proyecto.colores.find(col => col.id === id);
         if(!c) return;
+        const ck = c.cmyk || {curC:0, curM:0, curY:0, curK:0};
+        const lb = c.lab || {};
+
+        editandoId = id;
+        cmykPrevio = { C: ck.curC, M: ck.curM, Y: ck.curY, K: ck.curK };
         
-        cmykPrevio = { C: c.cmyk.curC, M: c.cmyk.curM, Y: c.cmyk.curY, K: c.cmyk.curK };
-        
-        document.getElementById('r1L').value = c.lab.r1L; document.getElementById('r1a').value = c.lab.r1a; document.getElementById('r1b').value = c.lab.r1b;
-        document.getElementById('r2L').value = c.lab.r2L || ""; document.getElementById('r2a').value = c.lab.r2a || ""; document.getElementById('r2b').value = c.lab.r2b || "";
+        document.getElementById('r1L').value = lb.r1L; document.getElementById('r1a').value = lb.r1a; document.getElementById('r1b').value = lb.r1b;
+        document.getElementById('r2L').value = lb.r2L || ""; document.getElementById('r2a').value = lb.r2a || ""; document.getElementById('r2b').value = lb.r2b || "";
         document.getElementById('mName').value = c.nombre;
-        document.getElementById('mL').value = c.lab.mL; document.getElementById('ma').value = c.lab.ma; document.getElementById('mb').value = c.lab.mb;
-        document.getElementById('cC').value = c.cmyk.curC; document.getElementById('cM').value = c.cmyk.curM;
-        document.getElementById('cY').value = c.cmyk.curY; document.getElementById('cK').value = c.cmyk.curK;
+        document.getElementById('mL').value = lb.mL; document.getElementById('ma').value = lb.ma; document.getElementById('mb').value = lb.mb;
+        document.getElementById('cC').value = ck.curC; document.getElementById('cM').value = ck.curM;
+        document.getElementById('cY').value = ck.curY; document.getElementById('cK').value = ck.curK;
         
         document.getElementById('btnProcesar').innerText = "ACTUALIZAR REGISTRO";
         window.scrollTo(0,0);
+    }
+
+    function marcarRuta(colorId, rutaId) {
+        const col = proyecto.colores.find(c => c.id === colorId);
+        if(col) { col.rutaElegida = rutaId; render(); }
     }
 
     function eliminar(id) {
@@ -264,14 +272,12 @@
 
     function limpiar() {
         ['r1L','r1a','r1b','r2L','r2a','r2b','mName','mL','ma','mb','cC','cM','cY','cK'].forEach(id => {
-            const el = document.getElementById(id);
-            if(el) el.value = "";
+            const el = document.getElementById(id); if(el) el.value = "";
         });
     }
 
     function exportarProyecto() {
-        proyecto.nombre = document.getElementById('projName').value || "Alpha_v35";
-        proyecto.tela = { L: document.getElementById('clothL').value, a: document.getElementById('clothA').value, b: document.getElementById('clothB').value };
+        proyecto.nombre = document.getElementById('projName').value || "Alpha_v38";
         const blob = new Blob([JSON.stringify(proyecto)], {type: "application/json"});
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -280,30 +286,13 @@
     }
 
     function importarProyecto(e) {
-        const file = e.target.files[0];
-        if (!file) return;
         const reader = new FileReader();
         reader.onload = (ev) => {
-            try {
-                const data = JSON.parse(ev.target.result);
-                // Validación de estructura mínima
-                if (data && Array.isArray(data.colores)) {
-                    proyecto = data;
-                    document.getElementById('projName').value = proyecto.nombre || "";
-                    if(proyecto.tela) {
-                        document.getElementById('clothL').value = proyecto.tela.L || "";
-                        document.getElementById('clothA').value = proyecto.tela.a || "";
-                        document.getElementById('clothB').value = proyecto.tela.b || "";
-                    }
-                    render();
-                } else {
-                    alert("El archivo no tiene el formato ALPHA correcto.");
-                }
-            } catch(err) {
-                alert("Error al leer el archivo JSON.");
-            }
+            proyecto = JSON.parse(ev.target.result);
+            document.getElementById('projName').value = proyecto.nombre || "";
+            render();
         };
-        reader.readAsText(file);
+        reader.readAsText(e.target.files[0]);
     }
 </script>
 </body>
