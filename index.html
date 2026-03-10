@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALPHA v3.0 - Comparative Logic</title>
+    <title>ALPHA v3.1 - Restoration & Comparison</title>
     <style>
         :root {
             --bg-page: #0f111a;
@@ -28,7 +28,7 @@
         .card { background: var(--bg-card); padding: 15px; border-radius: 12px; border: 1px solid #343a40; }
         .card h3 { color: var(--accent); font-size: 0.8em; text-transform: uppercase; margin-top: 0; border-bottom: 1px solid #343a40; padding-bottom: 5px; margin-bottom: 10px; }
         
-        input, textarea { width: 100%; background: #0f111a; border: 1px solid #343a40; color: white; padding: 10px; border-radius: 5px; margin-bottom: 8px; box-sizing: border-box; font-family: inherit; }
+        input { width: 100%; background: #0f111a; border: 1px solid #343a40; color: white; padding: 10px; border-radius: 5px; margin-bottom: 8px; box-sizing: border-box; }
         
         .btn { padding: 8px 15px; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; font-size: 0.7em; }
         .btn-main { background: linear-gradient(135deg, var(--coral), var(--orange)); color: #000; width: 100%; font-size: 1.1em; margin-top: 10px; padding: 12px; }
@@ -42,14 +42,15 @@
         td { padding: 12px; border-bottom: 1px solid #343a40; vertical-align: top; }
         
         .badge-de { background: #000; padding: 4px 8px; border-radius: 6px; font-weight: bold; border: 1px solid #333; }
+        .cuadrante-info { color: var(--blue); font-size: 0.85em; font-weight: bold; display: block; margin-bottom: 5px; }
         
-        /* Comparativa de CMYK */
-        .diff-tag { font-size: 0.85em; display: inline-block; padding: 2px 5px; border-radius: 4px; margin-top: 4px; font-weight: bold; }
+        /* Comparativa */
+        .diff-tag { font-size: 0.8em; padding: 1px 4px; border-radius: 3px; margin-left: 3px; font-weight: bold; }
         .diff-plus { background: rgba(81, 207, 102, 0.2); color: var(--success); }
         .diff-minus { background: rgba(255, 107, 129, 0.2); color: var(--coral); }
-        
+
         .ruta-box { background: rgba(0,0,0,0.4); padding: 10px; border-radius: 8px; margin-top: 8px; border: 1px solid #444; }
-        .check-point { display: block; padding: 8px; border-radius: 6px; margin-bottom: 5px; border: 1px solid #444; cursor: pointer; }
+        .check-point { display: block; padding: 6px; border-radius: 4px; margin-bottom: 4px; border: 1px solid #444; cursor: pointer; font-size: 0.9em; }
         .check-point.selected { border-color: var(--success); background: rgba(81, 207, 102, 0.1); color: var(--success); }
     </style>
 </head>
@@ -57,7 +58,7 @@
 
 <div class="container">
     <div class="header">
-        <h1>ALPHA <span style="font-weight: 200; font-size: 0.5em;">v3.0 Comparative Tracker</span></h1>
+        <h1>ALPHA <span style="font-weight: 200; font-size: 0.5em;">v3.1 Full Restoration</span></h1>
         <div style="display: flex; gap: 10px;">
             <button class="btn btn-sec" onclick="exportarProyecto()">Exportar .alpha</button>
             <input type="file" id="fileInput" style="display:none" onchange="importarProyecto(event)">
@@ -67,27 +68,36 @@
 
     <div class="project-config">
         <div class="input-group">
-            <label>Nombre del Proyecto</label>
-            <input type="text" id="projName" placeholder="Identificación...">
+            <label>Nombre del Proyecto / OT</label>
+            <input type="text" id="projName" placeholder="Nombre...">
         </div>
         <div class="input-group">
-            <label>Notas del Lote</label>
-            <textarea id="projNotes" rows="1" placeholder="Ej: Tela Poliéster 100%, presión alta..."></textarea>
+            <label>Medición Blanco de Tela (LAB)</label>
+            <div style="display: flex; gap: 5px;">
+                <input type="number" id="clothL" placeholder="L">
+                <input type="number" id="clothA" placeholder="a">
+                <input type="number" id="clothB" placeholder="b">
+            </div>
         </div>
     </div>
 
     <div class="grid-main">
         <div class="card">
-            <h3>1. Referencia (Objetivo)</h3>
+            <h3>1. Referencia (Doble Medida)</h3>
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px;">
-                <input type="number" id="rL" placeholder="L" step="0.01">
-                <input type="number" id="ra" placeholder="a" step="0.01">
-                <input type="number" id="rb" placeholder="b" step="0.01">
+                <input type="number" id="r1L" placeholder="L1" step="0.01">
+                <input type="number" id="r1a" placeholder="a1" step="0.01">
+                <input type="number" id="r1b" placeholder="b1" step="0.01">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: 5px;">
+                <input type="number" id="r2L" placeholder="L2" step="0.01">
+                <input type="number" id="r2a" placeholder="a2" step="0.01">
+                <input type="number" id="r2b" placeholder="b2" step="0.01">
             </div>
         </div>
         <div class="card">
-            <h3>2. Muestra (Actual)</h3>
-            <input type="text" id="mName" placeholder="Nombre del Color">
+            <h3>2. Muestra Actual</h3>
+            <input type="text" id="mName" placeholder="ID del Color">
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px;">
                 <input type="number" id="mL" placeholder="L" step="0.01">
                 <input type="number" id="ma" placeholder="a" step="0.01">
@@ -95,14 +105,14 @@
             </div>
         </div>
         <div class="card">
-            <h3>3. CMYK Actual (%)</h3>
+            <h3>3. CMYK (%)</h3>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
                 <input type="number" id="cC" placeholder="C">
                 <input type="number" id="cM" placeholder="M">
                 <input type="number" id="cY" placeholder="Y">
                 <input type="number" id="cK" placeholder="K">
             </div>
-            <button class="btn btn-main" id="btnProcesar" onclick="procesar()">CALCULAR E HISTORIAR</button>
+            <button class="btn btn-main" id="btnProcesar" onclick="procesar()">CALCULAR RUTA</button>
         </div>
     </div>
 
@@ -110,12 +120,12 @@
         <table>
             <thead>
                 <tr>
-                    <th>Fecha / Estado</th>
-                    <th>Color / CMYK Actual</th>
+                    <th>Fecha / Hora</th>
+                    <th>Color / CMYK</th>
                     <th>Cambio vs Anterior</th>
                     <th>ΔE</th>
-                    <th>Rutas & Decisiones</th>
-                    <th>Acciones</th>
+                    <th>Cuadrante & Rutas</th>
+                    <th>Acción</th>
                 </tr>
             </thead>
             <tbody id="cuerpoTabla"></tbody>
@@ -124,58 +134,66 @@
 </div>
 
 <script>
-    let proyecto = { nombre: "", notas: "", colores: [] };
-    let cmykAnterior = null; // Memoria temporal para comparar
+    let proyecto = { nombre: "", tela: {L:0,a:0,b:0}, colores: [] };
+    let cmykPrevio = null;
     let editandoId = null;
 
     function procesar() {
-        const rL = parseFloat(document.getElementById('rL').value);
-        const ra = parseFloat(document.getElementById('ra').value);
-        const rb = parseFloat(document.getElementById('rb').value);
+        const r1L = parseFloat(document.getElementById('r1L').value);
+        const r2L = parseFloat(document.getElementById('r2L').value) || r1L;
         const mL = parseFloat(document.getElementById('mL').value);
-        const ma = parseFloat(document.getElementById('ma').value);
-        const mb = parseFloat(document.getElementById('mb').value);
-        
-        if (isNaN(rL) || isNaN(mL)) return alert("Datos LAB incompletos.");
+        if (isNaN(r1L) || isNaN(mL)) return alert("Faltan datos LAB críticos.");
 
-        const dE = Math.sqrt(Math.pow(mL-rL,2) + Math.pow(ma-ra,2) + Math.pow(mb-rb,2)).toFixed(2);
+        const refL = (r1L + r2L) / 2;
+        const refA = (parseFloat(document.getElementById('r1a').value) + (parseFloat(document.getElementById('r2a').value) || parseFloat(document.getElementById('r1a').value))) / 2;
+        const refB = (parseFloat(document.getElementById('r1b').value) + (parseFloat(document.getElementById('r2b').value) || parseFloat(document.getElementById('r1b').value))) / 2;
         
+        const ma = parseFloat(document.getElementById('ma').value) || 0;
+        const mb = parseFloat(document.getElementById('mb').value) || 0;
+        const dE = Math.sqrt(Math.pow(mL-refL,2) + Math.pow(ma-refA,2) + Math.pow(mb-refB,2)).toFixed(2);
+
+        // Cuadrante
+        const da = ma - refA; const db = mb - refB;
+        let cuadrante = (da > 0.4 ? "Sobra Rojo. " : (da < -0.4 ? "Sobra Verde. " : "")) + 
+                        (db > 0.4 ? "Sobra Amar. " : (db < -0.4 ? "Sobra Azul. " : ""));
+
         const curC = parseFloat(document.getElementById('cC').value) || 0;
         const curM = parseFloat(document.getElementById('cM').value) || 0;
         const curY = parseFloat(document.getElementById('cY').value) || 0;
         const curK = parseFloat(document.getElementById('cK').value) || 0;
 
-        // Lógica de Comparación
-        let comparativa = "";
-        if (cmykAnterior) {
-            const diff = (val, ant) => {
-                let d = (val - ant).toFixed(1);
+        // Comparativa
+        let compHTML = "";
+        if (cmykPrevio) {
+            const dif = (n, p) => {
+                let d = (n - p).toFixed(1);
                 if (d == 0) return "";
                 return d > 0 ? `<span class="diff-tag diff-plus">+${d}%</span>` : `<span class="diff-tag diff-minus">${d}%</span>`;
             };
-            comparativa = `C:${diff(curC, cmykAnterior.curC)} M:${diff(curM, cmykAnterior.curM)} Y:${diff(curY, cmykAnterior.curY)} K:${diff(curK, cmykAnterior.curK)}`;
+            compHTML = `C${dif(curC, cmykPrevio.C)} M${dif(curM, cmykPrevio.M)} Y${dif(curY, cmykPrevio.Y)} K${dif(curK, cmykPrevio.K)}`;
         }
 
-        const colorData = {
+        const colorObj = {
             id: editandoId || Date.now(),
             nombre: document.getElementById('mName').value || "Color",
-            lab: { rL, ra, rb, mL, ma, mb },
+            lab: { r1L, r2L, r1a: parseFloat(document.getElementById('r1a').value), r2a: parseFloat(document.getElementById('r2a').value), r1b: parseFloat(document.getElementById('r1b').value), r2b: parseFloat(document.getElementById('r2b').value), mL, ma, mb },
             de: dE,
+            cuadrante: cuadrante || "Neutral",
             cmyk: { curC, curM, curY, curK },
-            cambioTexto: comparativa || "Primer Registro",
+            cambio: compHTML || "Nuevo",
             rutaElegida: null
         };
 
         if (editandoId) {
             const idx = proyecto.colores.findIndex(c => c.id === editandoId);
-            proyecto.colores[idx] = colorData;
+            proyecto.colores[idx] = colorObj;
             editandoId = null;
-            document.getElementById('btnProcesar').innerText = "CALCULAR E HISTORIAR";
+            document.getElementById('btnProcesar').innerText = "CALCULAR RUTA";
         } else {
-            proyecto.colores.unshift(colorData);
+            proyecto.colores.unshift(colorObj);
         }
 
-        cmykAnterior = null; // Reset de memoria
+        cmykPrevio = null;
         render();
         limpiar();
     }
@@ -183,20 +201,16 @@
     function revalidar(id) {
         editandoId = id;
         const c = proyecto.colores.find(col => col.id === id);
+        cmykPrevio = { C: c.cmyk.curC, M: c.cmyk.curM, Y: c.cmyk.curY, K: c.cmyk.curK };
         
-        // Guardamos el CMYK actual como "anterior" antes de cargar los campos
-        cmykAnterior = { ...c.cmyk };
-
-        document.getElementById('rL').value = c.lab.rL;
-        document.getElementById('ra').value = c.lab.ra;
-        document.getElementById('rb').value = c.lab.rb;
+        document.getElementById('r1L').value = c.lab.r1L; document.getElementById('r2L').value = c.lab.r2L;
+        document.getElementById('r1a').value = c.lab.r1a; document.getElementById('r2a').value = c.lab.r2a;
+        document.getElementById('r1b').value = c.lab.r1b; document.getElementById('r2b').value = c.lab.r2b;
         document.getElementById('mName').value = c.nombre;
-        document.getElementById('cC').value = c.cmyk.curC;
-        document.getElementById('cM').value = c.cmyk.curM;
-        document.getElementById('cY').value = c.cmyk.curY;
-        document.getElementById('cK').value = c.cmyk.curK;
+        document.getElementById('cC').value = c.cmyk.curC; document.getElementById('cM').value = c.cmyk.curM;
+        document.getElementById('cY').value = c.cmyk.curY; document.getElementById('cK').value = c.cmyk.curK;
         
-        document.getElementById('btnProcesar').innerText = "ACTUALIZAR Y COMPARAR";
+        document.getElementById('btnProcesar').innerText = "ACTUALIZAR REGISTRO";
         window.scrollTo(0,0);
     }
 
@@ -205,13 +219,11 @@
         tbody.innerHTML = proyecto.colores.map(c => `
             <tr>
                 <td><small>${new Date(c.id).toLocaleString()}</small></td>
-                <td><strong>${c.nombre}</strong><br><small>Final: C:${c.cmyk.curC} M:${c.cmyk.curM} Y:${c.cmyk.curY} K:${c.cmyk.curK}</small></td>
-                <td>${c.cambioTexto}</td>
-                <td><span class="badge-de" style="color:${c.de > 1 ? 'var(--coral)' : 'var(--success)'}">${c.de}</span></td>
-                <td>
-                    ${(c.cmyk.curC >= 98 || c.cmyk.curM >= 98 || c.cmyk.curY >= 98) ? 
-                    '<div class="ruta-box"><small style="color:var(--orange)">⚠️ CANAL AL LÍMITE</small></div>' : 
-                    '<small style="color:var(--text)">Balance OK</small>'}
+                <td><strong>${c.nombre}</strong><br><small>C:${c.cmyk.curC} M:${c.cmyk.curM} Y:${c.cmyk.curY} K:${c.cmyk.curK}</small></td>
+                <td>${c.cambio}</td>
+                <td><span class="badge-de" style="color:${c.de > 1.2 ? 'var(--coral)' : 'var(--success)'}">${c.de}</span></td>
+                <td><span class="cuadrante-info">${c.cuadrante}</span>
+                    ${c.cmyk.curY >= 98 || c.cmyk.curK >= 98 ? `<div class="ruta-box"><small>⚠️ TOPE: Ruta A (M+1.5%) / Ruta B (K+1%)</small></div>` : ''}
                 </td>
                 <td>
                     <button class="btn btn-rev" onclick="revalidar(${c.id})">REV</button>
@@ -227,12 +239,12 @@
     }
 
     function limpiar() {
-        ['mName','mL','ma','mb','cC','cM','cY','cK'].forEach(id => document.getElementById(id).value = "");
+        ['r1L','r1a','r1b','r2L','r2a','r2b','mName','mL','ma','mb','cC','cM','cY','cK'].forEach(id => document.getElementById(id).value = "");
     }
 
     function exportarProyecto() {
-        proyecto.nombre = document.getElementById('projName').value || "Alpha_v3";
-        proyecto.notas = document.getElementById('projNotes').value;
+        proyecto.nombre = document.getElementById('projName').value || "Alpha_Exp";
+        proyecto.tela = { L: document.getElementById('clothL').value, a: document.getElementById('clothA').value, b: document.getElementById('clothB').value };
         const blob = new Blob([JSON.stringify(proyecto)], {type: "application/json"});
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -243,13 +255,15 @@
     function importarProyecto(e) {
         const reader = new FileReader();
         reader.onload = (ev) => {
-            try {
-                const data = JSON.parse(ev.target.result);
-                proyecto = data;
-                document.getElementById('projName').value = proyecto.nombre || "";
-                document.getElementById('projNotes').value = proyecto.notas || "";
-                render();
-            } catch(e) { alert("Error al cargar."); }
+            const data = JSON.parse(ev.target.result);
+            proyecto = data;
+            document.getElementById('projName').value = proyecto.nombre;
+            if(proyecto.tela) {
+                document.getElementById('clothL').value = proyecto.tela.L;
+                document.getElementById('clothA').value = proyecto.tela.a;
+                document.getElementById('clothB').value = proyecto.tela.b;
+            }
+            render();
         };
         reader.readAsText(e.target.files[0]);
     }
