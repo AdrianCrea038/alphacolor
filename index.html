@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALPHA v3.9 - Tendencias Visuales</title>
+    <title>ALPHA v3.9.1 - Data Guard</title>
     <style>
         :root {
             --bg-page: #0f111a;
@@ -50,7 +50,7 @@
 
 <div class="container">
     <div class="header">
-        <h1>ALPHA <span style="font-weight: 200; font-size: 0.5em;">v3.9 Tendencias Visuales</span></h1>
+        <h1>ALPHA <span style="font-weight: 200; font-size: 0.5em;">v3.9.1 Stabilized</span></h1>
         <div style="display: flex; gap: 10px;">
             <button type="button" class="btn btn-sec" onclick="exportarProyecto()">Exportar .alpha</button>
             <input type="file" id="fileInput" style="display:none" onchange="importarProyecto(event)">
@@ -173,38 +173,52 @@
 
     function render() {
         const tbody = document.getElementById('cuerpoTabla');
-        tbody.innerHTML = proyecto.colores.map(c => `
+        if (!tbody) return;
+
+        tbody.innerHTML = proyecto.colores.map(c => {
+            // SOLUCIÓN AL ERROR DE CONSOLA: Validación de CMYK
+            const ck = c.cmyk || { C: 0, M: 0, Y: 0, K: 0 };
+            
+            return `
             <tr>
                 <td><small>${new Date(c.id).toLocaleTimeString()}</small></td>
-                <td><strong>${c.nombre}</strong><br><small>C:${c.cmyk.C} M:${c.cmyk.M} Y:${c.cmyk.Y} K:${c.cmyk.K}</small></td>
-                <td><span style="color:${c.de > 1.0 ? 'var(--coral)' : 'var(--success)'}; font-weight:bold">${c.de}</span></td>
+                <td><strong>${c.nombre || 'S/N'}</strong><br><small>C:${ck.C} M:${ck.M} Y:${ck.Y} K:${ck.K}</small></td>
+                <td><span style="color:${c.de > 1.0 ? 'var(--coral)' : 'var(--success)'}; font-weight:bold">${c.de || 0}</span></td>
                 <td>
-                    <div class="tendencia-tag ${c.clase}">${c.tendencia}</div>
+                    <div class="tendencia-tag ${c.clase || 't-verde'}">${c.tendencia || 'Sin tendencia'}</div>
                 </td>
                 <td>
                     <button class="btn btn-rev" onclick="revalidar(${c.id})">REV</button>
                 </td>
-            </tr>`).join('');
+            </tr>`;
+        }).join('');
     }
 
     function revalidar(id) {
         const c = proyecto.colores.find(col => col.id === id);
         if(!c) return;
-        document.getElementById('r1L').value = c.lab.r1L;
-        document.getElementById('mName').value = c.nombre;
-        document.getElementById('mL').value = c.lab.mL;
-        document.getElementById('ma').value = c.lab.ma;
-        document.getElementById('mb').value = c.lab.mb;
-        document.getElementById('cC').value = c.cmyk.C;
-        document.getElementById('cM').value = c.cmyk.M;
-        document.getElementById('cY').value = c.cmyk.Y;
-        document.getElementById('cK').value = c.cmyk.K;
+        
+        const ck = c.cmyk || { C: 0, M: 0, Y: 0, K: 0 };
+        const lb = c.lab || { r1L: 0, r1a: 0, r1b: 0, mL: 0, ma: 0, mb: 0 };
+
+        document.getElementById('r1L').value = lb.r1L || "";
+        document.getElementById('mName').value = c.nombre || "";
+        document.getElementById('mL').value = lb.mL || "";
+        document.getElementById('ma').value = lb.ma || "";
+        document.getElementById('mb').value = lb.mb || "";
+        document.getElementById('cC').value = ck.C || 0;
+        document.getElementById('cM').value = ck.M || 0;
+        document.getElementById('cY').value = ck.Y || 0;
+        document.getElementById('cK').value = ck.K || 0;
         editandoId = id;
         window.scrollTo(0,0);
     }
 
     function limpiar() {
-        ['mName','mL','ma','mb','cC','cM','cY','cK'].forEach(id => document.getElementById(id).value = "");
+        ['mName','mL','ma','mb','cC','cM','cY','cK'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.value = "";
+        });
     }
 
     function exportarProyecto() {
@@ -216,12 +230,19 @@
     }
 
     function importarProyecto(e) {
+        const file = e.target.files[0];
+        if (!file) return;
         const reader = new FileReader();
         reader.onload = (ev) => {
-            proyecto = JSON.parse(ev.target.result);
-            render();
+            try {
+                const data = JSON.parse(ev.target.result);
+                if (data && Array.isArray(data.colores)) {
+                    proyecto = data;
+                    render();
+                }
+            } catch(e) { alert("Archivo no válido."); }
         };
-        reader.readAsText(e.target.files[0]);
+        reader.readAsText(file);
     }
 </script>
 </body>
