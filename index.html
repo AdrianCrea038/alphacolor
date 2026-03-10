@@ -2,13 +2,14 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>ALPHA v4.0 - Professional Split</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALPHA v4.2 - Professional Colorist Tool</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>ALPHA <span class="version">v4.0</span></h1>
+            <h1>ALPHA <span class="version">v4.2</span></h1>
             <div class="actions">
                 <button class="btn btn-sec" onclick="exportarProyecto()">Exportar .alpha</button>
                 <input type="file" id="fileInput" hidden onchange="importarProyecto(event)">
@@ -18,12 +19,12 @@
         </div>
 
         <div class="project-config">
-            <input type="text" id="projName" placeholder="Nombre del Proyecto / OT">
+            <input type="text" id="projName" placeholder="Nombre del Proyecto / Orden de Trabajo (OT)">
         </div>
 
         <div class="grid-main">
             <div class="card">
-                <h3>1. Referencia (LAB)</h3>
+                <h3>1. Referencia (LAB Objetivo)</h3>
                 <div class="input-row">
                     <input type="number" id="r1L" placeholder="L1" step="0.01">
                     <input type="number" id="r1a" placeholder="a1" step="0.01">
@@ -37,8 +38,8 @@
             </div>
 
             <div class="card">
-                <h3>2. Muestra Actual</h3>
-                <input type="text" id="mName" placeholder="ID de Color">
+                <h3>2. Muestra Actual (LAB)</h3>
+                <input type="text" id="mName" placeholder="Nombre del Color / ID">
                 <div class="input-row">
                     <input type="number" id="mL" placeholder="L" step="0.01">
                     <input type="number" id="ma" placeholder="a" step="0.01">
@@ -54,7 +55,10 @@
                     <input type="number" id="cY" placeholder="Y">
                     <input type="number" id="cK" placeholder="K">
                 </div>
-                <button class="btn btn-main" id="btnProcesar" onclick="procesar()">CALCULAR TENDENCIA</button>
+                <div class="action-buttons">
+                    <button class="btn btn-main" id="btnProcesar" onclick="procesar()">CALCULAR</button>
+                    <button class="btn btn-sec" onclick="limpiarCamposNuevo()" title="Limpia muestra y CMYK, mantiene referencia">NUEVO COLOR</button>
+                </div>
             </div>
         </div>
 
@@ -65,7 +69,7 @@
                         <th>Hora</th>
                         <th>Color / CMYK</th>
                         <th>ΔE</th>
-                        <th>Tendencia Visual</th>
+                        <th>Tendencia y Ajustes Sugeridos</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
