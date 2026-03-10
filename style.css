@@ -1,49 +1,247 @@
+/* --- ALPHA COLOR SYSTEM v4.7 --- */
+
 :root {
     --bg-page: #0f111a;
     --bg-card: #1a1d29;
-    --accent: #40e0d0;
-    --coral: #ff6b81;
+    --accent: #40e0d0;   /* Turquesa Alpha */
+    --coral: #ff6b81;    /* Rojo/Error */
+    --warning: #ffb74d;  /* Amarillo/Ajuste */
+    --success: #51cf66;  /* Verde/En Punto */
     --text: #ced4da;
-    --success: #51cf66;
-    --blue: #4dabf7;
-    --warning: #ffb74d;
+    --shadow: rgba(0, 0, 0, 0.4);
 }
 
-body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg-page); color: var(--text); padding: 20px; margin: 0; }
-.container { max-width: 1300px; margin: auto; }
-.header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--accent); margin-bottom: 20px; padding-bottom: 10px; }
-.version { font-size: 0.4em; font-weight: 200; color: var(--accent); }
+body { 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    background: var(--bg-page); 
+    color: var(--text); 
+    padding: 20px; 
+    margin: 0; 
+    line-height: 1.6;
+}
 
-.project-config input { background: transparent; border: none; border-bottom: 1px solid #333; font-size: 1.2em; color: var(--accent); margin-bottom: 20px; outline: none; }
+.container { 
+    max-width: 1200px; 
+    margin: auto; 
+}
 
-.grid-main { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 15px; }
-.card { background: var(--bg-card); padding: 15px; border-radius: 10px; border: 1px solid #333; display: flex; flex-direction: column; }
-.card h3 { color: var(--accent); font-size: 0.85em; margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+/* --- ENCABEZADO --- */
+.header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    border-bottom: 2px solid var(--accent); 
+    margin-bottom: 20px; 
+    padding-bottom: 10px; 
+}
 
-input { background: #000; border: 1px solid #444; color: #fff; padding: 10px; border-radius: 4px; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
-.input-row, .input-grid { display: grid; gap: 5px; }
-.input-row { grid-template-columns: repeat(3, 1fr); }
-.input-grid { grid-template-columns: 1fr 1fr; }
+.header h1 { 
+    margin: 0; 
+    letter-spacing: 2px; 
+    color: #fff;
+}
 
-.action-buttons { display: flex; gap: 8px; margin-top: auto; }
-.btn { padding: 12px; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; text-transform: uppercase; font-size: 0.75em; transition: 0.3s; }
-.btn-main { background: linear-gradient(135deg, var(--coral), var(--warning)); color: #000; flex: 2; }
-.btn-sec { background: #333; color: #fff; flex: 1; }
-.btn-danger { background: transparent; border: 1px solid var(--coral); color: var(--coral); }
-.btn-rev { background: var(--blue); color: #000; padding: 5px 10px; }
-.btn-del { background: transparent; color: var(--coral); border: 1px solid var(--coral); padding: 5px 10px; margin-left: 5px; }
+.version { 
+    font-size: 0.4em; 
+    color: var(--accent); 
+    vertical-align: super;
+}
 
-.table-container { margin-top: 25px; background: var(--bg-card); border-radius: 10px; border: 1px solid #333; overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; min-width: 800px; }
-th { background: #252a3d; color: var(--accent); padding: 12px; text-align: left; font-size: 0.8em; text-transform: uppercase; }
-td { padding: 12px; border-bottom: 1px solid #333; vertical-align: top; }
+/* --- CONFIGURACIÓN DE PROYECTO --- */
+.project-config input { 
+    background: transparent; 
+    border: none; 
+    border-bottom: 1px solid #333; 
+    color: var(--accent); 
+    font-size: 1.2em; 
+    width: 100%; 
+    outline: none; 
+    padding: 10px 0;
+    margin-bottom: 20px;
+}
 
-.tendencia-tag { display: inline-block; padding: 4px 10px; border-radius: 4px; font-weight: bold; border: 1px solid; font-size: 0.85em; margin-bottom: 10px; }
-.t-rojo { background: rgba(255,107,129,0.1); color: var(--coral); }
-.t-verde { background: rgba(81,207,102,0.1); color: var(--success); }
-.t-azul { background: rgba(77,171,247,0.1); color: var(--blue); }
-.t-amar { background: rgba(255,183,77,0.1); color: var(--warning); }
+/* --- GRID DE ENTRADA --- */
+.grid-main { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr 1fr; 
+    gap: 15px; 
+}
 
-.rutas-container { display: flex; flex-direction: column; gap: 5px; }
-.ruta-item { font-size: 0.8em; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 4px; border-left: 3px solid var(--accent); display: flex; align-items: center; gap: 10px; cursor: pointer; }
-.ruta-item.done { opacity: 0.5; text-decoration: line-through; border-left-color: var(--success); }
+.card { 
+    background: var(--bg-card); 
+    padding: 15px; 
+    border-radius: 10px; 
+    border: 1px solid #333; 
+    box-shadow: 0 4px 6px var(--shadow);
+}
+
+.card h3 { 
+    color: var(--accent); 
+    font-size: 0.85em; 
+    margin: 0 0 15px 0; 
+    border-bottom: 1px solid #2a2e3f; 
+    padding-bottom: 5px; 
+    text-transform: uppercase;
+}
+
+/* --- INPUTS --- */
+input[type="number"], input[type="text"] { 
+    background: #000; 
+    border: 1px solid #444; 
+    color: #fff; 
+    padding: 12px; 
+    border-radius: 5px; 
+    width: 100%; 
+    box-sizing: border-box; 
+    margin-bottom: 10px; 
+    font-size: 1em;
+}
+
+input:focus {
+    border-color: var(--accent);
+    outline: none;
+}
+
+.input-row { 
+    display: grid; 
+    grid-template-columns: repeat(3, 1fr); 
+    gap: 8px; 
+}
+
+.input-grid { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 8px; 
+}
+
+/* --- BOTONES Y EFECTOS --- */
+.btn { 
+    padding: 12px; 
+    border-radius: 5px; 
+    border: none; 
+    cursor: pointer; 
+    font-weight: bold; 
+    text-transform: uppercase; 
+    font-size: 0.75em; 
+    transition: all 0.2s ease;
+    display: inline-block;
+    text-align: center;
+}
+
+/* Efecto Hover (Pasar mouse) */
+.btn:hover {
+    filter: brightness(1.2);
+    transform: translateY(-1px);
+}
+
+/* Efecto Active (Al hacer clic) */
+.btn:active {
+    transform: translateY(1px);
+    filter: brightness(0.8);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
+}
+
+.btn-main { 
+    background: linear-gradient(135deg, var(--coral), var(--warning)); 
+    color: #000; 
+}
+
+.btn-sec { 
+    background: #333; 
+    color: #fff; 
+}
+
+.btn-danger { 
+    background: transparent; 
+    border: 1px solid var(--coral); 
+    color: var(--coral); 
+}
+
+.btn-rev { 
+    background: #4dabf7; 
+    color: #000; 
+    padding: 6px 12px; 
+}
+
+.btn-del { 
+    background: transparent; 
+    color: var(--coral); 
+    border: 1px solid var(--coral); 
+    padding: 6px 12px; 
+}
+
+/* --- TABLA DE RESULTADOS --- */
+.table-container { 
+    margin-top: 25px; 
+    background: var(--bg-card); 
+    border-radius: 10px; 
+    overflow: hidden; 
+    border: 1px solid #333; 
+}
+
+table { 
+    width: 100%; 
+    border-collapse: collapse; 
+}
+
+th { 
+    background: #252a3d; 
+    color: var(--accent); 
+    padding: 15px; 
+    text-align: left; 
+    font-size: 0.85em; 
+    text-transform: uppercase;
+}
+
+td { 
+    padding: 15px; 
+    border-bottom: 1px solid #2a2e3f; 
+    vertical-align: top; 
+}
+
+/* --- TAGS DE TENDENCIA --- */
+.tendencia-tag { 
+    display: inline-block; 
+    padding: 4px 10px; 
+    border-radius: 4px; 
+    font-weight: bold; 
+    margin-bottom: 10px; 
+    font-size: 0.8em; 
+}
+
+.t-rojo { background: rgba(255,107,129,0.15); color: var(--coral); border: 1px solid var(--coral); }
+.t-verde { background: rgba(81,207,102,0.15); color: var(--success); border: 1px solid var(--success); }
+.t-azul { background: rgba(77,171,247,0.15); color: #4dabf7; border: 1px solid #4dabf7; }
+.t-amar { background: rgba(255,183,77,0.15); color: var(--warning); border: 1px solid var(--warning); }
+
+/* --- RUTAS Y CHECKBOXES --- */
+.rutas-container { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 6px; 
+}
+
+.ruta-item { 
+    background: rgba(0,0,0,0.2); 
+    padding: 10px; 
+    border-radius: 5px; 
+    border-left: 3px solid var(--accent); 
+    font-size: 0.85em; 
+    cursor: pointer; 
+    display: flex; 
+    align-items: center; 
+    gap: 10px;
+}
+
+.ruta-item.done { 
+    opacity: 0.4; 
+    text-decoration: line-through; 
+    border-left-color: var(--success); 
+    background: rgba(0,0,0,0.1);
+}
+
+.ruta-item input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+    cursor: pointer;
+}
