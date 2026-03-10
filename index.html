@@ -3,196 +3,258 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALPHA v1.5 - Full CMYK Intelligence</title>
+    <title>ALPHA v2.0 - Project Manager</title>
     <style>
         :root {
-            --bg-page: #212529;
-            --bg-container: #1a1a1a;
-            --color-text-main: #40e0d0;
-            --color-text-body: #ced4da;
-            --color-border: #343a40;
-            --color-btn-coral: #ff6b81;
-            --color-btn-orange: #ffb74d;
+            --bg-page: #0f111a;
+            --bg-card: #1a1d29;
+            --accent: #40e0d0;
+            --coral: #ff6b81;
+            --orange: #ffb74d;
+            --text: #ced4da;
         }
 
-        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-page); color: var(--color-text-body); display: flex; justify-content: center; padding: 20px; }
-        .container { max-width: 900px; width: 100%; background-color: var(--bg-container); padding: 30px; border-radius: 20px; border-top: 5px solid var(--color-text-main); text-align: center; }
-        .logo-header { max-width: 90px; margin-bottom: 10px; }
-        h1 { color: var(--color-text-main); letter-spacing: 5px; text-transform: uppercase; margin: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-page); color: var(--text); margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: auto; }
         
-        .grid-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
-        .card { background-color: #2a2a2a; padding: 15px; border-radius: 12px; border: 1px solid var(--color-border); text-align: left; }
-        .card h3 { font-size: 0.75em; color: var(--color-text-main); border-bottom: 1px solid var(--color-border); padding-bottom: 5px; margin-bottom: 10px; text-transform: uppercase; }
+        /* Header & Project Info */
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--accent); padding-bottom: 15px; margin-bottom: 20px; }
+        .project-meta { background: var(--bg-card); padding: 15px; border-radius: 10px; display: flex; gap: 20px; align-items: center; margin-bottom: 20px; }
         
-        input { width: 90%; padding: 10px; background: #1a1a1a; border: 1px solid var(--color-border); border-radius: 5px; color: white; margin-bottom: 10px; }
-
-        .button-group { display: flex; gap: 10px; margin-top: 20px; }
-        .btn-calc { flex: 2; padding: 15px; background: linear-gradient(135deg, var(--color-btn-coral), var(--color-btn-orange)); border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 1.1em; }
-        .btn-new { flex: 1; padding: 15px; background: #495057; border: none; border-radius: 10px; color: white; cursor: pointer; font-weight: bold; }
-
-        .instrucciones-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 20px; }
-        .color-instruction { padding: 15px; border-radius: 12px; text-align: center; border: 2px solid transparent; background: #252525; }
-        .val-ajuste { font-size: 1.8em; font-weight: bold; display: block; margin: 5px 0; }
+        /* Input Sections */
+        .grid-main { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .card { background: var(--bg-card); padding: 15px; border-radius: 12px; border: 1px solid #343a40; }
+        .card h3 { color: var(--accent); font-size: 0.8em; text-transform: uppercase; margin-top: 0; border-bottom: 1px solid #343a40; padding-bottom: 5px; }
         
-        .subir-card { border-color: var(--color-btn-coral); }
-        .bajar-card { border-color: #51cf66; }
-        .bloqueado-card { border-color: var(--color-btn-orange); opacity: 0.9; background: #1a1a1a; }
-
-        #resultado { display: none; margin-top: 30px; text-align: left; }
-        .msg-alerta { background:#2c2c2c; border: 1px solid var(--color-btn-orange); padding:20px; border-radius:10px; margin-top:20px; line-height: 1.6; }
-
-        .historial-header { display: flex; justify-content: space-between; align-items: center; margin-top: 50px; border-bottom: 1px solid var(--color-text-main); padding-bottom: 10px; }
-        .btn-clear-hist { background: transparent; border: 1px solid #ff6b81; color: #ff6b81; padding: 5px 15px; border-radius: 5px; cursor: pointer; font-size: 0.8em; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.8em; margin-top: 10px; }
-        th { background: #343a40; color: var(--color-text-main); padding: 10px; }
-        td { padding: 10px; border-bottom: 1px solid var(--color-border); text-align: center; }
+        input { width: 100%; background: #0f111a; border: 1px solid #343a40; color: white; padding: 8px; border-radius: 5px; margin-bottom: 8px; box-sizing: border-box; }
+        
+        /* Buttons */
+        .btn { padding: 10px 20px; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-main { background: linear-gradient(135deg, var(--coral), var(--orange)); color: #000; width: 100%; font-size: 1.1em; }
+        .btn-sec { background: #495057; color: white; }
+        .btn-save { background: var(--accent); color: #000; }
+        
+        /* Table Style */
+        .table-container { background: var(--bg-card); border-radius: 12px; overflow: hidden; margin-top: 30px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+        th { background: #252a3d; color: var(--accent); padding: 12px; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #343a40; vertical-align: top; }
+        
+        .badge { padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.8em; }
+        .alert-box { color: var(--orange); font-size: 0.8em; margin-top: 5px; border-left: 2px solid var(--orange); padding-left: 5px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <img src="Logo.png" alt="ALFA" class="logo-header">
-    <h1>ALPHA</h1>
-    <p style="font-size: 0.7em; opacity: 0.6;">UNIVERSAL CMYK ENGINE v1.5</p>
-
-    <div class="card" style="margin-top:20px;">
-        <h3>Identificación del Proyecto</h3>
-        <input type="text" id="colorName" placeholder="Nombre del color">
-    </div>
-
-    <div class="grid-inputs">
-        <div class="card">
-            <h3>Objetivo (LAB)</h3>
-            <input type="number" id="L1" placeholder="L*" step="0.01">
-            <input type="number" id="a1" placeholder="a*" step="0.01">
-            <input type="number" id="b1" placeholder="b*" step="0.01">
-        </div>
-        <div class="card">
-            <h3>Muestra (LAB)</h3>
-            <input type="number" id="L2" placeholder="L*" step="0.01">
-            <input type="number" id="a2" placeholder="a*" step="0.01">
-            <input type="number" id="b2" placeholder="b*" step="0.01">
-        </div>
-    </div>
-
-    <div class="card">
-        <h3>CMYK Actual (%)</h3>
+    <div class="header">
+        <h1>ALPHA <span style="font-weight: 200; font-size: 0.5em;">v2.0 Project Suite</span></h1>
         <div style="display: flex; gap: 10px;">
-            <input type="number" id="curC" placeholder="C">
-            <input type="number" id="curM" placeholder="M">
-            <input type="number" id="curY" placeholder="Y">
-            <input type="number" id="curK" placeholder="K">
+            <button class="btn btn-sec" onclick="exportarProyecto()">Descargar .alpha</button>
+            <input type="file" id="fileInput" style="display:none" onchange="importarProyecto(event)">
+            <button class="btn btn-sec" onclick="document.getElementById('fileInput').click()">Cargar Proyecto</button>
+            <button class="btn btn-save" onclick="guardarBorrador()">Guardar Borrador</button>
         </div>
     </div>
 
-    <div class="button-group">
-        <button onclick="procesarAlfa()" class="btn-calc">CALCULAR RUTA</button>
-        <button onclick="nuevoCalculo()" class="btn-new">NUEVO</button>
+    <div class="project-meta">
+        <div style="flex: 1;">
+            <label>Nombre del Proyecto:</label>
+            <input type="text" id="projName" placeholder="Ej: Temporada Verano 2026 - Cliente X">
+        </div>
+        <div style="flex: 1;">
+            <label>Blanco de Tela (Opcional):</label>
+            <div style="display: flex; gap: 5px;">
+                <input type="number" id="baseL" placeholder="L*">
+                <input type="number" id="baseA" placeholder="a*">
+                <input type="number" id="baseB" placeholder="b*">
+            </div>
+        </div>
     </div>
 
-    <div id="resultado">
-        <h2 id="resTitulo" style="color: var(--color-text-main); margin-bottom: 5px;"></h2>
-        <p id="resDelta" style="margin: 0 0 20px 0; font-weight: bold;"></p>
-        <div class="instrucciones-grid" id="gridCartas"></div>
-        <div id="msgCompensacion"></div>
+    <div class="grid-main">
+        <div class="card">
+            <h3>1. Referencia (Doble Medida)</h3>
+            <p style="font-size: 0.7em; opacity: 0.7;">Mide dos veces para promediar:</p>
+            <div style="display: flex; gap: 5px;">
+                <input type="number" id="r1L" placeholder="L1">
+                <input type="number" id="r1a" placeholder="a1">
+                <input type="number" id="r1b" placeholder="b1">
+            </div>
+            <div style="display: flex; gap: 5px;">
+                <input type="number" id="r2L" placeholder="L2">
+                <input type="number" id="r2a" placeholder="a2">
+                <input type="number" id="r2b" placeholder="b2">
+            </div>
+            <button class="btn btn-sec" style="width:100%; padding:5px;" onclick="calcularPromedioRef()">Fijar Estándar</button>
+            <div id="refFijada" style="margin-top:10px; font-size:0.8em; color:var(--accent)"></div>
+        </div>
+
+        <div class="card">
+            <h3>2. Muestra a Igualar</h3>
+            <input type="text" id="colorItemName" placeholder="Nombre del Color (Ej: Rojo Vino)">
+            <input type="number" id="m1L" placeholder="Lectura L*">
+            <input type="number" id="m1a" placeholder="Lectura a*">
+            <input type="number" id="m1b" placeholder="Lectura b*">
+        </div>
+
+        <div class="card">
+            <h3>3. CMYK Actual (%)</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+                <input type="number" id="curC" placeholder="C">
+                <input type="number" id="curM" placeholder="M">
+                <input type="number" id="curY" placeholder="Y">
+                <input type="number" id="curK" placeholder="K">
+            </div>
+            <button class="btn btn-main" onclick="procesarColor()" style="margin-top:10px;">AGREGAR AL PROYECTO</button>
+        </div>
     </div>
 
-    <div class="historial-header">
-        <h3 style="color: var(--color-text-main); margin: 0;">REGISTRO</h3>
-        <button onclick="borrarHistorial()" class="btn-clear-hist">LIMPIAR</button>
+    <div class="table-container">
+        <table id="tablaProyecto">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Color</th>
+                    <th>Referencia (Prom)</th>
+                    <th>Muestra</th>
+                    <th>CMYK Base</th>
+                    <th>AJUSTE RECOMENDADO</th>
+                </tr>
+            </thead>
+            <tbody id="cuerpoTabla"></tbody>
+        </table>
     </div>
-    <table id="tablaHistorial">
-        <thead><tr><th>Nombre</th><th>ΔE</th><th>Ajuste</th></tr></thead>
-        <tbody id="cuerpoTabla"></tbody>
-    </table>
 </div>
 
 <script>
-    window.onload = cargarHistorial;
+    let proyecto = {
+        nombre: "",
+        colores: []
+    };
 
-    function nuevoCalculo() {
-        ['colorName', 'L1', 'a1', 'b1', 'L2', 'a2', 'b2', 'curC', 'curM', 'curY', 'curK'].forEach(id => {
-            document.getElementById(id).value = "";
-        });
-        document.getElementById('resultado').style.display = 'none';
+    let refPromedio = null;
+
+    function calcularPromedioRef() {
+        const l1 = parseFloat(document.getElementById('r1L').value);
+        const l2 = parseFloat(document.getElementById('r2L').value);
+        // ... mismo para a y b
+        if(isNaN(l1) || isNaN(l2)) return alert("Ingresa ambas medidas de referencia");
+        
+        refPromedio = {
+            L: (l1 + l2) / 2,
+            a: (parseFloat(document.getElementById('r1a').value) + parseFloat(document.getElementById('r2a').value)) / 2,
+            b: (parseFloat(document.getElementById('r1b').value) + parseFloat(document.getElementById('r2b').value)) / 2
+        };
+        document.getElementById('refFijada').innerText = `Estándar fijado: L ${refPromedio.L.toFixed(2)}`;
     }
 
-    function procesarAlfa() {
-        const L1 = parseFloat(document.getElementById('L1').value) || 0;
-        const a1 = parseFloat(document.getElementById('a1').value) || 0;
-        const b1 = parseFloat(document.getElementById('b1').value) || 0;
-        const L2 = parseFloat(document.getElementById('L2').value) || 0;
-        const a2 = parseFloat(document.getElementById('a2').value) || 0;
-        const b2 = parseFloat(document.getElementById('b2').value) || 0;
+    function procesarColor() {
+        if(!refPromedio) return alert("Primero fija el estándar con la doble medida");
         
-        const dL = L2 - L1; 
-        const da = a2 - a1;
-        const db = b2 - b1;
+        const nombre = document.getElementById('colorItemName').value || "Sin nombre";
+        const mL = parseFloat(document.getElementById('m1L').value);
+        const ma = parseFloat(document.getElementById('m1a').value);
+        const mb = parseFloat(document.getElementById('m1b').value);
+        
+        const c = parseFloat(document.getElementById('curC').value) || 0;
+        const m = parseFloat(document.getElementById('curM').value) || 0;
+        const y = parseFloat(document.getElementById('curY').value) || 0;
+        const k = parseFloat(document.getElementById('curK').value) || 0;
+
+        const dL = mL - refPromedio.L;
+        const da = ma - refPromedio.a;
+        const db = mb - refPromedio.b;
         const dE = Math.sqrt(dL*dL + da*da + db*db).toFixed(2);
 
-        const tintas = [
-            { id: 'C', nombre: 'Cian', ajuste: (dL * 0.4).toFixed(1), actual: parseFloat(document.getElementById('curC').value) || 0 },
-            { id: 'M', nombre: 'Magenta', ajuste: (da * -1.6).toFixed(1), actual: parseFloat(document.getElementById('curM').value) || 0 },
-            { id: 'Y', nombre: 'Amarillo', ajuste: (db * -1.6).toFixed(1), actual: parseFloat(document.getElementById('curY').value) || 0 },
-            { id: 'K', nombre: 'Negro', ajuste: (dL * 1.3).toFixed(1), actual: parseFloat(document.getElementById('curK').value) || 0 }
-        ];
+        // Lógica de ajuste básica
+        let adjC = (dL * 0.4).toFixed(1);
+        let adjM = (da * -1.6).toFixed(1);
+        let adjY = (db * -1.6).toFixed(1);
+        let adjK = (dL * 1.3).toFixed(1);
 
-        let htmlCartas = "";
-        let alertas = [];
+        // Chequeo de colisión 100%
+        let rutasEspeciales = "";
+        if((m + parseFloat(adjM)) >= 100) {
+            rutasEspeciales = db < 0 ? 
+                "<div class='alert-box'>M al 100%: Baja C: -2.5% y sube K: +1.5%</div>" : 
+                "<div class='alert-box'>M al 100%: Baja Y: -2.0% y C: -1.0%</div>";
+        }
 
-        tintas.forEach(t => {
-            let valorFinal = t.actual + parseFloat(t.ajuste);
-            let isSaturado = valorFinal >= 100;
-            let clase = isSaturado ? 'bloqueado-card' : (t.ajuste > 0 ? 'subir-card' : 'bajar-card');
-            let textoAjuste = isSaturado ? "MAX" : (t.ajuste > 0 ? "+" + t.ajuste : t.ajuste) + "%";
+        const nuevoItem = {
+            id: proyecto.colores.length + 1,
+            nombre,
+            ref: `${refPromedio.L.toFixed(1)}, ${refPromedio.a.toFixed(1)}, ${refPromedio.b.toFixed(1)}`,
+            muestra: `${mL.toFixed(1)}, ${ma.toFixed(1)}, ${mb.toFixed(1)}`,
+            cmyk: `C:${c} M:${m} Y:${y} K:${k}`,
+            ajuste: `C:${adjC} M:${adjM} Y:${adjY} K:${adjK}`,
+            extra: rutasEspeciales,
+            dE: dE
+        };
 
-            // MOTOR DE DECISIÓN CRÍTICA UNIVERSAL
-            if (isSaturado) {
-                if (t.id === 'K' && dL > 0) {
-                    alertas.push(`<strong>NEGRO (K) AL 100%:</strong> La muestra sigue clara. Para ganar profundidad, sube <strong>C: +1.5%, M: +1.5%, Y: +1.5%</strong>.`);
-                }
-                if (t.id === 'M' && da < 0) {
-                    if (db < 0) {
-                        alertas.push(`<strong>MAGENTA (M) AL 100%:</strong> Tono azulado. Baja <strong>Cian: -2.5%</strong> y sube <strong>Negro: +1.0%</strong>.`);
-                    } else {
-                        alertas.push(`<strong>MAGENTA (M) AL 100%:</strong> Tono sucio. Baja <strong>Amarillo: -2.0%</strong> y <strong>Cian: -1.0%</strong>.`);
-                    }
-                }
-                if (t.id === 'C' && dL < 0) {
-                    alertas.push(`<strong>CIAN (C) AL 100%:</strong> Color muy oscuro/frío. Baja <strong>Magenta: -2.0%</strong> y <strong>Amarillo: -1.5%</strong>.`);
-                }
-                if (t.id === 'Y' && db < 0) {
-                    alertas.push(`<strong>AMARILLO (Y) AL 100%:</strong> Falta calidez. Baja <strong>Cian: -2.0%</strong> para dejar que el amarillo resalte.`);
-                }
-            }
-
-            htmlCartas += `<div class="color-instruction ${clase}"><span style="font-size:0.7em">${t.nombre}</span><span class="val-ajuste">${textoAjuste}</span><small>${isSaturado ? 'LÍMITE' : (t.ajuste > 0 ? 'SUBIR' : 'BAJAR')}</small></div>`;
-        });
-
-        document.getElementById('resTitulo').innerText = document.getElementById('colorName').value || "Muestra";
-        document.getElementById('resDelta').innerText = `ΔE: ${dE}`;
-        document.getElementById('gridCartas').innerHTML = htmlCartas;
-        document.getElementById('msgCompensacion').innerHTML = alertas.length > 0 ? `<div class="msg-alerta">${alertas.join('<br><br>')}</div>` : "";
-        document.getElementById('resultado').style.display = 'block';
-
-        guardarEnHistorial(document.getElementById('colorName').value || "S/N", dE, tintas.map(t => `${t.id}:${t.ajuste}`).join(' '));
+        proyecto.colores.push(nuevoItem);
+        renderTabla();
+        
+        // Limpiar campos de muestra para el siguiente
+        document.getElementById('colorItemName').value = "";
+        document.getElementById('m1L').value = "";
+        document.getElementById('m1a').value = "";
+        document.getElementById('m1b').value = "";
     }
 
-    function guardarEnHistorial(nombre, de, ajuste) {
-        let history = JSON.parse(localStorage.getItem('alfa_v15_hist')) || [];
-        history.unshift({ nombre, de, ajuste });
-        localStorage.setItem('alfa_v15_hist', JSON.stringify(history.slice(0, 10)));
-        cargarHistorial();
+    function renderTabla() {
+        const tbody = document.getElementById('cuerpoTabla');
+        tbody.innerHTML = proyecto.colores.map(c => `
+            <tr>
+                <td>${c.id}</td>
+                <td><strong>${c.nombre}</strong><br><small>ΔE: ${c.dE}</small></td>
+                <td>${c.ref}</td>
+                <td>${c.muestra}</td>
+                <td>${c.cmyk}</td>
+                <td>
+                    <span style="color:var(--accent)">${c.ajuste}</span>
+                    ${c.extra}
+                </td>
+            </tr>
+        `).join('');
     }
 
-    function cargarHistorial() {
-        let history = JSON.parse(localStorage.getItem('alfa_v15_hist')) || [];
-        document.getElementById('cuerpoTabla').innerHTML = history.map(h => `<tr><td>${h.nombre}</td><td>${h.de}</td><td>${h.ajuste}</td></tr>`).join('');
+    function exportarProyecto() {
+        proyecto.nombre = document.getElementById('projName').value || "proyecto_sin_nombre";
+        const data = JSON.stringify(proyecto);
+        const blob = new Blob([data], {type: "application/json"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${proyecto.nombre}.alpha`;
+        a.click();
     }
 
-    function borrarHistorial() {
-        if(confirm("¿Borrar historial?")) { localStorage.removeItem('alfa_v15_hist'); cargarHistorial(); }
+    function importarProyecto(event) {
+        const file = event.target.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            proyecto = JSON.parse(e.target.result);
+            document.getElementById('projName').value = proyecto.nombre;
+            renderTabla();
+        };
+        reader.readAsText(file);
     }
+
+    function guardarBorrador() {
+        proyecto.nombre = document.getElementById('projName').value;
+        localStorage.setItem('alpha_draft', JSON.stringify(proyecto));
+        alert("Borrador guardado en el navegador.");
+    }
+
+    window.onload = () => {
+        const draft = localStorage.getItem('alpha_draft');
+        if(draft) {
+            proyecto = JSON.parse(draft);
+            document.getElementById('projName').value = proyecto.nombre;
+            renderTabla();
+        }
+    };
 </script>
 </body>
 </html>
