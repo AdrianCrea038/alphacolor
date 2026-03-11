@@ -1,7 +1,8 @@
 /**
- * ALPHA COLOR SYSTEM - v8.0
+ * ALPHA COLOR SYSTEM - v8.1
  * ESPECIALIZADO EN SUBLIMACIÓN TEXTIL
  * CMC (l:2 c:1) - Estándar ISO 105-J03
+ * CORREGIDO: función cambiarFormula global
  */
 
 // ============================================
@@ -22,7 +23,7 @@ function procesar() {
         return parseFloat(el.value);
     };
 
-    // Leer LAB
+    // Leer LAB (siempre LAB en interfaz)
     const rL = getNum('r1L');
     const ra = getNum('r1a');
     const rb = getNum('r1b');
@@ -84,12 +85,12 @@ function procesar() {
 
     // Mostrar diagnóstico LAB
     let diagnosticoLAB = [];
-    if (da > 0.5) diagnosticoLAB.push(`🔴 Exceso ROJO (da = ${da.toFixed(2)})`);
-    if (da < -0.5) diagnosticoLAB.push(`🔴 Falta ROJO (da = ${da.toFixed(2)})`);
-    if (db > 0.5) diagnosticoLAB.push(`🟡 Exceso AMARILLO (db = ${db.toFixed(2)})`);
-    if (db < -0.5) diagnosticoLAB.push(`🔵 Exceso AZUL (db = ${db.toFixed(2)})`);
-    if (dL > 0.5) diagnosticoLAB.push(`⚪ Muy CLARO (dL = ${dL.toFixed(2)})`);
-    if (dL < -0.5) diagnosticoLAB.push(`⚫ Muy OSCURO (dL = ${dL.toFixed(2)})`);
+    if (da > 0.5) diagnosticoLAB.push(`🔴 Exceso ROJO (da = ${da.toFixed(2)}) - necesita menos magenta`);
+    if (da < -0.5) diagnosticoLAB.push(`🔴 Falta ROJO (da = ${da.toFixed(2)}) - necesita más magenta`);
+    if (db > 0.5) diagnosticoLAB.push(`🟡 Exceso AMARILLO (db = ${db.toFixed(2)}) - necesita menos amarillo`);
+    if (db < -0.5) diagnosticoLAB.push(`🔵 Exceso AZUL (db = ${db.toFixed(2)}) - necesita más amarillo`);
+    if (dL > 0.5) diagnosticoLAB.push(`⚪ Muy CLARO (dL = ${dL.toFixed(2)}) - necesita más K o CMY`);
+    if (dL < -0.5) diagnosticoLAB.push(`⚫ Muy OSCURO (dL = ${dL.toFixed(2)}) - necesita menos K o CMY`);
     
     if (diagnosticoLAB.length > 0) {
         diagnosticoLAB.forEach((diag, index) => {
@@ -208,7 +209,7 @@ function calcularCMC(L1, a1, b1, L2, a2, b2) {
     const l = 2.0;  // Peso de luminosidad (mayor = más tolerancia)
     const c = 1.0;  // Peso de croma
     
-    // Convertir LAB a LCH
+    // Convertir LAB a LCH (interno para cálculo CMC)
     const C1 = Math.sqrt(a1*a1 + b1*b1);
     const C2 = Math.sqrt(a2*a2 + b2*b2);
     
@@ -224,7 +225,7 @@ function calcularCMC(L1, a1, b1, L2, a2, b2) {
         dH = Math.sqrt(Math.max(0, dEab*dEab - dL*dL - dC*dC));
     }
     
-    // Calcular ángulos
+    // Calcular ángulos (LCH)
     let h1 = Math.atan2(b1, a1) * 180 / Math.PI;
     if (h1 < 0) h1 += 360;
     
@@ -440,6 +441,40 @@ function calcularAjusteParaDelta05(rL, ra, rb, mL, ma, mb, cmykActual) {
 }
 
 // ============================================
+// FUNCIÓN PARA CAMBIAR FÓRMULA (CORREGIDA)
+// ============================================
+function cambiarFormula() {
+    const selector = document.getElementById('formulaSelector');
+    if (!selector) return;
+    
+    formulaActual = selector.value;
+    const badge = document.getElementById('formulaBadge');
+    
+    // Actualizar badge según fórmula seleccionada
+    if (formulaActual === 'cmc') {
+        badge.innerHTML = '⚡ Usando CMC (l:2 c:1) - Estándar textil ISO 105-J03';
+        badge.style.color = 'var(--accent)';
+        badge.style.borderColor = 'var(--accent)';
+    } else if (formulaActual === 'cielab') {
+        badge.innerHTML = '📐 Usando CIELAB ΔE*ab - Estándar general';
+        badge.style.color = '#ffb74d';
+        badge.style.borderColor = '#ffb74d';
+    } else {
+        badge.innerHTML = '🖨️ Usando CIE94 - Industria gráfica';
+        badge.style.color = '#4dabf7';
+        badge.style.borderColor = '#4dabf7';
+    }
+    
+    // Actualizar vista si hay valores
+    actualizarComparacion();
+    
+    console.log(`Fórmula cambiada a: ${formulaActual}`);
+}
+
+// Asegurar que la función esté disponible globalmente
+window.cambiarFormula = cambiarFormula;
+
+// ============================================
 // ACTUALIZAR COMPARACIÓN EN TIEMPO REAL
 // ============================================
 function actualizarComparacion() {
@@ -459,21 +494,6 @@ function actualizarComparacion() {
         document.getElementById('deltaE_cielab').textContent = calcularCIELAB(mL - rL, ma - ra, mb - rb).toFixed(2);
         document.getElementById('deltaE_cmc').textContent = calcularCMC(rL, ra, rb, mL, ma, mb).toFixed(2);
         document.getElementById('deltaE_cie94').textContent = calcularCIE94(rL, ra, rb, mL, ma, mb).toFixed(2);
-    }
-}
-
-function cambiarFormula() {
-    formulaActual = document.getElementById('formulaSelector').value;
-    const badge = document.getElementById('formulaBadge');
-    if (formulaActual === 'cmc') {
-        badge.innerHTML = '⚡ Usando CMC - Ideal para textiles';
-        badge.style.color = 'var(--accent)';
-    } else if (formulaActual === 'cielab') {
-        badge.innerHTML = '📐 Usando CIELAB - Estándar general';
-        badge.style.color = '#ffb74d';
-    } else {
-        badge.innerHTML = '🖨️ Usando CIE94 - Industria gráfica';
-        badge.style.color = '#4dabf7';
     }
 }
 
@@ -528,11 +548,12 @@ function render() {
 }
 
 // ============================================
-// FUNCIONES DE UTILIDAD (se mantienen igual)
+// FUNCIONES DE UTILIDAD
 // ============================================
 function limpiarCamposNuevo() {
     editandoId = null;
     document.getElementById('btnProcesar').innerText = "CALCULAR";
+    
     const ids = ['r1L','r1a','r1b','mName','mL','ma','mb','cC','cM','cY','cK'];
     ids.forEach(id => {
         const el = document.getElementById(id);
@@ -570,11 +591,13 @@ function revalidar(id) {
 function aplicarSugerencia(id) {
     const c = proyecto.colores.find(col => col.id == id);
     if (!c || !c.cmykSugerido) return;
+    
     document.getElementById('cC').value = c.cmykSugerido.C;
     document.getElementById('cM').value = c.cmykSugerido.M;
     document.getElementById('cY').value = c.cmykSugerido.Y;
     document.getElementById('cK').value = c.cmykSugerido.K;
-    alert("✅ Fórmula sugerida cargada");
+    
+    alert("✅ Fórmula sugerida cargada. Puedes recalcular si es necesario.");
 }
 
 function eliminar(id) {
