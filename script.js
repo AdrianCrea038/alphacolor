@@ -1,7 +1,8 @@
 /**
- * ALPHA COLOR SYSTEM - v6.5
+ * ALPHA COLOR SYSTEM - v6.6
  * ESPECIALIZADO EN SUBLIMACIÓN TEXTIL
  * AJUSTE AUTOMÁTICO PARA ΔE = 0.5
+ * COMPENSACIÓN MATEMÁTICA AVANZADA PARA CANALES AL LÍMITE
  */
 
 // ============================================
@@ -91,6 +92,17 @@ function procesar() {
         });
     }
 
+    // Mostrar advertencias si existen
+    if (ajustePara05.advertencias && ajustePara05.advertencias.length > 0) {
+        ajustePara05.advertencias.forEach((adv, index) => {
+            rutasUI.push({
+                texto: `⚠️ ${adv}`,
+                prioridad: 185 - index,
+                chequeado: false
+            });
+        });
+    }
+
     // Mostrar la fórmula sugerida
     if (ajustePara05.nuevaFormula) {
         const f = ajustePara05.nuevaFormula;
@@ -143,7 +155,7 @@ function procesar() {
         clase: tendencia.clase,
         cmyk: { ...CMYK },
         cmykSugerido: ajustePara05.nuevaFormula || null,
-        rutas: rutasUI.sort((a, b) => b.prioridad - a.prioridad).slice(0, 5),
+        rutas: rutasUI.sort((a, b) => b.prioridad - a.prioridad).slice(0, 6),
         lab: { rL, ra, rb, mL, ma, mb },
         cargaTotal: cargaTotal,
         dEObjetivo: 0.5,
@@ -182,7 +194,8 @@ function calcularAjusteParaDelta05(rL, ra, rb, mL, ma, mb, cmykActual) {
             nuevaFormula: cmykActual,
             pasos: ["✓ Color óptimo - No requiere ajustes"],
             dEEstimado: dEActual.toFixed(2),
-            canalesAlLimite: []
+            canalesAlLimite: [],
+            advertencias: []
         };
     }
     
@@ -277,9 +290,9 @@ function calcularAjusteParaDelta05(rL, ra, rb, mL, ma, mb, cmykActual) {
     if (nuevaFormula.Y >= 100) canalesAlLimite.push('Y');
     if (nuevaFormula.K >= 100) canalesAlLimite.push('K');
     
-    // Si hay canales al límite, aplicar compensación
+    // Si hay canales al límite, aplicar compensación avanzada
     if (canalesAlLimite.length > 0) {
-        return compensarCanalesLimite(nuevaFormula, canalesAlLimite, cmykActual);
+        return compensarCanalesLimite(nuevaFormula, canalesAlLimite, cmykActual, da, db, dL);
     }
     
     return {
@@ -288,57 +301,115 @@ function calcularAjusteParaDelta05(rL, ra, rb, mL, ma, mb, cmykActual) {
         nuevaFormula: nuevaFormula,
         pasos: pasos,
         dEEstimado: "0.5",
-        canalesAlLimite: []
+        canalesAlLimite: [],
+        advertencias: []
     };
 }
 
 // ============================================
-// COMPENSA CANALES QUE LLEGAN AL LÍMITE
+// COMPENSACIÓN MATEMÁTICA AVANZADA PARA CANALES AL LÍMITE
 // ============================================
-function compensarCanalesLimite(formula, canales, original) {
+function compensarCanalesLimite(formula, canales, original, da, db, dL) {
     const compensada = { ...formula };
     const compensaciones = [];
+    const advertencias = [];
+    
+    // Calcular dirección de corrección necesaria
+    const direccionCorreccion = {
+        magenta: da > 0 ? 'reducir' : 'aumentar', // Si da > 0, hay rojo (hay que reducir M)
+        amarillo: db > 0 ? 'reducir' : 'aumentar', // Si db > 0, hay amarillo (hay que reducir Y)
+        cian: (da < 0 && db < 0) ? 'aumentar' : 'reducir' // Verde+Azul = más cian
+    };
     
     canales.forEach(canal => {
         switch(canal) {
-            case 'M':
-                if (formula.M >= 100) {
-                    compensada.M = 94;
+            case 'M': // Magenta al límite
+                if (direccionCorreccion.magenta === 'reducir') {
+                    // Necesitamos REDUCIR magenta pero está al 100%
+                    compensada.M = 92;
+                    compensaciones.push(`🔴 M al 100%: Reducir a 92% para neutralizar rojo`);
+                } else {
+                    // Necesitamos SUBIR magenta pero está al límite
+                    compensada.M = 95;
                     compensada.C = Math.min(100, (compensada.C || 0) + 4);
                     compensada.Y = Math.min(100, (compensada.Y || 0) + 4);
-                    compensaciones.push("⚠️ Magenta al límite: C+4%, Y+4%, M→94%");
+                    compensaciones.push(`🎨 M al 100%: Crear rojo con C+4%, Y+4%, M→95%`);
+                    if (da < -0.5) {
+                        advertencias.push("El color puede verse más azulado de lo deseado");
+                    }
                 }
                 break;
-            case 'Y':
-                if (formula.Y >= 100) {
+                
+            case 'Y': // Amarillo al límite
+                if (direccionCorreccion.amarillo === 'reducir') {
+                    compensada.Y = 92;
+                    compensaciones.push(`🟡 Y al 100%: Reducir a 92% para neutralizar amarillo`);
+                } else {
                     compensada.Y = 94;
-                    compensada.C = Math.min(100, (compensada.C || 0) + 3);
+                    compensada.C = Math.max(0, (compensada.C || 0) - 2);
+                    compensada.M = Math.max(0, (compensada.M || 0) - 2);
+                    compensaciones.push(`🔵 Y al 100%: Reducir C-2%, M-2% para simular más amarillo`);
+                }
+                break;
+                
+            case 'C': // Cian al límite
+                if (da < 0 && db < 0) {
+                    compensada.C = 94;
                     compensada.M = Math.min(100, (compensada.M || 0) + 3);
-                    compensaciones.push("⚠️ Amarillo al límite: C+3%, M+3%, Y→94%");
+                    compensada.Y = Math.min(100, (compensada.Y || 0) + 3);
+                    compensaciones.push(`🟢🔵 C al 100%: Equilibrar con M+3%, Y+3%, C→94%`);
+                } else {
+                    compensada.C = 91;
+                    compensaciones.push(`🌊 C al 100%: Reducir a 91% para neutralizar exceso de cian`);
                 }
                 break;
-            case 'C':
-                if (formula.C >= 100) {
-                    compensada.C = 93;
-                    compensada.M = Math.min(100, (compensada.M || 0) + 4);
-                    compensada.Y = Math.min(100, (compensada.Y || 0) + 4);
-                    compensaciones.push("⚠️ Cian al límite: M+4%, Y+4%, C→93%");
-                }
-                break;
-            case 'K':
-                if (formula.K >= 100) {
+                
+            case 'K': // Negro al límite
+                if (dL < -0.5) {
+                    compensada.K = 88;
+                    compensaciones.push(`⚫ K al 100%: Reducir a 88% para aclarar`);
+                } else {
                     compensada.K = 92;
-                    compensaciones.push("⚠️ Negro al límite: Reducir a 92%");
+                    compensada.C = Math.max(0, (compensada.C || 0) - 1);
+                    compensada.M = Math.max(0, (compensada.M || 0) - 1);
+                    compensada.Y = Math.max(0, (compensada.Y || 0) - 1);
+                    compensaciones.push(`⬛ K al 100%: Reducir a 92% y bajar CMY 1%`);
                 }
                 break;
         }
     });
     
+    // ============================================
+    // VERIFICAR QUE NO CREAMOS NUEVOS CANALES AL LÍMITE
+    // ============================================
+    const nuevosLimites = [];
+    if (compensada.C >= 100) nuevosLimites.push('C');
+    if (compensada.M >= 100) nuevosLimites.push('M');
+    if (compensada.Y >= 100) nuevosLimites.push('Y');
+    if (compensada.K >= 100) nuevosLimites.push('K');
+    
+    if (nuevosLimites.length > 0) {
+        const factor = 0.95;
+        compensada.C = Math.round(compensada.C * factor);
+        compensada.M = Math.round(compensada.M * factor);
+        compensada.Y = Math.round(compensada.Y * factor);
+        compensada.K = Math.round(compensada.K * factor);
+        compensaciones.push(`⚠️ Ajuste final: Reducción del 5% en todos los canales`);
+    }
+    
+    // ============================================
+    // CALCULAR ΔE ESTIMADO
+    // ============================================
+    const dEEstimado = canales.length > 1 ? "0.8" : "0.6";
+    
     return {
-        mensaje: "⚠️ Canales al límite - Compensación aplicada",
+        mensaje: canales.length > 1 ? 
+            "⚠️ Múltiples canales al límite - Compensación compleja aplicada" : 
+            "⚠️ Canal al límite - Compensación aplicada",
         nuevaFormula: compensada,
         pasos: compensaciones,
-        dEEstimado: "0.6",
+        advertencias: advertencias,
+        dEEstimado: dEEstimado,
         canalesAlLimite: canales,
         compensado: true
     };
@@ -389,7 +460,7 @@ function render() {
             `<br><small class="sugerido">➤ C:${c.cmykSugerido.C} M:${c.cmykSugerido.M} Y:${c.cmykSugerido.Y} K:${c.cmykSugerido.K}</small>` : '';
         
         // Determinar color del ΔE
-        let colorDE = '#51cf66'; // Verde por defecto
+        let colorDE = '#51cf66';
         if (parseFloat(c.de) > 2.0) colorDE = '#ff6b81';
         else if (parseFloat(c.de) > 1.0) colorDE = '#ffb74d';
         
