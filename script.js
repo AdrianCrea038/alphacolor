@@ -1,8 +1,8 @@
 /**
- * ALPHA COLOR SYSTEM - v6.8
+ * ALPHA COLOR SYSTEM - v6.9
  * ESPECIALIZADO EN SUBLIMACIÓN TEXTIL
  * AJUSTE AUTOMÁTICO PARA ΔE = 0.5
- * COMPENSACIÓN CON ANÁLISIS DE CUADRANTE Y LUMINOSIDAD
+ * COMPENSACIÓN PRESERVANDO TONOS ROJOS
  */
 
 // ============================================
@@ -307,10 +307,10 @@ function calcularAjusteParaDelta05(rL, ra, rb, mL, ma, mb, cmykActual) {
 }
 
 // ============================================
-// COMPENSACIÓN MATEMÁTICA AVANZADA CON ANÁLISIS DE CUADRANTE
+// COMPENSACIÓN MATEMÁTICA AVANZADA PRESERVANDO TONOS ROJOS
 // ============================================
 function compensarCanalesLimite(formula, canales, original, da, db, dL) {
-    const compensada = { ...original }; // PARTIR DE LA ORIGINAL, no de la fórmula
+    const compensada = { ...original }; // PARTIR DE LA ORIGINAL
     const compensaciones = [];
     const advertencias = [];
     
@@ -322,7 +322,7 @@ function compensarCanalesLimite(formula, canales, original, da, db, dL) {
     const necesitaAclarar = dL < -0.3 || esMuyOscuro;
     
     // ============================================
-    // 2. ANÁLISIS DE CUADRANTE (¿qué color sobra?)
+    // 2. ANÁLISIS DE CUADRANTE
     // ============================================
     const cuadrante = {
         rojo: da > 0.5,
@@ -331,59 +331,52 @@ function compensarCanalesLimite(formula, canales, original, da, db, dL) {
         azul: db < -0.5
     };
     
-    // Determinar el color dominante en exceso
-    let exceso = "";
-    if (cuadrante.verde && cuadrante.azul) exceso = "CIAN (verde+azul)";
-    else if (cuadrante.verde) exceso = "VERDE";
-    else if (cuadrante.azul) exceso = "AZUL";
-    else if (cuadrante.rojo) exceso = "ROJO";
-    else if (cuadrante.amarillo) exceso = "AMARILLO";
+    // Determinar si es un ROJO (M alto, C y Y moderados)
+    const esRojo = original.M > 90 && original.C < 60 && original.Y < 80;
     
     // ============================================
-    // 3. CÁLCULO DE FACTORES DE REDUCCIÓN
-    // ============================================
-    // Basado en la magnitud de la desviación
-    const factorRojoVerde = Math.min(0.9, Math.max(0.6, 1 - (Math.abs(da) * 0.08)));
-    const factorAmarilloAzul = Math.min(0.9, Math.max(0.6, 1 - (Math.abs(db) * 0.08)));
-    
-    // ============================================
-    // 4. APLICAR AJUSTES POR CANAL
+    // 3. APLICAR AJUSTES POR CANAL
     // ============================================
     
     canales.forEach(canal => {
         switch(canal) {
             case 'M': // Magenta al límite
                 if (cuadrante.rojo) {
-                    // Exceso de rojo - bajar M es correcto
-                    compensada.M = Math.round(original.M * 0.88); // Bajar 12%
-                    compensaciones.push(`🔴 Exceso de ROJO: Reducir M ${original.M}% → ${compensada.M}%`);
+                    // Exceso de rojo - bajar M ligeramente
+                    compensada.M = Math.round(original.M * 0.96); // Bajar solo 4%
+                    compensaciones.push(`🔴 Exceso de ROJO: Reducir M ${original.M}% → ${compensada.M}% (mínimo)`);
                 } 
                 else if (cuadrante.verde) {
-                    // Exceso de verde - necesitamos MÁS magenta pero no podemos
-                    // En lugar de subir C/Y, BAJAMOS C y Y drásticamente
-                    compensada.M = 94; // Bajar ligeramente para dar espacio
-                    compensada.C = Math.max(0, Math.round(original.C * 0.65)); // Bajar C 35%
-                    compensada.Y = Math.max(0, Math.round(original.Y * 0.7)); // Bajar Y 30%
-                    compensaciones.push(`🟢 Exceso de VERDE: Reducir C ${original.C}% → ${compensada.C}%, Y ${original.Y}% → ${compensada.Y}%`);
-                    advertencias.push("Se reduce drásticamente C y Y para eliminar el verde");
+                    if (esRojo) {
+                        // ES UN ROJO - PRESERVAR MAGENTA
+                        compensada.M = 96; // Mantener alto
+                        compensada.C = Math.max(0, Math.round(original.C * 0.5)); // Bajar C 50%
+                        compensada.Y = Math.max(0, Math.round(original.Y * 0.55)); // Bajar Y 45%
+                        compensaciones.push(`🟢 Exceso de VERDE en ROJO: Preservar M en 96%, reducir C ${original.C}% → ${compensada.C}%, Y ${original.Y}% → ${compensada.Y}%`);
+                        advertencias.push("Se mantiene M alto para preservar el rojo");
+                    } else {
+                        // No es rojo, podemos bajar M
+                        compensada.M = 94;
+                        compensada.C = Math.max(0, Math.round(original.C * 0.65));
+                        compensada.Y = Math.max(0, Math.round(original.Y * 0.7));
+                        compensaciones.push(`🟢 Exceso de VERDE: Reducir C ${original.C}% → ${compensada.C}%, Y ${original.Y}% → ${compensada.Y}%`);
+                    }
                 }
                 else {
-                    // Caso genérico
-                    compensada.M = Math.round(original.M * 0.92);
+                    compensada.M = Math.round(original.M * 0.94);
                     compensaciones.push(`🎨 M al límite: Reducir a ${compensada.M}%`);
                 }
                 break;
                 
             case 'C': // Cian al límite
                 if (cuadrante.verde && cuadrante.azul) {
-                    // Exceso de cian (verde+azul)
-                    compensada.C = Math.round(original.C * 0.7); // Bajar 30%
+                    compensada.C = Math.round(original.C * 0.65);
                     compensaciones.push(`🌊 Exceso de CIAN: Reducir C ${original.C}% → ${compensada.C}%`);
                 } else if (cuadrante.azul) {
-                    compensada.C = Math.round(original.C * 0.75); // Bajar 25%
+                    compensada.C = Math.round(original.C * 0.7);
                     compensaciones.push(`🔵 Exceso de AZUL: Reducir C ${original.C}% → ${compensada.C}%`);
                 } else if (cuadrante.verde) {
-                    compensada.C = Math.round(original.C * 0.8); // Bajar 20%
+                    compensada.C = Math.round(original.C * 0.6); // Reducción más agresiva para verde
                     compensaciones.push(`🟢 Exceso de VERDE: Reducir C ${original.C}% → ${compensada.C}%`);
                 } else {
                     compensada.C = Math.round(original.C * 0.85);
@@ -393,23 +386,26 @@ function compensarCanalesLimite(formula, canales, original, da, db, dL) {
                 
             case 'Y': // Amarillo al límite
                 if (cuadrante.amarillo) {
-                    compensada.Y = Math.round(original.Y * 0.8); // Bajar 20%
+                    compensada.Y = Math.round(original.Y * 0.75);
                     compensaciones.push(`🟡 Exceso de AMARILLO: Reducir Y ${original.Y}% → ${compensada.Y}%`);
                 } else if (cuadrante.azul) {
-                    compensada.Y = Math.round(original.Y * 0.85); // Bajar 15%
+                    compensada.Y = Math.round(original.Y * 0.8);
                     compensaciones.push(`🔵 Exceso de AZUL: Reducir Y ${original.Y}% → ${compensada.Y}%`);
+                } else if (cuadrante.verde && esRojo) {
+                    compensada.Y = Math.round(original.Y * 0.55); // Reducción agresiva para rojos
+                    compensaciones.push(`🟢 Exceso de VERDE en ROJO: Reducir Y ${original.Y}% → ${compensada.Y}%`);
                 } else {
-                    compensada.Y = Math.round(original.Y * 0.88);
+                    compensada.Y = Math.round(original.Y * 0.85);
                     compensaciones.push(`🟡 Y al límite: Reducir a ${compensada.Y}%`);
                 }
                 break;
                 
             case 'K': // Negro al límite
                 if (necesitaAclarar) {
-                    compensada.K = Math.round(original.K * 0.7); // Bajar 30%
+                    compensada.K = Math.round(original.K * 0.75); // Bajar 25%
                     compensaciones.push(`⚫ MUY OSCURO: Reducir K ${original.K}% → ${compensada.K}%`);
                 } else {
-                    compensada.K = Math.round(original.K * 0.85);
+                    compensada.K = Math.round(original.K * 0.88);
                     compensaciones.push(`⬛ K al límite: Reducir a ${compensada.K}%`);
                 }
                 break;
@@ -417,34 +413,40 @@ function compensarCanalesLimite(formula, canales, original, da, db, dL) {
     });
     
     // ============================================
-    // 5. AJUSTES ADICIONALES POR LUMINOSIDAD
+    // 4. AJUSTES ADICIONALES POR LUMINOSIDAD
     // ============================================
     if (necesitaAclarar) {
-        // Aplicar reducción adicional en todos los canales
-        compensada.C = Math.round(compensada.C * 0.88);
-        compensada.M = Math.round(compensada.M * 0.95);
-        compensada.Y = Math.round(compensada.Y * 0.88);
-        compensada.K = Math.round(compensada.K * 0.85);
-        compensaciones.push(`✨ AJUSTE DE LUMINOSIDAD: Reducción adicional del 12% en C,Y y 15% en K`);
+        if (esRojo) {
+            // Para rojos, reducir principalmente C e Y, mantener M
+            compensada.C = Math.round(compensada.C * 0.85);
+            compensada.Y = Math.round(compensada.Y * 0.85);
+            compensada.K = Math.round(compensada.K * 0.9);
+            compensaciones.push(`✨ AJUSTE DE LUMINOSIDAD (ROJO): Reducción adicional del 15% en C,Y y 10% en K`);
+        } else {
+            compensada.C = Math.round(compensada.C * 0.88);
+            compensada.M = Math.round(compensada.M * 0.95);
+            compensada.Y = Math.round(compensada.Y * 0.88);
+            compensada.K = Math.round(compensada.K * 0.85);
+            compensaciones.push(`✨ AJUSTE DE LUMINOSIDAD: Reducción adicional del 12% en C,Y y 15% en K`);
+        }
     }
     
     // ============================================
-    // 6. VERIFICAR QUE LA CARGA TOTAL SEA RAZONABLE
+    // 5. VERIFICAR CARGA TOTAL
     // ============================================
     const nuevaCarga = compensada.C + compensada.M + compensada.Y + compensada.K;
     
     if (nuevaCarga > 240 && necesitaAclarar) {
-        // Aún muy oscuro - aplicar reducción proporcional
-        const factor = 220 / nuevaCarga;
+        const factor = 230 / nuevaCarga;
         compensada.C = Math.round(compensada.C * factor);
         compensada.M = Math.round(compensada.M * factor);
         compensada.Y = Math.round(compensada.Y * factor);
         compensada.K = Math.round(compensada.K * factor);
-        compensaciones.push(`📊 AJUSTE DE CARGA: Reducción proporcional para llegar a 220% (actual: ${Math.round(nuevaCarga)}%)`);
+        compensaciones.push(`📊 AJUSTE DE CARGA: Reducción proporcional para llegar a 230% (actual: ${Math.round(nuevaCarga)}%)`);
     }
     
     // ============================================
-    // 7. GARANTIZAR VALORES EN RANGO
+    // 6. GARANTIZAR VALORES EN RANGO
     // ============================================
     compensada.C = Math.min(100, Math.max(0, compensada.C));
     compensada.M = Math.min(100, Math.max(0, compensada.M));
@@ -452,16 +454,18 @@ function compensarCanalesLimite(formula, canales, original, da, db, dL) {
     compensada.K = Math.min(100, Math.max(0, compensada.K));
     
     // ============================================
-    // 8. CALCULAR ΔE ESTIMADO
+    // 7. DETERMINAR MENSAJE PRINCIPAL
     // ============================================
-    const dEEstimado = necesitaAclarar ? "0.6" : "0.5";
+    let mensaje = "🎯 Compensación aplicada";
+    if (esRojo) mensaje = "🎯 Compensación preservando tono ROJO";
+    if (necesitaAclarar) mensaje += " con prioridad en aclarar";
     
     return {
-        mensaje: `🎯 Compensación dirigida al cuadrante ${exceso || "desconocido"}`,
+        mensaje: mensaje,
         nuevaFormula: compensada,
         pasos: compensaciones,
         advertencias: advertencias,
-        dEEstimado: dEEstimado,
+        dEEstimado: "0.6",
         canalesAlLimite: canales,
         compensado: true
     };
