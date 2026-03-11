@@ -1,7 +1,7 @@
 /**
- * ALPHA COLOR SYSTEM - v10.5
- * GENERADOR CMYK DESDE MUESTRA FÍSICA
- * CONVERSIÓN LCH → CMYK REALISTA
+ * ALPHA COLOR SYSTEM - v11.0
+ * SISTEMA DE CALIBRACIÓN CON TABLA DE CONVERSIÓN
+ * ESPECÍFICO PARA: MS JP4 + K-ONE + Feliz Schoeller 10g + Monti 210°C
  */
 
 // ============================================
@@ -13,221 +13,112 @@ let formulaActual = 'cmc';
 let ultimoCMYK = { C: 0, M: 0, Y: 0, K: 0 };
 
 // ============================================
-// FUNCIONES DE CONVERSIÓN LCH ↔ LAB
+// TABLA DE CALIBRACIÓN LAB → CMYK
+// ============================================
+// Esta tabla se llena con mediciones reales de tu combo
+// Formato: { lab: { L, a, b }, cmyk: { C, M, Y, K } }
+let tablaCalibracion = [
+    // Ejemplos de puntos de calibración (debes reemplazar con tus mediciones reales)
+    { lab: { L: 26.37, a: 19.46, b: 1.34 }, cmyk: { C: 85, M: 56, Y: 34, K: 100 } }, // Deep Maroon real
+    { lab: { L: 25.97, a: 14.79, b: -0.23 }, cmyk: { C: 70, M: 45, Y: 30, K: 95 } },  // Variante
+    { lab: { L: 30.00, a: 10.00, b: 5.00 }, cmyk: { C: 60, M: 35, Y: 25, K: 85 } },
+    { lab: { L: 20.00, a: 5.00, b: 2.00 }, cmyk: { C: 40, M: 30, Y: 25, K: 95 } },
+    { lab: { L: 50.00, a: 30.00, b: 10.00 }, cmyk: { C: 20, M: 80, Y: 70, K: 30 } },
+    { lab: { L: 40.00, a: -20.00, b: 30.00 }, cmyk: { C: 80, M: 20, Y: 75, K: 25 } },
+];
+
+// ============================================
+// FUNCIÓN DE INTERPOLACIÓN LAB → CMYK
 // ============================================
 
-function LCHaLAB(L, C, H) {
-    // Validar rangos
-    if (L < 0 || L > 100) throw new Error("L debe estar entre 0 y 100");
-    if (C < 0) throw new Error("C no puede ser negativo");
-    if (H < 0 || H > 360) throw new Error("H debe estar entre 0° y 360°");
-    
-    // Si C es 0, el ángulo es irrelevante, a y b son 0
-    if (C === 0) {
-        return { L, a: 0, b: 0 };
-    }
-    
-    const hRad = H * Math.PI / 180;
-    const a = C * Math.cos(hRad);
-    const b = C * Math.sin(hRad);
-    
-    return { L, a, b };
+function distanciaLAB(lab1, lab2) {
+    return Math.sqrt(
+        Math.pow(lab1.L - lab2.L, 2) +
+        Math.pow(lab1.a - lab2.a, 2) +
+        Math.pow(lab1.b - lab2.b, 2)
+    );
 }
 
-function LABaLCH(L, a, b) {
-    const C = Math.sqrt(a*a + b*b);
-    let H = Math.atan2(b, a) * 180 / Math.PI;
-    if (H < 0) H += 360;
-    if (C === 0) H = 0; // Para neutros, el tono es 0
+function cmykDesdeLABporTabla(L, a, b) {
+    if (tablaCalibracion.length === 0) {
+        // Si no hay datos de calibración, usar valores por defecto
+        return { C: 0, M: 0, Y: 0, K: 85 };
+    }
     
-    return { L, C, H };
+    const puntoBuscado = { L, a, b };
+    
+    // Calcular distancias a todos los puntos de calibración
+    const puntosConDistancia = tablaCalibracion.map(p => ({
+        ...p,
+        distancia: distanciaLAB(puntoBuscado, p.lab)
+    }));
+    
+    // Ordenar por distancia (menor distancia = más cercano)
+    puntosConDistancia.sort((a, b) => a.distancia - b.distancia);
+    
+    // Tomar los 3 puntos más cercanos
+    const puntosCercanos = puntosConDistancia.slice(0, 3);
+    
+    // Si el punto más cercano está muy cerca (ΔE < 2), usarlo directamente
+    if (puntosCercanos[0].distancia < 2) {
+        return { ...puntosCercanos[0].cmyk };
+    }
+    
+    // Interpolación ponderada por distancia (inverso de la distancia)
+    let pesoTotal = 0;
+    let cmykInterpolado = { C: 0, M: 0, Y: 0, K: 0 };
+    
+    puntosCercanos.forEach(p => {
+        // Evitar división por cero
+        const peso = p.distancia < 0.01 ? 1000 : 1 / p.distancia;
+        pesoTotal += peso;
+        
+        cmykInterpolado.C += p.cmyk.C * peso;
+        cmykInterpolado.M += p.cmyk.M * peso;
+        cmykInterpolado.Y += p.cmyk.Y * peso;
+        cmykInterpolado.K += p.cmyk.K * peso;
+    });
+    
+    // Normalizar
+    cmykInterpolado.C = Math.round(cmykInterpolado.C / pesoTotal);
+    cmykInterpolado.M = Math.round(cmykInterpolado.M / pesoTotal);
+    cmykInterpolado.Y = Math.round(cmykInterpolado.Y / pesoTotal);
+    cmykInterpolado.K = Math.round(cmykInterpolado.K / pesoTotal);
+    
+    return cmykInterpolado;
 }
 
 // ============================================
-// GENERADOR DE CMYK BASADO EN LCH (VERSIÓN REALISTA)
+// FUNCIÓN PARA AGREGAR PUNTO DE CALIBRACIÓN
 // ============================================
 
-function generarCMYKdesdeLCH(L, C, H) {
-    // Validar que los valores existan
-    if (isNaN(L) || isNaN(C) || isNaN(H)) {
-        return { C: 0, M: 0, Y: 0, K: 0 };
-    }
+function agregarPuntoCalibracion(L, a, b, C, M, Y, K) {
+    // Verificar si ya existe un punto cercano
+    const existente = tablaCalibracion.find(p => 
+        Math.abs(p.lab.L - L) < 0.5 && 
+        Math.abs(p.lab.a - a) < 0.5 && 
+        Math.abs(p.lab.b - b) < 0.5
+    );
     
-    // Asegurar rangos
-    L = Math.min(100, Math.max(0, L));
-    C = Math.max(0, C);
-    H = Math.min(360, Math.max(0, H));
-    
-    // ============================================
-    // PASO 1: CALCULAR K (NEGRO) BASADO EN LUMINOSIDAD
-    // ============================================
-    let K;
-    if (L < 20) {
-        // Muy oscuro (negros)
-        K = 95 - (L * 0.5);
-    } else if (L < 50) {
-        // Oscuros
-        K = 80 - ((L - 20) * 1.2);
+    if (existente) {
+        // Actualizar el existente (promedio)
+        existente.cmyk.C = Math.round((existente.cmyk.C + C) / 2);
+        existente.cmyk.M = Math.round((existente.cmyk.M + M) / 2);
+        existente.cmyk.Y = Math.round((existente.cmyk.Y + Y) / 2);
+        existente.cmyk.K = Math.round((existente.cmyk.K + K) / 2);
+        console.log("Punto de calibración actualizado");
     } else {
-        // Claros
-        K = 50 - ((L - 50) * 1.5);
-        K = Math.max(0, K);
+        // Agregar nuevo punto
+        tablaCalibracion.push({
+            lab: { L, a, b },
+            cmyk: { C, M, Y, K }
+        });
+        console.log("Nuevo punto de calibración agregado");
     }
-    K = Math.min(95, Math.max(0, Math.round(K)));
-    
-    // ============================================
-    // PASO 2: CALCULAR CMY BASADO EN TONO Y CROMA
-    // ============================================
-    
-    // Escalar el croma a porcentajes CMYK realistas
-    const factorCroma = Math.min(1, C / 100) * 1.2;
-    
-    let cian = 0, magenta = 0, amarillo = 0;
-    
-    // Distribución según tono (H)
-    // Rojos (0-60°)
-    if (H >= 0 && H < 60) {
-        const factor = H / 60;
-        magenta = Math.round(90 * factorCroma * (0.9 + 0.1 * Math.sin(factor * Math.PI)));
-        amarillo = Math.round(85 * factorCroma * (0.8 + 0.2 * Math.cos(factor * Math.PI)));
-        cian = Math.round(20 * factorCroma * (1 - factor * 0.5));
-    }
-    // Amarillos (60-120°)
-    else if (H >= 60 && H < 120) {
-        const factor = (H - 60) / 60;
-        amarillo = Math.round(90 * factorCroma * (0.9 + 0.1 * Math.sin(factor * Math.PI)));
-        magenta = Math.round(40 * factorCroma * (0.8 - factor * 0.3));
-        cian = Math.round(30 * factorCroma * (0.5 + factor * 0.3));
-    }
-    // Verdes (120-180°)
-    else if (H >= 120 && H < 180) {
-        const factor = (H - 120) / 60;
-        cian = Math.round(85 * factorCroma * (0.8 + 0.2 * Math.sin(factor * Math.PI)));
-        amarillo = Math.round(80 * factorCroma * (0.7 + 0.3 * Math.cos(factor * Math.PI)));
-        magenta = Math.round(30 * factorCroma * (0.7 - factor * 0.4));
-    }
-    // Cianes (180-240°)
-    else if (H >= 180 && H < 240) {
-        const factor = (H - 180) / 60;
-        cian = Math.round(90 * factorCroma * (0.9 + 0.1 * Math.cos(factor * Math.PI)));
-        magenta = Math.round(40 * factorCroma * (0.4 + factor * 0.3));
-        amarillo = Math.round(35 * factorCroma * (0.4 + factor * 0.2));
-    }
-    // Azules (240-300°)
-    else if (H >= 240 && H < 300) {
-        const factor = (H - 240) / 60;
-        cian = Math.round(85 * factorCroma * (0.8 + 0.2 * Math.sin(factor * Math.PI)));
-        magenta = Math.round(75 * factorCroma * (0.7 + 0.3 * Math.cos(factor * Math.PI)));
-        amarillo = Math.round(25 * factorCroma * (0.5 - factor * 0.2));
-    }
-    // Magentas (300-360°)
-    else {
-        const factor = (H - 300) / 60;
-        magenta = Math.round(90 * factorCroma * (0.9 + 0.1 * Math.sin(factor * Math.PI)));
-        cian = Math.round(45 * factorCroma * (0.5 + factor * 0.3));
-        amarillo = Math.round(35 * factorCroma * (0.4 + factor * 0.2));
-    }
-    
-    // ============================================
-    // PASO 3: AJUSTAR POR BAJA LUMINOSIDAD (NEGROS RICOS)
-    // ============================================
-    if (L < 30) {
-        // Para colores muy oscuros, aumentar CMY para crear negros ricos
-        const factorOscuro = (30 - L) / 30;
-        cian = Math.min(100, cian + Math.round(40 * factorOscuro));
-        magenta = Math.min(100, magenta + Math.round(30 * factorOscuro));
-        amarillo = Math.min(100, amarillo + Math.round(30 * factorOscuro));
-    }
-    
-    // ============================================
-    // PASO 4: NORMALIZAR Y GARANTIZAR RANGOS
-    // ============================================
-    cian = Math.min(100, Math.max(0, Math.round(cian)));
-    magenta = Math.min(100, Math.max(0, Math.round(magenta)));
-    amarillo = Math.min(100, Math.max(0, Math.round(amarillo)));
-    K = Math.min(100, Math.max(0, K));
-    
-    // ============================================
-    // PASO 5: AJUSTE DE CARGA TOTAL (evitar > 320%)
-    // ============================================
-    let cargaTotal = cian + magenta + amarillo + K;
-    if (cargaTotal > 320) {
-        const factor = 300 / cargaTotal;
-        cian = Math.round(cian * factor);
-        magenta = Math.round(magenta * factor);
-        amarillo = Math.round(amarillo * factor);
-        K = Math.round(K * factor);
-    }
-    
-    return { C: cian, M: magenta, Y: amarillo, K };
 }
 
 // ============================================
-// GENERAR CMYK CORREGIDO (OBJETIVO VS MUESTRA)
-// ============================================
-
-function generarCMYKcorregido(cmykMuestra, dL, da, db) {
-    const corregido = { ...cmykMuestra };
-    
-    // Aplicar correcciones basadas en diferencias LAB
-    if (da > 0.5) {
-        // Exceso de rojo → reducir magenta
-        corregido.M = Math.max(0, corregido.M - 3);
-    }
-    if (da < -0.5) {
-        // Falta rojo → aumentar magenta
-        corregido.M = Math.min(100, corregido.M + 3);
-    }
-    
-    if (db > 0.5) {
-        // Exceso amarillo → reducir amarillo
-        corregido.Y = Math.max(0, corregido.Y - 3);
-    }
-    if (db < -0.5) {
-        // Exceso azul → aumentar amarillo
-        corregido.Y = Math.min(100, corregido.Y + 3);
-    }
-    
-    if (dL > 0.5) {
-        // Muy claro → aumentar K
-        corregido.K = Math.min(100, corregido.K + 3);
-    }
-    if (dL < -0.5) {
-        // Muy oscuro → reducir K
-        corregido.K = Math.max(0, corregido.K - 3);
-    }
-    
-    return corregido;
-}
-
-// ============================================
-// ACTUALIZAR VISTA CMYK
-// ============================================
-function actualizarVistaCMYK(cmyk) {
-    // Asegurar que todos los valores sean números válidos
-    const C = isNaN(cmyk.C) ? 0 : Math.min(100, Math.max(0, Math.round(cmyk.C)));
-    const M = isNaN(cmyk.M) ? 0 : Math.min(100, Math.max(0, Math.round(cmyk.M)));
-    const Y = isNaN(cmyk.Y) ? 0 : Math.min(100, Math.max(0, Math.round(cmyk.Y)));
-    const K = isNaN(cmyk.K) ? 0 : Math.min(100, Math.max(0, Math.round(cmyk.K)));
-    
-    document.getElementById('barC').style.width = `${C}%`;
-    document.getElementById('barM').style.width = `${M}%`;
-    document.getElementById('barY').style.width = `${Y}%`;
-    document.getElementById('barK').style.width = `${K}%`;
-    
-    document.getElementById('valC').textContent = C;
-    document.getElementById('valM').textContent = M;
-    document.getElementById('valY').textContent = Y;
-    document.getElementById('valK').textContent = K;
-    
-    const carga = C + M + Y + K;
-    document.getElementById('cargaTotal').textContent = `Carga: ${carga}%`;
-    
-    ultimoCMYK = { C, M, Y, K };
-}
-
-// ============================================
-// FUNCIÓN PRINCIPAL
+// FUNCIÓN PRINCIPAL (MODIFICADA)
 // ============================================
 function procesar() {
     const getNum = (id) => {
@@ -276,10 +167,16 @@ function procesar() {
         const deltaE_cmc = calcularCMC(ref.L, ref.a, ref.b, muestra.L, muestra.a, muestra.b);
         const deltaE_cie94 = calcularCIE94(ref.L, ref.a, ref.b, muestra.L, muestra.a, muestra.b);
         
-        // GENERAR CMYK DESDE LA MUESTRA FÍSICA (valores realistas)
-        const cmykMuestra = generarCMYKdesdeLCH(mL, mC, mH);
+        // ============================================
+        // OBTENER CMYK DESDE TABLA DE CALIBRACIÓN
+        // ============================================
+        // Primero intentamos con la muestra (para el CMYK actual)
+        const cmykMuestra = cmykDesdeLABporTabla(muestra.L, muestra.a, muestra.b);
         
-        // GENERAR CMYK CORREGIDO (objetivo vs muestra)
+        // Luego con la referencia (para el CMYK objetivo)
+        const cmykObjetivo = cmykDesdeLABporTabla(ref.L, ref.a, ref.b);
+        
+        // Generar CMYK corregido basado en las diferencias
         const cmykCorregido = generarCMYKcorregido(cmykMuestra, dL, da, db);
         
         // Actualizar vista con el CMYK de la muestra
@@ -289,7 +186,7 @@ function procesar() {
         const tendencia = determinarTendenciaCMC(da, db, dL);
         
         // Generar rutas con ambos CMYK
-        const rutasUI = generarRutas(deltaE_cmc, dL, da, db, cmykMuestra, cmykCorregido);
+        const rutasUI = generarRutas(deltaE_cmc, dL, da, db, cmykMuestra, cmykObjetivo, cmykCorregido);
         
         // Guardar registro
         const registro = {
@@ -301,6 +198,7 @@ function procesar() {
             tendencia: tendencia.nombre,
             clase: tendencia.clase,
             cmykMuestra: cmykMuestra,
+            cmykObjetivo: cmykObjetivo,
             cmykCorregido: cmykCorregido,
             rutas: rutasUI,
             lch: { ref: { L: rL, C: rC, H: rH }, muestra: { L: mL, C: mC, H: mH } },
@@ -325,16 +223,23 @@ function procesar() {
 }
 
 // ============================================
-// GENERAR RUTAS DE AJUSTE (CON AMBOS CMYK)
+// GENERAR RUTAS DE AJUSTE (CON TRES CMYK)
 // ============================================
-function generarRutas(cmc, dL, da, db, cmykMuestra, cmykCorregido) {
+function generarRutas(cmc, dL, da, db, cmykMuestra, cmykObjetivo, cmykCorregido) {
     const rutas = [];
     
     rutas.push({ texto: `📊 CMC: ${cmc.toFixed(2)}`, prioridad: 200, chequeado: false });
     
-    // Mostrar CMYK de la muestra física
+    // Mostrar CMYK de la muestra física (basado en tabla)
     rutas.push({ 
-        texto: `🧪 CMYK MUESTRA: C:${cmykMuestra.C} M:${cmykMuestra.M} Y:${cmykMuestra.Y} K:${cmykMuestra.K}`, 
+        texto: `🧪 CMYK MUESTRA (tabla): C:${cmykMuestra.C} M:${cmykMuestra.M} Y:${cmykMuestra.Y} K:${cmykMuestra.K}`, 
+        prioridad: 196, 
+        chequeado: false 
+    });
+    
+    // Mostrar CMYK objetivo (basado en tabla)
+    rutas.push({ 
+        texto: `🎯 CMYK OBJETIVO (tabla): C:${cmykObjetivo.C} M:${cmykObjetivo.M} Y:${cmykObjetivo.Y} K:${cmykObjetivo.K}`, 
         prioridad: 195, 
         chequeado: false 
     });
@@ -393,12 +298,126 @@ function generarRutas(cmc, dL, da, db, cmykMuestra, cmykCorregido) {
     
     // Mostrar CMYK corregido
     rutas.push({ 
-        texto: `🎯 CMYK CORREGIDO: C:${cmykCorregido.C} M:${cmykCorregido.M} Y:${cmykCorregido.Y} K:${cmykCorregido.K}`, 
-        prioridad: 170, 
+        texto: `✨ CMYK CORREGIDO: C:${cmykCorregido.C} M:${cmykCorregido.M} Y:${cmykCorregido.Y} K:${cmykCorregido.K}`, 
+        prioridad: 175, 
         chequeado: false 
     });
     
-    return rutas.sort((a, b) => b.prioridad - a.prioridad).slice(0, 7);
+    return rutas.sort((a, b) => b.prioridad - a.prioridad).slice(0, 8);
+}
+
+// ============================================
+// FUNCIÓN PARA AGREGAR CALIBRACIÓN DESDE RESULTADO
+// ============================================
+function agregarCalibracionDesdeActual(id) {
+    const c = proyecto.colores.find(col => col.id == id);
+    if (!c) return;
+    
+    // Usar el CMYK que SÍ funcionó (el corregido o el que el usuario apruebe)
+    const cmykExitoso = c.cmykCorregido || c.cmykObjetivo;
+    
+    agregarPuntoCalibracion(
+        c.lch.muestra.L,
+        c.lch.muestra.C,
+        c.lch.muestra.H,
+        cmykExitoso.C,
+        cmykExitoso.M,
+        cmykExitoso.Y,
+        cmykExitoso.K
+    );
+    
+    alert("✅ Punto de calibración guardado. El sistema aprenderá de este acierto.");
+}
+
+// ============================================
+// EXPORTAR TABLA DE CALIBRACIÓN
+// ============================================
+function exportarCalibracion() {
+    const blob = new Blob([JSON.stringify(tablaCalibracion, null, 2)], {type: "application/json"});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = "calibracion_MSJP4_KONE_Feliz10g.json";
+    a.click();
+}
+
+// ============================================
+// IMPORTAR TABLA DE CALIBRACIÓN
+// ============================================
+function importarCalibracion(e) {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        try {
+            tablaCalibracion = JSON.parse(ev.target.result);
+            alert(`✅ Tabla de calibración cargada con ${tablaCalibracion.length} puntos`);
+        } catch(err) { 
+            alert("❌ Archivo no válido"); 
+        }
+    };
+    reader.readAsText(e.target.files[0]);
+}
+
+// ============================================
+// FUNCIONES DE CONVERSIÓN LCH ↔ LAB
+// ============================================
+
+function LCHaLAB(L, C, H) {
+    if (L < 0 || L > 100) throw new Error("L debe estar entre 0 y 100");
+    if (C < 0) throw new Error("C no puede ser negativo");
+    if (H < 0 || H > 360) throw new Error("H debe estar entre 0° y 360°");
+    
+    if (C === 0) {
+        return { L, a: 0, b: 0 };
+    }
+    
+    const hRad = H * Math.PI / 180;
+    const a = C * Math.cos(hRad);
+    const b = C * Math.sin(hRad);
+    
+    return { L, a, b };
+}
+
+// ============================================
+// GENERAR CMYK CORREGIDO (basado en diferencias)
+// ============================================
+
+function generarCMYKcorregido(cmykMuestra, dL, da, db) {
+    const corregido = { ...cmykMuestra };
+    
+    if (da > 0.5) corregido.M = Math.max(0, corregido.M - 3);
+    if (da < -0.5) corregido.M = Math.min(100, corregido.M + 3);
+    
+    if (db > 0.5) corregido.Y = Math.max(0, corregido.Y - 3);
+    if (db < -0.5) corregido.Y = Math.min(100, corregido.Y + 3);
+    
+    if (dL > 0.5) corregido.K = Math.min(100, corregido.K + 3);
+    if (dL < -0.5) corregido.K = Math.max(0, corregido.K - 3);
+    
+    return corregido;
+}
+
+// ============================================
+// ACTUALIZAR VISTA CMYK
+// ============================================
+function actualizarVistaCMYK(cmyk) {
+    const C = isNaN(cmyk.C) ? 0 : Math.min(100, Math.max(0, Math.round(cmyk.C)));
+    const M = isNaN(cmyk.M) ? 0 : Math.min(100, Math.max(0, Math.round(cmyk.M)));
+    const Y = isNaN(cmyk.Y) ? 0 : Math.min(100, Math.max(0, Math.round(cmyk.Y)));
+    const K = isNaN(cmyk.K) ? 0 : Math.min(100, Math.max(0, Math.round(cmyk.K)));
+    
+    document.getElementById('barC').style.width = `${C}%`;
+    document.getElementById('barM').style.width = `${M}%`;
+    document.getElementById('barY').style.width = `${Y}%`;
+    document.getElementById('barK').style.width = `${K}%`;
+    
+    document.getElementById('valC').textContent = C;
+    document.getElementById('valM').textContent = M;
+    document.getElementById('valY').textContent = Y;
+    document.getElementById('valK').textContent = K;
+    
+    const carga = C + M + Y + K;
+    document.getElementById('cargaTotal').textContent = `Carga: ${carga}%`;
+    
+    ultimoCMYK = { C, M, Y, K };
 }
 
 // ============================================
@@ -500,8 +519,8 @@ function actualizarComparacion() {
         const mH = getNum('mH');
         
         if (!isNaN(mL) && !isNaN(mC) && !isNaN(mH)) {
-            // Generar y mostrar CMYK de la muestra en tiempo real
-            const cmykTemp = generarCMYKdesdeLCH(mL, mC, mH);
+            const muestraLAB = LCHaLAB(mL, mC, mH);
+            const cmykTemp = cmykDesdeLABporTabla(muestraLAB.L, muestraLAB.a, muestraLAB.b);
             actualizarVistaCMYK(cmykTemp);
         }
         
@@ -510,7 +529,6 @@ function actualizarComparacion() {
         const rH = getNum('rH');
         
         if (!isNaN(rL) && !isNaN(rC) && !isNaN(rH) && !isNaN(mL) && !isNaN(mC) && !isNaN(mH)) {
-            // Validar rangos básicos
             if (rL < 0 || rL > 100 || mL < 0 || mL > 100) return;
             if (rC < 0 || mC < 0) return;
             if (rH < 0 || rH > 360 || mH < 0 || mH > 360) return;
@@ -527,9 +545,7 @@ function actualizarComparacion() {
             document.getElementById('deltaE_cie94').textContent = 
                 calcularCIE94(ref.L, ref.a, ref.b, muestra.L, muestra.a, muestra.b).toFixed(2);
         }
-    } catch (e) {
-        // Ignorar durante escritura
-    }
+    } catch (e) {}
 }
 
 function cambiarFormula() {
@@ -540,13 +556,13 @@ function cambiarFormula() {
     const badge = document.getElementById('formulaBadge');
     
     if (formulaActual === 'cmc') {
-        badge.innerHTML = '⚡ CMC l:2 c:1 - Generador CMYK desde muestra';
+        badge.innerHTML = '⚡ CMC l:2 c:1 - Con tabla de calibración';
         badge.style.color = 'var(--accent)';
     } else if (formulaActual === 'cielab') {
-        badge.innerHTML = '📐 CIELAB ΔE*ab - Generador CMYK desde muestra';
+        badge.innerHTML = '📐 CIELAB ΔE*ab - Con tabla de calibración';
         badge.style.color = '#ffb74d';
     } else {
-        badge.innerHTML = '🖨️ CIE94 - Generador CMYK desde muestra';
+        badge.innerHTML = '🖨️ CIE94 - Con tabla de calibración';
         badge.style.color = '#4dabf7';
     }
     
@@ -565,8 +581,10 @@ function render() {
     tbody.innerHTML = proyecto.colores.map(c => {
         const colorId = JSON.stringify(c.id);
         const cmykMuestra = `C:${c.cmykMuestra.C} M:${c.cmykMuestra.M} Y:${c.cmykMuestra.Y} K:${c.cmykMuestra.K}`;
+        const cmykObjetivo = c.cmykObjetivo ? 
+            `<br><small>🎯 C:${c.cmykObjetivo.C} M:${c.cmykObjetivo.M} Y:${c.cmykObjetivo.Y} K:${c.cmykObjetivo.K}</small>` : '';
         const cmykCorregido = c.cmykCorregido ? 
-            `<br><small class="sugerido">➤ C:${c.cmykCorregido.C} M:${c.cmykCorregido.M} Y:${c.cmykCorregido.Y} K:${c.cmykCorregido.K}</small>` : '';
+            `<br><small class="sugerido">✨ C:${c.cmykCorregido.C} M:${c.cmykCorregido.M} Y:${c.cmykCorregido.Y} K:${c.cmykCorregido.K}</small>` : '';
         
         let colorCMC = '#51cf66';
         const cmcVal = parseFloat(c.cmc);
@@ -580,6 +598,7 @@ function render() {
             <td>
                 <strong>${c.nombre}</strong>
                 <br><small class="actual">${cmykMuestra}</small>
+                ${cmykObjetivo}
                 ${cmykCorregido}
             </td>
             <td><b style="color: #888">${c.de}</b></td>
@@ -600,6 +619,7 @@ function render() {
                 <button class="btn btn-rev" onclick="revalidar(${colorId})">REV</button>
                 <button class="btn btn-del" onclick="eliminar(${colorId})">✕</button>
                 <button class="btn btn-aplicar" onclick="aplicarSugerencia(${colorId})">USAR</button>
+                <button class="btn btn-cal" onclick="agregarCalibracionDesdeActual(${colorId})">✅ CAL</button>
             </td>
         </tr>`}).join('');
 }
@@ -616,7 +636,6 @@ function limpiarCamposNuevo() {
         if (el) el.value = "";
     });
     
-    // Resetear barras CMYK
     actualizarVistaCMYK({ C: 0, M: 0, Y: 0, K: 0 });
 }
 
@@ -678,8 +697,12 @@ function nuevoProyecto() {
 }
 
 function exportarProyecto() {
-    proyecto.nombre = document.getElementById('projName').value || "Alpha_Generado";
-    const blob = new Blob([JSON.stringify(proyecto, null, 2)], {type: "application/json"});
+    proyecto.nombre = document.getElementById('projName').value || "Alpha_Calibrado";
+    const proyectoCompleto = {
+        ...proyecto,
+        tablaCalibracion: tablaCalibracion
+    };
+    const blob = new Blob([JSON.stringify(proyectoCompleto, null, 2)], {type: "application/json"});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = proyecto.nombre + ".alpha";
@@ -690,12 +713,22 @@ function importarProyecto(e) {
     const reader = new FileReader();
     reader.onload = (ev) => {
         try {
-            proyecto = JSON.parse(ev.target.result);
+            const data = JSON.parse(ev.target.result);
+            proyecto = { nombre: data.nombre || "", colores: data.colores || [] };
+            if (data.tablaCalibracion) {
+                tablaCalibracion = data.tablaCalibracion;
+            }
             document.getElementById('projName').value = proyecto.nombre || "";
             render();
+            alert(`✅ Proyecto cargado con ${tablaCalibracion.length} puntos de calibración`);
         } catch(err) { 
             alert("❌ Archivo no válido"); 
         }
     };
     reader.readAsText(e.target.files[0]);
 }
+
+// Hacer funciones globales
+window.agregarCalibracionDesdeActual = agregarCalibracionDesdeActual;
+window.exportarCalibracion = exportarCalibracion;
+window.importarCalibracion = importarCalibracion;
