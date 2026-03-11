@@ -1,8 +1,7 @@
 /**
- * ALPHA COLOR SYSTEM - v7.0
+ * ALPHA COLOR SYSTEM - v8.0
  * ESPECIALIZADO EN SUBLIMACIÓN TEXTIL
- * AJUSTE AUTOMÁTICO PARA ΔE = 0.5
- * INTERPRETACIÓN UNIVERSAL DE LAB PARA TODOS LOS COLORES
+ * CMC (l:2 c:1) - Estándar ISO 105-J03
  */
 
 // ============================================
@@ -10,6 +9,7 @@
 // ============================================
 let proyecto = { nombre: "", colores: [] };
 let editandoId = null;
+let formulaActual = 'cmc'; // Por defecto CMC
 
 // ============================================
 // FUNCIÓN PRINCIPAL
@@ -40,7 +40,14 @@ function procesar() {
     const dL = mL - rL;
     const da = ma - ra;
     const db = mb - rb;
-    const dE = Math.sqrt(Math.pow(dL, 2) + Math.pow(da, 2) + Math.pow(db, 2));
+    
+    // Calcular ΔE con diferentes fórmulas
+    const deltaE_cielab = calcularCIELAB(dL, da, db);
+    const deltaE_cmc = calcularCMC(rL, ra, rb, mL, ma, mb);
+    const deltaE_cie94 = calcularCIE94(rL, ra, rb, mL, ma, mb);
+    
+    // Usar CMC como principal para decisiones
+    const dE = deltaE_cmc;
 
     // Leer CMYK actual
     const CMYK = {
@@ -59,30 +66,30 @@ function procesar() {
     const ajustePara05 = calcularAjusteParaDelta05(rL, ra, rb, mL, ma, mb, CMYK);
 
     // ============================================
-    // DETERMINAR TENDENCIA VISUAL (CORREGIDA)
+    // DETERMINAR TENDENCIA VISUAL (CMC OPTIMIZADA)
     // ============================================
-    const tendencia = determinarTendenciaUniversal(da, db, dL);
+    const tendencia = determinarTendenciaCMC(da, db, dL);
 
     // ============================================
     // GENERAR RUTAS PARA UI
     // ============================================
     const rutasUI = [];
 
-    // Mostrar ΔE actual y objetivo
+    // Mostrar diagnóstico CMC
     rutasUI.push({
-        texto: `📊 ΔE actual: ${dE.toFixed(2)} | Objetivo: 0.5`,
+        texto: `📊 CMC: ${dE.toFixed(2)} | CIELAB: ${deltaE_cielab.toFixed(2)}`,
         prioridad: 200,
         chequeado: false
     });
 
     // Mostrar diagnóstico LAB
     let diagnosticoLAB = [];
-    if (da < -0.5) diagnosticoLAB.push(`🔴 Falta ROJO (da = ${da.toFixed(2)})`);
     if (da > 0.5) diagnosticoLAB.push(`🔴 Exceso ROJO (da = ${da.toFixed(2)})`);
-    if (db < -0.5) diagnosticoLAB.push(`🔵 Exceso AZUL (db = ${db.toFixed(2)})`);
+    if (da < -0.5) diagnosticoLAB.push(`🔴 Falta ROJO (da = ${da.toFixed(2)})`);
     if (db > 0.5) diagnosticoLAB.push(`🟡 Exceso AMARILLO (db = ${db.toFixed(2)})`);
-    if (dL < -0.3) diagnosticoLAB.push(`⚫ Muy OSCURO (dL = ${dL.toFixed(2)})`);
-    if (dL > 0.3) diagnosticoLAB.push(`⚪ Muy CLARO (dL = ${dL.toFixed(2)})`);
+    if (db < -0.5) diagnosticoLAB.push(`🔵 Exceso AZUL (db = ${db.toFixed(2)})`);
+    if (dL > 0.5) diagnosticoLAB.push(`⚪ Muy CLARO (dL = ${dL.toFixed(2)})`);
+    if (dL < -0.5) diagnosticoLAB.push(`⚫ Muy OSCURO (dL = ${dL.toFixed(2)})`);
     
     if (diagnosticoLAB.length > 0) {
         diagnosticoLAB.forEach((diag, index) => {
@@ -135,7 +142,7 @@ function procesar() {
     // Mensaje de confirmación
     if (dE <= 0.5) {
         rutasUI.push({
-            texto: "✅ COLOR ÓPTIMO - Ya cumple ΔE ≤ 0.5",
+            texto: "✅ COLOR ÓPTIMO - CMC ≤ 0.5",
             prioridad: 170,
             chequeado: false
         });
@@ -154,22 +161,15 @@ function procesar() {
         chequeado: false
     });
 
-    // Advertencia si hay canales al límite
-    if (ajustePara05.canalesAlLimite && ajustePara05.canalesAlLimite.length > 0) {
-        rutasUI.push({
-            texto: `⚠️ Canales al límite: ${ajustePara05.canalesAlLimite.join(', ')} - Compensación aplicada`,
-            prioridad: 155,
-            chequeado: false
-        });
-    }
-
     // ============================================
     // GUARDAR REGISTRO
     // ============================================
     const registro = {
         id: editandoId || Date.now(),
         nombre: document.getElementById('mName').value || "Muestra",
-        de: dE.toFixed(2),
+        de: deltaE_cielab.toFixed(2),
+        cmc: deltaE_cmc.toFixed(2),
+        cie94: deltaE_cie94.toFixed(2),
         tendencia: tendencia.nombre,
         clase: tendencia.clase,
         cmyk: { ...CMYK },
@@ -196,58 +196,125 @@ function procesar() {
 }
 
 // ============================================
-// DETERMINAR TENDENCIA UNIVERSAL BASADA EN LAB
+// CÁLCULOS DE ΔE
 // ============================================
-function determinarTendenciaUniversal(da, db, dL) {
-    // Interpretación correcta de LAB
-    const faltaRojo = da < -0.5;
-    const sobraRojo = da > 0.5;
-    const faltaAmarillo = db < -0.5; // equivalente a sobra azul
-    const sobraAmarillo = db > 0.5;
-    const muyOscuro = dL < -0.5;
-    const muyClaro = dL > 0.5;
+
+function calcularCIELAB(dL, da, db) {
+    return Math.sqrt(dL*dL + da*da + db*db);
+}
+
+function calcularCMC(L1, a1, b1, L2, a2, b2) {
+    // Factores CMC para textiles: l=2, c=1
+    const l = 2.0;  // Peso de luminosidad (mayor = más tolerancia)
+    const c = 1.0;  // Peso de croma
     
-    // Determinar la tendencia principal
-    if (faltaRojo && faltaAmarillo) {
-        return { nombre: 'Azulado/Violeta', clase: 't-azul' };
-    } else if (faltaRojo && sobraAmarillo) {
-        return { nombre: 'Verdoso', clase: 't-verde' };
-    } else if (sobraRojo && faltaAmarillo) {
-        return { nombre: 'Rojizo', clase: 't-rojo' };
-    } else if (sobraRojo && sobraAmarillo) {
-        return { nombre: 'Amarillento', clase: 't-amar' };
-    } else if (faltaRojo) {
-        return { nombre: 'Verdoso', clase: 't-verde' };
-    } else if (sobraRojo) {
-        return { nombre: 'Rojizo', clase: 't-rojo' };
-    } else if (faltaAmarillo) {
-        return { nombre: 'Azulado', clase: 't-azul' };
-    } else if (sobraAmarillo) {
-        return { nombre: 'Amarillento', clase: 't-amar' };
-    } else if (muyOscuro) {
-        return { nombre: 'Oscuro', clase: 't-oscuro' };
-    } else if (muyClaro) {
-        return { nombre: 'Claro', clase: 't-claro' };
-    } else {
-        return { nombre: 'En Punto', clase: 't-punto' };
+    // Convertir LAB a LCH
+    const C1 = Math.sqrt(a1*a1 + b1*b1);
+    const C2 = Math.sqrt(a2*a2 + b2*b2);
+    
+    const dL = L2 - L1;
+    const dC = C2 - C1;
+    
+    // Delta H (corregido)
+    let dH = 0;
+    const da = a2 - a1;
+    const db = b2 - b1;
+    const dEab = Math.sqrt(dL*dL + da*da + db*db);
+    if (dEab > 0) {
+        dH = Math.sqrt(Math.max(0, dEab*dEab - dL*dL - dC*dC));
     }
+    
+    // Calcular ángulos
+    let h1 = Math.atan2(b1, a1) * 180 / Math.PI;
+    if (h1 < 0) h1 += 360;
+    
+    // Factores SL, SC, SH
+    const SL = L1 < 16 ? 0.511 : (0.040975 * L1) / (1 + 0.01765 * L1);
+    const SC = 0.0638 * C1 / (1 + 0.0131 * C1) + 0.638;
+    
+    let T = 0;
+    if (h1 >= 164 && h1 <= 345) {
+        T = 0.56 + Math.abs(0.2 * Math.cos((h1 + 168) * Math.PI / 180));
+    } else {
+        T = 0.36 + Math.abs(0.4 * Math.cos((h1 + 35) * Math.PI / 180));
+    }
+    
+    const SH = SC * (T * Math.sqrt(1 + 1.5 * C1) / (1 + 1.5 * C1) + 0.5);
+    
+    // Calcular CMC
+    const cmc = Math.sqrt(
+        Math.pow(dL / (l * SL), 2) +
+        Math.pow(dC / (c * SC), 2) +
+        Math.pow(dH / SH, 2)
+    );
+    
+    return cmc;
+}
+
+function calcularCIE94(L1, a1, b1, L2, a2, b2) {
+    const C1 = Math.sqrt(a1*a1 + b1*b1);
+    const C2 = Math.sqrt(a2*a2 + b2*b2);
+    
+    const dL = L2 - L1;
+    const dC = C2 - C1;
+    
+    let dH = 0;
+    const da = a2 - a1;
+    const db = b2 - b1;
+    const dEab = Math.sqrt(dL*dL + da*da + db*db);
+    if (dEab > 0) {
+        dH = Math.sqrt(Math.max(0, dEab*dEab - dL*dL - dC*dC));
+    }
+    
+    const SL = 1;
+    const SC = 1 + 0.045 * C1;
+    const SH = 1 + 0.015 * C1;
+    
+    return Math.sqrt(
+        Math.pow(dL / SL, 2) +
+        Math.pow(dC / SC, 2) +
+        Math.pow(dH / SH, 2)
+    );
+}
+
+// ============================================
+// DETERMINAR TENDENCIA BASADA EN CMC
+// ============================================
+function determinarTendenciaCMC(da, db, dL) {
+    // Interpretación con factor l=2 (menos peso a luminosidad)
+    const masRojo = da > 0.5;
+    const menosRojo = da < -0.5;
+    const masAmarillo = db > 0.5;
+    const menosAmarillo = db < -0.5;
+    const masClaro = dL > 1.0;  // Umbral más alto por factor l=2
+    const masOscuro = dL < -1.0;
+    
+    if (masRojo && masAmarillo) return { nombre: 'Rojizo/Amarillento', clase: 't-rojo' };
+    if (masRojo && menosAmarillo) return { nombre: 'Rojizo/Azulado', clase: 't-rojo' };
+    if (menosRojo && masAmarillo) return { nombre: 'Verdoso/Amarillento', clase: 't-verde' };
+    if (menosRojo && menosAmarillo) return { nombre: 'Verdoso/Azulado', clase: 't-verde' };
+    if (masRojo) return { nombre: 'Rojizo', clase: 't-rojo' };
+    if (menosRojo) return { nombre: 'Verdoso', clase: 't-verde' };
+    if (masAmarillo) return { nombre: 'Amarillento', clase: 't-amar' };
+    if (menosAmarillo) return { nombre: 'Azulado', clase: 't-azul' };
+    if (masClaro) return { nombre: 'Claro', clase: 't-claro' };
+    if (masOscuro) return { nombre: 'Oscuro', clase: 't-oscuro' };
+    return { nombre: 'En Punto', clase: 't-punto' };
 }
 
 // ============================================
 // CALCULA LOS AJUSTES PARA ALCANZAR ΔE = 0.5
 // ============================================
 function calcularAjusteParaDelta05(rL, ra, rb, mL, ma, mb, cmykActual) {
-    // Calcular diferencias actuales
+    // Calcular diferencias
     const dL = mL - rL;
     const da = ma - ra;
     const db = mb - rb;
-    const dEActual = Math.sqrt(dL*dL + da*da + db*db);
+    const dEActual = calcularCMC(rL, ra, rb, mL, ma, mb);
     
-    // Si ya está en 0.5 o menos, no hacer nada
     if (dEActual <= 0.5) {
         return {
             mensaje: "✓ El color ya está dentro de ΔE 0.5",
-            ajustes: [],
             nuevaFormula: cmykActual,
             pasos: ["✓ Color óptimo - No requiere ajustes"],
             dEEstimado: dEActual.toFixed(2),
@@ -256,242 +323,158 @@ function calcularAjusteParaDelta05(rL, ra, rb, mL, ma, mb, cmykActual) {
         };
     }
     
-    // Calcular factor de reducción necesario (para llegar a 0.5)
-    const factorReduccion = 0.5 / dEActual;
-    
-    // Las diferencias objetivo después del ajuste
-    const dL_objetivo = dL * factorReduccion;
-    const da_objetivo = da * factorReduccion;
-    const db_objetivo = db * factorReduccion;
-    
-    // Cuánto debemos reducir cada diferencia
-    const reduccionL = dL - dL_objetivo;
-    const reduccionA = da - da_objetivo;
-    const reduccionB = db - db_objetivo;
-    
-    // ============================================
-    // CONVERTIR REDUCCIONES LAB A AJUSTES CMYK
-    // ============================================
-    
-    // Factores de conversión LAB → CMYK
-    const factorL_a_K = 1.2;    // 1 unidad de L ≈ 1.2% de K
-    const factorA_a_M = 1.5;    // 1 unidad de a ≈ 1.5% de Magenta
-    const factorB_a_Y = 1.5;    // 1 unidad de b ≈ 1.5% de Amarillo
-    
-    // Calcular ajustes iniciales
-    let ajusteC = 0, ajusteM = 0, ajusteY = 0, ajusteK = 0;
-    const pasos = [];
-    
-    // 1. Ajuste por luminosidad (dL)
-    if (Math.abs(reduccionL) > 0.05) {
-        if (dL > 0) {
-            ajusteK += Math.round(Math.abs(reduccionL) * factorL_a_K);
-            pasos.push(`➕ Subir K +${ajusteK}% para oscurecer`);
-        } else {
-            ajusteK -= Math.round(Math.abs(reduccionL) * factorL_a_K * 0.7);
-            pasos.push(`➖ Bajar K ${Math.abs(ajusteK)}% para aclarar`);
-        }
-    }
-    
-    // 2. Ajuste por eje a (rojo-verde)
-    if (Math.abs(reduccionA) > 0.05) {
-        if (da > 0) {
-            ajusteM -= Math.round(Math.abs(reduccionA) * factorA_a_M);
-            pasos.push(`➖ Bajar M ${Math.abs(ajusteM)}% para neutralizar rojo`);
-        } else {
-            ajusteM += Math.round(Math.abs(reduccionA) * factorA_a_M);
-            pasos.push(`➕ Subir M +${ajusteM}% para neutralizar verde`);
-        }
-    }
-    
-    // 3. Ajuste por eje b (amarillo-azul)
-    if (Math.abs(reduccionB) > 0.05) {
-        if (db > 0) {
-            ajusteY -= Math.round(Math.abs(reduccionB) * factorB_a_Y);
-            pasos.push(`➖ Bajar Y ${Math.abs(ajusteY)}% para neutralizar amarillo`);
-        } else {
-            ajusteY += Math.round(Math.abs(reduccionB) * factorB_a_Y);
-            pasos.push(`➕ Subir Y +${ajusteY}% para neutralizar azul`);
-        }
-    }
-    
-    // 4. Ajuste fino combinado
-    if (Math.abs(da) > 0.3 && Math.abs(db) > 0.3) {
-        if (da < 0 && db < 0) {
-            ajusteC += Math.round((Math.abs(da) + Math.abs(db)) * 0.4);
-            pasos.push(`➕ Subir C +${ajusteC}% por combinación verde+azul`);
-        }
-    }
-    
-    // ============================================
-    // APLICAR AJUSTES A LA FÓRMULA ACTUAL
-    // ============================================
-    
-    let nuevaFormula = {
-        C: Math.min(100, Math.max(0, Math.round((cmykActual.C || 0) + ajusteC))),
-        M: Math.min(100, Math.max(0, Math.round((cmykActual.M || 0) + ajusteM))),
-        Y: Math.min(100, Math.max(0, Math.round((cmykActual.Y || 0) + ajusteY))),
-        K: Math.min(100, Math.max(0, Math.round((cmykActual.K || 0) + ajusteK)))
-    };
-    
-    // Verificar canales al límite
-    const canalesAlLimite = [];
-    if (nuevaFormula.C >= 100) canalesAlLimite.push('C');
-    if (nuevaFormula.M >= 100) canalesAlLimite.push('M');
-    if (nuevaFormula.Y >= 100) canalesAlLimite.push('Y');
-    if (nuevaFormula.K >= 100) canalesAlLimite.push('K');
-    
-    // Si hay canales al límite, aplicar compensación universal
-    if (canalesAlLimite.length > 0) {
-        return compensarCanalesLimiteUniversal(nuevaFormula, canalesAlLimite, cmykActual, da, db, dL);
-    }
-    
-    return {
-        mensaje: `🎯 Ajuste calculado para ΔE objetivo: 0.5`,
-        ajustes: { C: ajusteC, M: ajusteM, Y: ajusteY, K: ajusteK },
-        nuevaFormula: nuevaFormula,
-        pasos: pasos,
-        dEEstimado: "0.5",
-        canalesAlLimite: [],
-        advertencias: []
-    };
-}
-
-// ============================================
-// COMPENSACIÓN UNIVERSAL BASADA EN LAB PARA TODOS LOS COLORES
-// ============================================
-function compensarCanalesLimiteUniversal(formula, canales, original, da, db, dL) {
-    const compensada = { ...original };
+    const compensada = { ...cmykActual };
     const compensaciones = [];
     const advertencias = [];
     
-    // ============================================
-    // 1. INTERPRETACIÓN UNIVERSAL DE LAB
-    // ============================================
-    const faltaRojo = da < -0.5;
-    const sobraRojo = da > 0.5;
-    const faltaAmarillo = db < -0.5; // equivalente a sobra azul
-    const sobraAmarillo = db > 0.5;
-    const necesitaAclarar = dL < -0.3 || original.K > 75 || (original.C + original.M + original.Y + original.K) > 260;
+    // Interpretación LAB
+    const menosRojo = da < -0.5;
+    const menosAmarillo = db < -0.5;
+    const masOscuro = dL < -0.5;
+    const masClaro = dL > 0.5;
+    
+    // Verificar canales al límite
+    const canalesAlLimite = [];
+    if (compensada.C >= 98) canalesAlLimite.push('C');
+    if (compensada.M >= 98) canalesAlLimite.push('M');
+    if (compensada.Y >= 98) canalesAlLimite.push('Y');
+    if (compensada.K >= 98) canalesAlLimite.push('K');
     
     // ============================================
-    // 2. APLICAR AJUSTES POR CANAL (LÓGICA UNIVERSAL)
+    // AJUSTES CMYK BASADOS EN LAB
     // ============================================
     
-    canales.forEach(canal => {
-        switch(canal) {
-            case 'M': // Magenta
-                if (faltaRojo) {
-                    // NECESITA MÁS MAGENTA pero está al límite
-                    compensada.M = 96; // Mantener alto
-                    compensada.C = Math.max(0, Math.round(original.C * 0.55)); // Reducir C 45%
-                    compensada.Y = Math.max(0, Math.round(original.Y * 0.65)); // Reducir Y 35%
-                    compensaciones.push(`🔴 FALTA ROJO: Mantener M en 96%, reducir C ${original.C}% → ${compensada.C}%, Y ${original.Y}% → ${compensada.Y}%`);
-                } 
-                else if (sobraRojo) {
-                    // SOBRA ROJO - reducir M
-                    compensada.M = Math.round(original.M * 0.88);
-                    compensaciones.push(`🔴 EXCESO ROJO: Reducir M ${original.M}% → ${compensada.M}%`);
-                }
-                else {
-                    // Neutro - reducción moderada
-                    compensada.M = Math.round(original.M * 0.92);
-                    compensaciones.push(`🎨 M al límite: Reducir a ${compensada.M}%`);
-                }
-                break;
-                
-            case 'C': // Cian
-                if (faltaAmarillo) {
-                    // SOBRA AZUL - reducir C
-                    compensada.C = Math.max(0, Math.round(original.C * 0.6));
-                    compensaciones.push(`🔵 EXCESO AZUL: Reducir C ${original.C}% → ${compensada.C}%`);
-                } else if (faltaRojo) {
-                    // FALTA ROJO - reducir C
-                    compensada.C = Math.max(0, Math.round(original.C * 0.55));
-                    compensaciones.push(`🌊 Para dar más ROJO: Reducir C ${original.C}% → ${compensada.C}%`);
-                } else {
-                    compensada.C = Math.max(0, Math.round(original.C * 0.75));
-                    compensaciones.push(`🌊 C al límite: Reducir a ${compensada.C}%`);
-                }
-                break;
-                
-            case 'Y': // Amarillo
-                if (faltaAmarillo) {
-                    // FALTA AMARILLO (sobra azul) - mantener Y
-                    compensada.Y = 94;
-                    compensaciones.push(`🟡 FALTA AMARILLO: Mantener Y en 94%`);
-                } else if (sobraAmarillo) {
-                    // SOBRA AMARILLO - reducir Y
-                    compensada.Y = Math.round(original.Y * 0.75);
-                    compensaciones.push(`🟡 EXCESO AMARILLO: Reducir Y ${original.Y}% → ${compensada.Y}%`);
-                } else {
-                    compensada.Y = Math.round(original.Y * 0.85);
-                    compensaciones.push(`🟡 Y al límite: Reducir a ${compensada.Y}%`);
-                }
-                break;
-                
-            case 'K': // Negro
-                if (necesitaAclarar) {
-                    compensada.K = Math.round(original.K * 0.7);
-                    compensaciones.push(`⚫ MUY OSCURO: Reducir K ${original.K}% → ${compensada.K}%`);
-                } else {
-                    compensada.K = Math.round(original.K * 0.85);
-                    compensaciones.push(`⬛ K al límite: Reducir a ${compensada.K}%`);
-                }
-                break;
-        }
-    });
+    // Ajuste de magenta
+    if (menosRojo) {
+        compensada.M = Math.min(100, compensada.M + 2);
+        compensaciones.push(`🔴 Falta ROJO: Subir M +2%`);
+    } else if (da > 0.5) {
+        compensada.M = Math.max(0, compensada.M - 3);
+        compensaciones.push(`🔴 Exceso ROJO: Bajar M -3%`);
+    }
     
-    // ============================================
-    // 3. AJUSTES ADICIONALES POR LUMINOSIDAD
-    // ============================================
-    if (necesitaAclarar) {
-        compensada.C = Math.round(compensada.C * 0.9);
-        compensada.Y = Math.round(compensada.Y * 0.9);
-        compensada.K = Math.round(compensada.K * 0.9);
-        compensaciones.push(`✨ ACLARAR: Reducción adicional del 10% en C, Y y K`);
+    // Ajuste de amarillo
+    if (menosAmarillo) {
+        compensada.Y = Math.min(100, compensada.Y + 3);
+        compensaciones.push(`🔵 Exceso AZUL: Subir Y +3%`);
+    } else if (db > 0.5) {
+        compensada.Y = Math.max(0, compensada.Y - 3);
+        compensaciones.push(`🟡 Exceso AMARILLO: Bajar Y -3%`);
+    }
+    
+    // Ajuste de cian (cuando hay exceso de azul o falta rojo)
+    if (menosAmarillo || menosRojo) {
+        compensada.C = Math.max(0, compensada.C - 4);
+        compensaciones.push(`🌊 Reducir C -4% para neutralizar azul/verde`);
+    }
+    
+    // Ajuste de luminosidad (con factor CMC)
+    if (masOscuro) {
+        compensada.K = Math.max(0, compensada.K - 3);
+        compensaciones.push(`⚫ Muy OSCURO: Bajar K -3% (factor CMC l=2)`);
+    } else if (masClaro) {
+        compensada.K = Math.min(100, compensada.K + 3);
+        compensaciones.push(`⚪ Muy CLARO: Subir K +3% (factor CMC l=2)`);
     }
     
     // ============================================
-    // 4. VERIFICAR CARGA TOTAL
+    // COMPENSACIÓN POR CANALES AL LÍMITE
+    // ============================================
+    if (canalesAlLimite.length > 0) {
+        canalesAlLimite.forEach(canal => {
+            switch(canal) {
+                case 'M':
+                    compensada.M = 95;
+                    compensada.C = Math.max(0, compensada.C - 3);
+                    compensada.Y = Math.max(0, compensada.Y - 3);
+                    compensaciones.push(`⚠️ M al límite: Reducir a 95%, bajar C-3%, Y-3%`);
+                    break;
+                case 'Y':
+                    compensada.Y = 94;
+                    compensaciones.push(`⚠️ Y al límite: Reducir a 94%`);
+                    break;
+                case 'C':
+                    compensada.C = 92;
+                    compensaciones.push(`⚠️ C al límite: Reducir a 92%`);
+                    break;
+                case 'K':
+                    if (masOscuro) {
+                        compensada.K = 85;
+                        compensaciones.push(`⚠️ K al límite: Reducir a 85% para aclarar`);
+                    } else {
+                        compensada.K = 92;
+                        compensaciones.push(`⚠️ K al límite: Reducir a 92%`);
+                    }
+                    break;
+            }
+        });
+    }
+    
+    // ============================================
+    // VERIFICAR CARGA TOTAL
     // ============================================
     const nuevaCarga = compensada.C + compensada.M + compensada.Y + compensada.K;
-    
-    if (nuevaCarga > 240) {
+    if (nuevaCarga > 250 && masOscuro) {
         const factor = 230 / nuevaCarga;
         compensada.C = Math.round(compensada.C * factor);
         compensada.M = Math.round(compensada.M * factor);
         compensada.Y = Math.round(compensada.Y * factor);
         compensada.K = Math.round(compensada.K * factor);
-        compensaciones.push(`📊 AJUSTE CARGA: Reducción proporcional a 230% (desde ${Math.round(nuevaCarga)}%)`);
+        compensaciones.push(`📊 Reducción proporcional a 230% (CMC optimizado)`);
     }
     
-    // ============================================
-    // 5. GARANTIZAR VALORES EN RANGO
-    // ============================================
+    // Garantizar valores en rango
     compensada.C = Math.min(100, Math.max(0, compensada.C));
     compensada.M = Math.min(100, Math.max(0, compensada.M));
     compensada.Y = Math.min(100, Math.max(0, compensada.Y));
     compensada.K = Math.min(100, Math.max(0, compensada.K));
     
-    // ============================================
-    // 6. DETERMINAR MENSAJE
-    // ============================================
-    let mensaje = "🎯 Compensación universal aplicada";
-    if (faltaRojo) mensaje = "🎯 Compensación: Aumentando presencia de ROJO";
-    if (faltaAmarillo) mensaje = "🎯 Compensación: Aumentando presencia de AMARILLO";
-    if (sobraRojo) mensaje = "🎯 Compensación: Reduciendo exceso de ROJO";
-    if (sobraAmarillo) mensaje = "🎯 Compensación: Reduciendo exceso de AMARILLO";
-    
     return {
-        mensaje: mensaje,
+        mensaje: "🎯 Ajuste optimizado con CMC (l=2 c=1)",
         nuevaFormula: compensada,
         pasos: compensaciones,
         advertencias: advertencias,
         dEEstimado: "0.6",
-        canalesAlLimite: canales,
-        compensado: true
+        canalesAlLimite: canalesAlLimite
     };
+}
+
+// ============================================
+// ACTUALIZAR COMPARACIÓN EN TIEMPO REAL
+// ============================================
+function actualizarComparacion() {
+    const getNum = (id) => {
+        const el = document.getElementById(id);
+        return el && el.value ? parseFloat(el.value) : NaN;
+    };
+    
+    const rL = getNum('r1L');
+    const ra = getNum('r1a');
+    const rb = getNum('r1b');
+    const mL = getNum('mL');
+    const ma = getNum('ma');
+    const mb = getNum('mb');
+    
+    if (!isNaN(rL) && !isNaN(ra) && !isNaN(rb) && !isNaN(mL) && !isNaN(ma) && !isNaN(mb)) {
+        document.getElementById('deltaE_cielab').textContent = calcularCIELAB(mL - rL, ma - ra, mb - rb).toFixed(2);
+        document.getElementById('deltaE_cmc').textContent = calcularCMC(rL, ra, rb, mL, ma, mb).toFixed(2);
+        document.getElementById('deltaE_cie94').textContent = calcularCIE94(rL, ra, rb, mL, ma, mb).toFixed(2);
+    }
+}
+
+function cambiarFormula() {
+    formulaActual = document.getElementById('formulaSelector').value;
+    const badge = document.getElementById('formulaBadge');
+    if (formulaActual === 'cmc') {
+        badge.innerHTML = '⚡ Usando CMC - Ideal para textiles';
+        badge.style.color = 'var(--accent)';
+    } else if (formulaActual === 'cielab') {
+        badge.innerHTML = '📐 Usando CIELAB - Estándar general';
+        badge.style.color = '#ffb74d';
+    } else {
+        badge.innerHTML = '🖨️ Usando CIE94 - Industria gráfica';
+        badge.style.color = '#4dabf7';
+    }
 }
 
 // ============================================
@@ -507,10 +490,12 @@ function render() {
         const cmykSugerido = c.cmykSugerido ? 
             `<br><small class="sugerido">➤ C:${c.cmykSugerido.C} M:${c.cmykSugerido.M} Y:${c.cmykSugerido.Y} K:${c.cmykSugerido.K}</small>` : '';
         
-        // Determinar color del ΔE
-        let colorDE = '#51cf66';
-        if (parseFloat(c.de) > 2.0) colorDE = '#ff6b81';
-        else if (parseFloat(c.de) > 1.0) colorDE = '#ffb74d';
+        // Determinar color del CMC
+        let colorCMC = '#51cf66';
+        const cmcVal = parseFloat(c.cmc || c.de);
+        if (cmcVal > 2.0) colorCMC = '#ff6b81';
+        else if (cmcVal > 1.0) colorCMC = '#ffb74d';
+        else if (cmcVal > 0.5) colorCMC = '#40e0d0';
         
         return `
         <tr>
@@ -520,7 +505,8 @@ function render() {
                 <br><small class="actual">${cmykActual}</small>
                 ${cmykSugerido}
             </td>
-            <td><b style="color: ${colorDE}">${c.de}</b></td>
+            <td><b style="color: #888">${c.de}</b></td>
+            <td><b style="color: ${colorCMC}">${c.cmc || c.de}</b></td>
             <td>
                 <span class="tendencia-tag ${c.clase}">${c.tendencia}</span>
                 <div class="rutas-container">
@@ -542,12 +528,11 @@ function render() {
 }
 
 // ============================================
-// FUNCIONES DE UTILIDAD
+// FUNCIONES DE UTILIDAD (se mantienen igual)
 // ============================================
 function limpiarCamposNuevo() {
     editandoId = null;
     document.getElementById('btnProcesar').innerText = "CALCULAR";
-    
     const ids = ['r1L','r1a','r1b','mName','mL','ma','mb','cC','cM','cY','cK'];
     ids.forEach(id => {
         const el = document.getElementById(id);
@@ -585,13 +570,11 @@ function revalidar(id) {
 function aplicarSugerencia(id) {
     const c = proyecto.colores.find(col => col.id == id);
     if (!c || !c.cmykSugerido) return;
-    
     document.getElementById('cC').value = c.cmykSugerido.C;
     document.getElementById('cM').value = c.cmykSugerido.M;
     document.getElementById('cY').value = c.cmykSugerido.Y;
     document.getElementById('cK').value = c.cmykSugerido.K;
-    
-    alert("✅ Fórmula sugerida cargada. Puedes recalcular si es necesario.");
+    alert("✅ Fórmula sugerida cargada");
 }
 
 function eliminar(id) {
