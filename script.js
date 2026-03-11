@@ -1,8 +1,8 @@
 /**
- * ALPHA COLOR SYSTEM - v8.1
+ * ALPHA COLOR SYSTEM - v9.0
  * ESPECIALIZADO EN SUBLIMACIÓN TEXTIL
+ * INTERFAZ LCH CON VALIDACIÓN DE RANGOS
  * CMC (l:2 c:1) - Estándar ISO 105-J03
- * CORREGIDO: función cambiarFormula global
  */
 
 // ============================================
@@ -10,190 +10,190 @@
 // ============================================
 let proyecto = { nombre: "", colores: [] };
 let editandoId = null;
-let formulaActual = 'cmc'; // Por defecto CMC
+let formulaActual = 'cmc';
+
+// ============================================
+// FUNCIONES DE CONVERSIÓN LCH ↔ LAB
+// ============================================
+
+function LCHaLAB(L, C, H) {
+    // Validar rangos
+    if (L < 0 || L > 100) throw new Error("L debe estar entre 0 y 100");
+    if (C < 0) throw new Error("C no puede ser negativo");
+    if (H < 0 || H > 360) throw new Error("H debe estar entre 0° y 360°");
+    
+    // Convertir ángulo a radianes
+    const hRad = H * Math.PI / 180;
+    
+    // Calcular a y b
+    const a = C * Math.cos(hRad);
+    const b = C * Math.sin(hRad);
+    
+    return { L, a, b };
+}
+
+function LABaLCH(L, a, b) {
+    const C = Math.sqrt(a*a + b*b);
+    let H = Math.atan2(b, a) * 180 / Math.PI;
+    if (H < 0) H += 360;
+    
+    return { L, C, H };
+}
 
 // ============================================
 // FUNCIÓN PRINCIPAL
 // ============================================
 function procesar() {
-    // --- LECTURA DE VALORES ---
+    // --- LECTURA DE VALORES LCH ---
     const getNum = (id) => {
         const el = document.getElementById(id);
         if (!el || el.value.trim() === '') return NaN;
         return parseFloat(el.value);
     };
 
-    // Leer LAB (siempre LAB en interfaz)
-    const rL = getNum('r1L');
-    const ra = getNum('r1a');
-    const rb = getNum('r1b');
+    // Leer LCH de referencia
+    const rL = getNum('rL');
+    const rC = getNum('rC');
+    const rH = getNum('rH');
+    
+    // Leer LCH de muestra
     const mL = getNum('mL');
-    const ma = getNum('ma');
-    const mb = getNum('mb');
+    const mC = getNum('mC');
+    const mH = getNum('mH');
 
-    // Validación
-    if (isNaN(rL) || isNaN(ra) || isNaN(rb) || isNaN(mL) || isNaN(ma) || isNaN(mb)) {
-        alert("❌ Error: Completa TODOS los campos LAB");
+    // Validar que todos los campos tengan valores
+    if (isNaN(rL) || isNaN(rC) || isNaN(rH) || isNaN(mL) || isNaN(mC) || isNaN(mH)) {
+        alert("❌ Error: Completa TODOS los campos LCH");
         return;
     }
 
-    // Calcular diferencias
-    const dL = mL - rL;
-    const da = ma - ra;
-    const db = mb - rb;
-    
-    // Calcular ΔE con diferentes fórmulas
-    const deltaE_cielab = calcularCIELAB(dL, da, db);
-    const deltaE_cmc = calcularCMC(rL, ra, rb, mL, ma, mb);
-    const deltaE_cie94 = calcularCIE94(rL, ra, rb, mL, ma, mb);
-    
-    // Usar CMC como principal para decisiones
-    const dE = deltaE_cmc;
+    // Validar rangos
+    try {
+        // Convertir LCH a LAB para cálculos
+        const refLAB = LCHaLAB(rL, rC, rH);
+        const muestraLAB = LCHaLAB(mL, mC, mH);
+        
+        // Calcular diferencias en LAB
+        const dL = muestraLAB.L - refLAB.L;
+        const da = muestraLAB.a - refLAB.a;
+        const db = muestraLAB.b - refLAB.b;
+        
+        // Calcular ΔE con diferentes fórmulas
+        const deltaE_cielab = calcularCIELAB(dL, da, db);
+        const deltaE_cmc = calcularCMC(refLAB.L, refLAB.a, refLAB.b, muestraLAB.L, muestraLAB.a, muestraLAB.b);
+        const deltaE_cie94 = calcularCIE94(refLAB.L, refLAB.a, refLAB.b, muestraLAB.L, muestraLAB.a, muestraLAB.b);
+        
+        // Usar CMC como principal
+        const dE = deltaE_cmc;
 
-    // Leer CMYK actual
-    const CMYK = {
-        C: getNum('cC') || 0,
-        M: getNum('cM') || 0,
-        Y: getNum('cY') || 0,
-        K: getNum('cK') || 0
-    };
+        // Leer CMYK actual
+        const CMYK = {
+            C: getNum('cC') || 0,
+            M: getNum('cM') || 0,
+            Y: getNum('cY') || 0,
+            K: getNum('cK') || 0
+        };
 
-    // Calcular carga total de tinta
-    const cargaTotal = CMYK.C + CMYK.M + CMYK.Y + CMYK.K;
+        // Calcular carga total
+        const cargaTotal = CMYK.C + CMYK.M + CMYK.Y + CMYK.K;
 
-    // ============================================
-    // CALCULAR AJUSTE PARA ΔE = 0.5
-    // ============================================
-    const ajustePara05 = calcularAjusteParaDelta05(rL, ra, rb, mL, ma, mb, CMYK);
+        // ============================================
+        // CALCULAR AJUSTE
+        // ============================================
+        const ajustePara05 = calcularAjusteParaDelta05(refLAB, muestraLAB, CMYK);
 
-    // ============================================
-    // DETERMINAR TENDENCIA VISUAL (CMC OPTIMIZADA)
-    // ============================================
-    const tendencia = determinarTendenciaCMC(da, db, dL);
+        // ============================================
+        // DETERMINAR TENDENCIA
+        // ============================================
+        const tendencia = determinarTendenciaCMC(da, db, dL);
 
-    // ============================================
-    // GENERAR RUTAS PARA UI
-    // ============================================
-    const rutasUI = [];
+        // ============================================
+        // GENERAR RUTAS
+        // ============================================
+        const rutasUI = [];
 
-    // Mostrar diagnóstico CMC
-    rutasUI.push({
-        texto: `📊 CMC: ${dE.toFixed(2)} | CIELAB: ${deltaE_cielab.toFixed(2)}`,
-        prioridad: 200,
-        chequeado: false
-    });
+        // Mostrar diagnóstico
+        rutasUI.push({
+            texto: `📊 CMC: ${dE.toFixed(2)} | CIELAB: ${deltaE_cielab.toFixed(2)}`,
+            prioridad: 200,
+            chequeado: false
+        });
 
-    // Mostrar diagnóstico LAB
-    let diagnosticoLAB = [];
-    if (da > 0.5) diagnosticoLAB.push(`🔴 Exceso ROJO (da = ${da.toFixed(2)}) - necesita menos magenta`);
-    if (da < -0.5) diagnosticoLAB.push(`🔴 Falta ROJO (da = ${da.toFixed(2)}) - necesita más magenta`);
-    if (db > 0.5) diagnosticoLAB.push(`🟡 Exceso AMARILLO (db = ${db.toFixed(2)}) - necesita menos amarillo`);
-    if (db < -0.5) diagnosticoLAB.push(`🔵 Exceso AZUL (db = ${db.toFixed(2)}) - necesita más amarillo`);
-    if (dL > 0.5) diagnosticoLAB.push(`⚪ Muy CLARO (dL = ${dL.toFixed(2)}) - necesita más K o CMY`);
-    if (dL < -0.5) diagnosticoLAB.push(`⚫ Muy OSCURO (dL = ${dL.toFixed(2)}) - necesita menos K o CMY`);
-    
-    if (diagnosticoLAB.length > 0) {
-        diagnosticoLAB.forEach((diag, index) => {
+        // Diagnóstico LAB (convertido a términos entendibles)
+        let diagnostico = [];
+        if (da > 0.5) diagnostico.push(`🔴 Exceso ROJO (a: ${da.toFixed(2)}) - necesita menos magenta`);
+        if (da < -0.5) diagnostico.push(`🔴 Falta ROJO (a: ${da.toFixed(2)}) - necesita más magenta`);
+        if (db > 0.5) diagnostico.push(`🟡 Exceso AMARILLO (b: ${db.toFixed(2)}) - necesita menos amarillo`);
+        if (db < -0.5) diagnostico.push(`🔵 Exceso AZUL (b: ${db.toFixed(2)}) - necesita más amarillo`);
+        if (dL > 0.5) diagnostico.push(`⚪ Muy CLARO (L: ${dL.toFixed(2)}) - necesita más K`);
+        if (dL < -0.5) diagnostico.push(`⚫ Muy OSCURO (L: ${dL.toFixed(2)}) - necesita menos K`);
+        
+        diagnostico.forEach((diag, i) => {
+            rutasUI.push({ texto: diag, prioridad: 195 - i, chequeado: false });
+        });
+
+        // Pasos del ajuste
+        if (ajustePara05.pasos && ajustePara05.pasos.length > 0) {
+            ajustePara05.pasos.forEach((paso, i) => {
+                rutasUI.push({ texto: paso, prioridad: 190 - i, chequeado: false });
+            });
+        }
+
+        // Fórmula sugerida
+        if (ajustePara05.nuevaFormula) {
+            const f = ajustePara05.nuevaFormula;
             rutasUI.push({
-                texto: diag,
-                prioridad: 195 - index,
+                texto: `🎯 FÓRMULA SUGERIDA: C:${f.C} M:${f.M} Y:${f.Y} K:${f.K}`,
+                prioridad: 180,
                 chequeado: false
             });
-        });
+        }
+
+        // Mensaje final
+        if (dE <= 0.5) {
+            rutasUI.push({ texto: "✅ COLOR ÓPTIMO - CMC ≤ 0.5", prioridad: 170, chequeado: false });
+        } else {
+            rutasUI.push({ texto: `⚡ ΔE estimado: ${ajustePara05.dEEstimado}`, prioridad: 170, chequeado: false });
+        }
+
+        // Carga de tinta
+        rutasUI.push({ texto: `💧 Carga: ${cargaTotal.toFixed(1)}%`, prioridad: 160, chequeado: false });
+
+        // ============================================
+        // GUARDAR REGISTRO
+        // ============================================
+        const registro = {
+            id: editandoId || Date.now(),
+            nombre: document.getElementById('mName').value || "Muestra",
+            de: deltaE_cielab.toFixed(2),
+            cmc: deltaE_cmc.toFixed(2),
+            cie94: deltaE_cie94.toFixed(2),
+            tendencia: tendencia.nombre,
+            clase: tendencia.clase,
+            cmyk: { ...CMYK },
+            cmykSugerido: ajustePara05.nuevaFormula || null,
+            rutas: rutasUI.sort((a, b) => b.prioridad - a.prioridad).slice(0, 7),
+            lch: { ref: { L: rL, C: rC, H: rH }, muestra: { L: mL, C: mC, H: mH } },
+            cargaTotal: cargaTotal,
+            dEObjetivo: 0.5,
+            timestamp: new Date().toISOString()
+        };
+
+        if (editandoId) {
+            const idx = proyecto.colores.findIndex(c => c.id === editandoId);
+            if (idx !== -1) proyecto.colores[idx] = registro;
+            editandoId = null;
+            document.getElementById('btnProcesar').innerText = "CALCULAR";
+        } else {
+            proyecto.colores.unshift(registro);
+        }
+
+        render();
+        limpiarCamposNuevo();
+        
+    } catch (error) {
+        alert(`❌ Error de validación: ${error.message}`);
     }
-
-    // Si el ajuste tiene pasos, mostrarlos
-    if (ajustePara05.pasos && ajustePara05.pasos.length > 0) {
-        ajustePara05.pasos.forEach((paso, index) => {
-            rutasUI.push({
-                texto: paso,
-                prioridad: 190 - index,
-                chequeado: false
-            });
-        });
-    } else {
-        rutasUI.push({
-            texto: ajustePara05.mensaje || "✓ No se requieren ajustes",
-            prioridad: 190,
-            chequeado: false
-        });
-    }
-
-    // Mostrar advertencias si existen
-    if (ajustePara05.advertencias && ajustePara05.advertencias.length > 0) {
-        ajustePara05.advertencias.forEach((adv, index) => {
-            rutasUI.push({
-                texto: `⚠️ ${adv}`,
-                prioridad: 185 - index,
-                chequeado: false
-            });
-        });
-    }
-
-    // Mostrar la fórmula sugerida
-    if (ajustePara05.nuevaFormula) {
-        const f = ajustePara05.nuevaFormula;
-        rutasUI.push({
-            texto: `🎯 FÓRMULA SUGERIDA: C:${f.C} M:${f.M} Y:${f.Y} K:${f.K}`,
-            prioridad: 180,
-            chequeado: false
-        });
-    }
-
-    // Mensaje de confirmación
-    if (dE <= 0.5) {
-        rutasUI.push({
-            texto: "✅ COLOR ÓPTIMO - CMC ≤ 0.5",
-            prioridad: 170,
-            chequeado: false
-        });
-    } else {
-        rutasUI.push({
-            texto: `⚡ ΔE estimado después del ajuste: ${ajustePara05.dEEstimado}`,
-            prioridad: 170,
-            chequeado: false
-        });
-    }
-
-    // Carga de tinta
-    rutasUI.push({
-        texto: `💧 Carga de tinta: ${cargaTotal.toFixed(1)}%`,
-        prioridad: 160,
-        chequeado: false
-    });
-
-    // ============================================
-    // GUARDAR REGISTRO
-    // ============================================
-    const registro = {
-        id: editandoId || Date.now(),
-        nombre: document.getElementById('mName').value || "Muestra",
-        de: deltaE_cielab.toFixed(2),
-        cmc: deltaE_cmc.toFixed(2),
-        cie94: deltaE_cie94.toFixed(2),
-        tendencia: tendencia.nombre,
-        clase: tendencia.clase,
-        cmyk: { ...CMYK },
-        cmykSugerido: ajustePara05.nuevaFormula || null,
-        rutas: rutasUI.sort((a, b) => b.prioridad - a.prioridad).slice(0, 7),
-        lab: { rL, ra, rb, mL, ma, mb },
-        cargaTotal: cargaTotal,
-        dEObjetivo: 0.5,
-        timestamp: new Date().toISOString()
-    };
-
-    // Actualizar o agregar
-    if (editandoId) {
-        const idx = proyecto.colores.findIndex(c => c.id === editandoId);
-        if (idx !== -1) proyecto.colores[idx] = registro;
-        editandoId = null;
-        document.getElementById('btnProcesar').innerText = "CALCULAR";
-    } else {
-        proyecto.colores.unshift(registro);
-    }
-
-    render();
-    limpiarCamposNuevo();
 }
 
 // ============================================
@@ -205,18 +205,15 @@ function calcularCIELAB(dL, da, db) {
 }
 
 function calcularCMC(L1, a1, b1, L2, a2, b2) {
-    // Factores CMC para textiles: l=2, c=1
-    const l = 2.0;  // Peso de luminosidad (mayor = más tolerancia)
-    const c = 1.0;  // Peso de croma
+    const l = 2.0;
+    const c = 1.0;
     
-    // Convertir LAB a LCH (interno para cálculo CMC)
     const C1 = Math.sqrt(a1*a1 + b1*b1);
     const C2 = Math.sqrt(a2*a2 + b2*b2);
     
     const dL = L2 - L1;
     const dC = C2 - C1;
     
-    // Delta H (corregido)
     let dH = 0;
     const da = a2 - a1;
     const db = b2 - b1;
@@ -225,11 +222,9 @@ function calcularCMC(L1, a1, b1, L2, a2, b2) {
         dH = Math.sqrt(Math.max(0, dEab*dEab - dL*dL - dC*dC));
     }
     
-    // Calcular ángulos (LCH)
     let h1 = Math.atan2(b1, a1) * 180 / Math.PI;
     if (h1 < 0) h1 += 360;
     
-    // Factores SL, SC, SH
     const SL = L1 < 16 ? 0.511 : (0.040975 * L1) / (1 + 0.01765 * L1);
     const SC = 0.0638 * C1 / (1 + 0.0131 * C1) + 0.638;
     
@@ -242,14 +237,11 @@ function calcularCMC(L1, a1, b1, L2, a2, b2) {
     
     const SH = SC * (T * Math.sqrt(1 + 1.5 * C1) / (1 + 1.5 * C1) + 0.5);
     
-    // Calcular CMC
-    const cmc = Math.sqrt(
+    return Math.sqrt(
         Math.pow(dL / (l * SL), 2) +
         Math.pow(dC / (c * SC), 2) +
         Math.pow(dH / SH, 2)
     );
-    
-    return cmc;
 }
 
 function calcularCIE94(L1, a1, b1, L2, a2, b2) {
@@ -279,15 +271,14 @@ function calcularCIE94(L1, a1, b1, L2, a2, b2) {
 }
 
 // ============================================
-// DETERMINAR TENDENCIA BASADA EN CMC
+// DETERMINAR TENDENCIA
 // ============================================
 function determinarTendenciaCMC(da, db, dL) {
-    // Interpretación con factor l=2 (menos peso a luminosidad)
     const masRojo = da > 0.5;
     const menosRojo = da < -0.5;
     const masAmarillo = db > 0.5;
     const menosAmarillo = db < -0.5;
-    const masClaro = dL > 1.0;  // Umbral más alto por factor l=2
+    const masClaro = dL > 1.0;
     const masOscuro = dL < -1.0;
     
     if (masRojo && masAmarillo) return { nombre: 'Rojizo/Amarillento', clase: 't-rojo' };
@@ -304,20 +295,19 @@ function determinarTendenciaCMC(da, db, dL) {
 }
 
 // ============================================
-// CALCULA LOS AJUSTES PARA ALCANZAR ΔE = 0.5
+// CALCULAR AJUSTE
 // ============================================
-function calcularAjusteParaDelta05(rL, ra, rb, mL, ma, mb, cmykActual) {
-    // Calcular diferencias
-    const dL = mL - rL;
-    const da = ma - ra;
-    const db = mb - rb;
-    const dEActual = calcularCMC(rL, ra, rb, mL, ma, mb);
+function calcularAjusteParaDelta05(refLAB, muestraLAB, cmykActual) {
+    const dL = muestraLAB.L - refLAB.L;
+    const da = muestraLAB.a - refLAB.a;
+    const db = muestraLAB.b - refLAB.b;
+    const dEActual = calcularCMC(refLAB.L, refLAB.a, refLAB.b, muestraLAB.L, muestraLAB.a, muestraLAB.b);
     
     if (dEActual <= 0.5) {
         return {
-            mensaje: "✓ El color ya está dentro de ΔE 0.5",
+            mensaje: "✓ Color óptimo",
             nuevaFormula: cmykActual,
-            pasos: ["✓ Color óptimo - No requiere ajustes"],
+            pasos: ["✓ No requiere ajustes"],
             dEEstimado: dEActual.toFixed(2),
             canalesAlLimite: [],
             advertencias: []
@@ -326,26 +316,12 @@ function calcularAjusteParaDelta05(rL, ra, rb, mL, ma, mb, cmykActual) {
     
     const compensada = { ...cmykActual };
     const compensaciones = [];
-    const advertencias = [];
     
-    // Interpretación LAB
     const menosRojo = da < -0.5;
     const menosAmarillo = db < -0.5;
     const masOscuro = dL < -0.5;
     const masClaro = dL > 0.5;
     
-    // Verificar canales al límite
-    const canalesAlLimite = [];
-    if (compensada.C >= 98) canalesAlLimite.push('C');
-    if (compensada.M >= 98) canalesAlLimite.push('M');
-    if (compensada.Y >= 98) canalesAlLimite.push('Y');
-    if (compensada.K >= 98) canalesAlLimite.push('K');
-    
-    // ============================================
-    // AJUSTES CMYK BASADOS EN LAB
-    // ============================================
-    
-    // Ajuste de magenta
     if (menosRojo) {
         compensada.M = Math.min(100, compensada.M + 2);
         compensaciones.push(`🔴 Falta ROJO: Subir M +2%`);
@@ -354,7 +330,6 @@ function calcularAjusteParaDelta05(rL, ra, rb, mL, ma, mb, cmykActual) {
         compensaciones.push(`🔴 Exceso ROJO: Bajar M -3%`);
     }
     
-    // Ajuste de amarillo
     if (menosAmarillo) {
         compensada.Y = Math.min(100, compensada.Y + 3);
         compensaciones.push(`🔵 Exceso AZUL: Subir Y +3%`);
@@ -363,85 +338,35 @@ function calcularAjusteParaDelta05(rL, ra, rb, mL, ma, mb, cmykActual) {
         compensaciones.push(`🟡 Exceso AMARILLO: Bajar Y -3%`);
     }
     
-    // Ajuste de cian (cuando hay exceso de azul o falta rojo)
     if (menosAmarillo || menosRojo) {
         compensada.C = Math.max(0, compensada.C - 4);
-        compensaciones.push(`🌊 Reducir C -4% para neutralizar azul/verde`);
+        compensaciones.push(`🌊 Reducir C -4%`);
     }
     
-    // Ajuste de luminosidad (con factor CMC)
     if (masOscuro) {
         compensada.K = Math.max(0, compensada.K - 3);
-        compensaciones.push(`⚫ Muy OSCURO: Bajar K -3% (factor CMC l=2)`);
+        compensaciones.push(`⚫ Muy OSCURO: Bajar K -3%`);
     } else if (masClaro) {
         compensada.K = Math.min(100, compensada.K + 3);
-        compensaciones.push(`⚪ Muy CLARO: Subir K +3% (factor CMC l=2)`);
+        compensaciones.push(`⚪ Muy CLARO: Subir K +3%`);
     }
     
-    // ============================================
-    // COMPENSACIÓN POR CANALES AL LÍMITE
-    // ============================================
-    if (canalesAlLimite.length > 0) {
-        canalesAlLimite.forEach(canal => {
-            switch(canal) {
-                case 'M':
-                    compensada.M = 95;
-                    compensada.C = Math.max(0, compensada.C - 3);
-                    compensada.Y = Math.max(0, compensada.Y - 3);
-                    compensaciones.push(`⚠️ M al límite: Reducir a 95%, bajar C-3%, Y-3%`);
-                    break;
-                case 'Y':
-                    compensada.Y = 94;
-                    compensaciones.push(`⚠️ Y al límite: Reducir a 94%`);
-                    break;
-                case 'C':
-                    compensada.C = 92;
-                    compensaciones.push(`⚠️ C al límite: Reducir a 92%`);
-                    break;
-                case 'K':
-                    if (masOscuro) {
-                        compensada.K = 85;
-                        compensaciones.push(`⚠️ K al límite: Reducir a 85% para aclarar`);
-                    } else {
-                        compensada.K = 92;
-                        compensaciones.push(`⚠️ K al límite: Reducir a 92%`);
-                    }
-                    break;
-            }
-        });
-    }
-    
-    // ============================================
-    // VERIFICAR CARGA TOTAL
-    // ============================================
-    const nuevaCarga = compensada.C + compensada.M + compensada.Y + compensada.K;
-    if (nuevaCarga > 250 && masOscuro) {
-        const factor = 230 / nuevaCarga;
-        compensada.C = Math.round(compensada.C * factor);
-        compensada.M = Math.round(compensada.M * factor);
-        compensada.Y = Math.round(compensada.Y * factor);
-        compensada.K = Math.round(compensada.K * factor);
-        compensaciones.push(`📊 Reducción proporcional a 230% (CMC optimizado)`);
-    }
-    
-    // Garantizar valores en rango
     compensada.C = Math.min(100, Math.max(0, compensada.C));
     compensada.M = Math.min(100, Math.max(0, compensada.M));
     compensada.Y = Math.min(100, Math.max(0, compensada.Y));
     compensada.K = Math.min(100, Math.max(0, compensada.K));
     
     return {
-        mensaje: "🎯 Ajuste optimizado con CMC (l=2 c=1)",
+        mensaje: "🎯 Ajuste CMC optimizado",
         nuevaFormula: compensada,
         pasos: compensaciones,
-        advertencias: advertencias,
         dEEstimado: "0.6",
-        canalesAlLimite: canalesAlLimite
+        canalesAlLimite: []
     };
 }
 
 // ============================================
-// FUNCIÓN PARA CAMBIAR FÓRMULA (CORREGIDA)
+// FUNCIÓN PARA CAMBIAR FÓRMULA
 // ============================================
 function cambiarFormula() {
     const selector = document.getElementById('formulaSelector');
@@ -450,32 +375,24 @@ function cambiarFormula() {
     formulaActual = selector.value;
     const badge = document.getElementById('formulaBadge');
     
-    // Actualizar badge según fórmula seleccionada
     if (formulaActual === 'cmc') {
-        badge.innerHTML = '⚡ Usando CMC (l:2 c:1) - Estándar textil ISO 105-J03';
+        badge.innerHTML = '⚡ CMC l:2 c:1 - Estándar textil ISO 105-J03';
         badge.style.color = 'var(--accent)';
-        badge.style.borderColor = 'var(--accent)';
     } else if (formulaActual === 'cielab') {
-        badge.innerHTML = '📐 Usando CIELAB ΔE*ab - Estándar general';
+        badge.innerHTML = '📐 CIELAB ΔE*ab - Estándar general';
         badge.style.color = '#ffb74d';
-        badge.style.borderColor = '#ffb74d';
     } else {
-        badge.innerHTML = '🖨️ Usando CIE94 - Industria gráfica';
+        badge.innerHTML = '🖨️ CIE94 - Industria gráfica';
         badge.style.color = '#4dabf7';
-        badge.style.borderColor = '#4dabf7';
     }
     
-    // Actualizar vista si hay valores
     actualizarComparacion();
-    
-    console.log(`Fórmula cambiada a: ${formulaActual}`);
 }
 
-// Asegurar que la función esté disponible globalmente
 window.cambiarFormula = cambiarFormula;
 
 // ============================================
-// ACTUALIZAR COMPARACIÓN EN TIEMPO REAL
+// ACTUALIZAR COMPARACIÓN
 // ============================================
 function actualizarComparacion() {
     const getNum = (id) => {
@@ -483,22 +400,32 @@ function actualizarComparacion() {
         return el && el.value ? parseFloat(el.value) : NaN;
     };
     
-    const rL = getNum('r1L');
-    const ra = getNum('r1a');
-    const rb = getNum('r1b');
-    const mL = getNum('mL');
-    const ma = getNum('ma');
-    const mb = getNum('mb');
-    
-    if (!isNaN(rL) && !isNaN(ra) && !isNaN(rb) && !isNaN(mL) && !isNaN(ma) && !isNaN(mb)) {
-        document.getElementById('deltaE_cielab').textContent = calcularCIELAB(mL - rL, ma - ra, mb - rb).toFixed(2);
-        document.getElementById('deltaE_cmc').textContent = calcularCMC(rL, ra, rb, mL, ma, mb).toFixed(2);
-        document.getElementById('deltaE_cie94').textContent = calcularCIE94(rL, ra, rb, mL, ma, mb).toFixed(2);
+    try {
+        const rL = getNum('rL');
+        const rC = getNum('rC');
+        const rH = getNum('rH');
+        const mL = getNum('mL');
+        const mC = getNum('mC');
+        const mH = getNum('mH');
+        
+        if (!isNaN(rL) && !isNaN(rC) && !isNaN(rH) && !isNaN(mL) && !isNaN(mC) && !isNaN(mH)) {
+            const ref = LCHaLAB(rL, rC, rH);
+            const muestra = LCHaLAB(mL, mC, mH);
+            
+            document.getElementById('deltaE_cielab').textContent = 
+                calcularCIELAB(muestra.L - ref.L, muestra.a - ref.a, muestra.b - ref.b).toFixed(2);
+            document.getElementById('deltaE_cmc').textContent = 
+                calcularCMC(ref.L, ref.a, ref.b, muestra.L, muestra.a, muestra.b).toFixed(2);
+            document.getElementById('deltaE_cie94').textContent = 
+                calcularCIE94(ref.L, ref.a, ref.b, muestra.L, muestra.a, muestra.b).toFixed(2);
+        }
+    } catch (e) {
+        // Ignorar errores de validación durante escritura
     }
 }
 
 // ============================================
-// RENDERIZADO DE TABLA
+// RENDERIZADO
 // ============================================
 function render() {
     const tbody = document.getElementById('cuerpoTabla');
@@ -510,10 +437,9 @@ function render() {
         const cmykSugerido = c.cmykSugerido ? 
             `<br><small class="sugerido">➤ C:${c.cmykSugerido.C} M:${c.cmykSugerido.M} Y:${c.cmykSugerido.Y} K:${c.cmykSugerido.K}</small>` : '';
         
-        // Determinar color del CMC
         let colorCMC = '#51cf66';
         const cmcVal = parseFloat(c.cmc || c.de);
-        if (cmcVal > 2.0) colorCMC = '#ff6b81';
+        if (cmcVal > 1.5) colorCMC = '#ff6b81';
         else if (cmcVal > 1.0) colorCMC = '#ffb74d';
         else if (cmcVal > 0.5) colorCMC = '#40e0d0';
         
@@ -553,8 +479,7 @@ function render() {
 function limpiarCamposNuevo() {
     editandoId = null;
     document.getElementById('btnProcesar').innerText = "CALCULAR";
-    
-    const ids = ['r1L','r1a','r1b','mName','mL','ma','mb','cC','cM','cY','cK'];
+    const ids = ['rL','rC','rH','mName','mL','mC','mH','cC','cM','cY','cK'];
     ids.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = "";
@@ -573,17 +498,19 @@ function revalidar(id) {
     const c = proyecto.colores.find(col => col.id == id);
     if(!c) return;
     editandoId = c.id;
-    document.getElementById('r1L').value = c.lab.rL;
-    document.getElementById('r1a').value = c.lab.ra;
-    document.getElementById('r1b').value = c.lab.rb;
+    
+    document.getElementById('rL').value = c.lch.ref.L;
+    document.getElementById('rC').value = c.lch.ref.C;
+    document.getElementById('rH').value = c.lch.ref.H;
+    document.getElementById('mL').value = c.lch.muestra.L;
+    document.getElementById('mC').value = c.lch.muestra.C;
+    document.getElementById('mH').value = c.lch.muestra.H;
     document.getElementById('mName').value = c.nombre;
-    document.getElementById('mL').value = c.lab.mL;
-    document.getElementById('ma').value = c.lab.ma;
-    document.getElementById('mb').value = c.lab.mb;
     document.getElementById('cC').value = c.cmyk.C;
     document.getElementById('cM').value = c.cmyk.M;
     document.getElementById('cY').value = c.cmyk.Y;
     document.getElementById('cK').value = c.cmyk.K;
+    
     document.getElementById('btnProcesar').innerText = "ACTUALIZAR";
     window.scrollTo(0,0);
 }
@@ -597,7 +524,7 @@ function aplicarSugerencia(id) {
     document.getElementById('cY').value = c.cmykSugerido.Y;
     document.getElementById('cK').value = c.cmykSugerido.K;
     
-    alert("✅ Fórmula sugerida cargada. Puedes recalcular si es necesario.");
+    alert("✅ Fórmula sugerida cargada");
 }
 
 function eliminar(id) {
