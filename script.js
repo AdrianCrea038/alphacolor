@@ -1,7 +1,7 @@
 /**
- * ALPHA COLOR SYSTEM - v10.4
+ * ALPHA COLOR SYSTEM - v10.5
  * GENERADOR CMYK DESDE MUESTRA FÍSICA
- * MUESTRA CMYK MUESTRA Y CORRECCIÓN
+ * CONVERSIÓN LCH → CMYK REALISTA
  */
 
 // ============================================
@@ -44,7 +44,7 @@ function LABaLCH(L, a, b) {
 }
 
 // ============================================
-// GENERADOR DE CMYK BASADO EN LCH (DESDE MUESTRA)
+// GENERADOR DE CMYK BASADO EN LCH (VERSIÓN REALISTA)
 // ============================================
 
 function generarCMYKdesdeLCH(L, C, H) {
@@ -59,80 +59,100 @@ function generarCMYKdesdeLCH(L, C, H) {
     H = Math.min(360, Math.max(0, H));
     
     // ============================================
-    // CASO ESPECIAL: COLORES NEUTROS (C ≈ 0)
+    // PASO 1: CALCULAR K (NEGRO) BASADO EN LUMINOSIDAD
     // ============================================
-    if (C < 1.0) {
-        // Es un color neutro (gris o negro)
-        let K = Math.round(100 - (L * 0.9));
-        K = Math.min(95, Math.max(0, K));
-        return { C: 0, M: 0, Y: 0, K };
+    let K;
+    if (L < 20) {
+        // Muy oscuro (negros)
+        K = 95 - (L * 0.5);
+    } else if (L < 50) {
+        // Oscuros
+        K = 80 - ((L - 20) * 1.2);
+    } else {
+        // Claros
+        K = 50 - ((L - 50) * 1.5);
+        K = Math.max(0, K);
     }
+    K = Math.min(95, Math.max(0, Math.round(K)));
     
     // ============================================
-    // CASO NORMAL: COLORES CON CROMA > 0
+    // PASO 2: CALCULAR CMY BASADO EN TONO Y CROMA
     // ============================================
     
-    // 1. Negro base (K) basado en luminosidad
-    let K = Math.round(100 - (L * 0.8));
-    K = Math.min(95, Math.max(0, K));
+    // Escalar el croma a porcentajes CMYK realistas
+    const factorCroma = Math.min(1, C / 100) * 1.2;
     
-    // 2. Croma (saturación) distribuido entre CMY
     let cian = 0, magenta = 0, amarillo = 0;
     
-    // 3. Distribución según tono (H)
+    // Distribución según tono (H)
     // Rojos (0-60°)
     if (H >= 0 && H < 60) {
         const factor = H / 60;
-        magenta = Math.round(C * 0.9);
-        amarillo = Math.round(C * 0.7 * (1 - factor * 0.3));
-        cian = Math.round(C * 0.1);
+        magenta = Math.round(90 * factorCroma * (0.9 + 0.1 * Math.sin(factor * Math.PI)));
+        amarillo = Math.round(85 * factorCroma * (0.8 + 0.2 * Math.cos(factor * Math.PI)));
+        cian = Math.round(20 * factorCroma * (1 - factor * 0.5));
     }
     // Amarillos (60-120°)
     else if (H >= 60 && H < 120) {
         const factor = (H - 60) / 60;
-        amarillo = Math.round(C * 0.9);
-        magenta = Math.round(C * 0.3 * (1 - factor));
-        cian = Math.round(C * 0.2);
+        amarillo = Math.round(90 * factorCroma * (0.9 + 0.1 * Math.sin(factor * Math.PI)));
+        magenta = Math.round(40 * factorCroma * (0.8 - factor * 0.3));
+        cian = Math.round(30 * factorCroma * (0.5 + factor * 0.3));
     }
     // Verdes (120-180°)
     else if (H >= 120 && H < 180) {
         const factor = (H - 120) / 60;
-        cian = Math.round(C * 0.8);
-        amarillo = Math.round(C * 0.7 * (1 - factor * 0.3));
-        magenta = Math.round(C * 0.1);
+        cian = Math.round(85 * factorCroma * (0.8 + 0.2 * Math.sin(factor * Math.PI)));
+        amarillo = Math.round(80 * factorCroma * (0.7 + 0.3 * Math.cos(factor * Math.PI)));
+        magenta = Math.round(30 * factorCroma * (0.7 - factor * 0.4));
     }
     // Cianes (180-240°)
     else if (H >= 180 && H < 240) {
         const factor = (H - 180) / 60;
-        cian = Math.round(C * 0.9);
-        magenta = Math.round(C * 0.2);
-        amarillo = Math.round(C * 0.2);
+        cian = Math.round(90 * factorCroma * (0.9 + 0.1 * Math.cos(factor * Math.PI)));
+        magenta = Math.round(40 * factorCroma * (0.4 + factor * 0.3));
+        amarillo = Math.round(35 * factorCroma * (0.4 + factor * 0.2));
     }
     // Azules (240-300°)
     else if (H >= 240 && H < 300) {
         const factor = (H - 240) / 60;
-        cian = Math.round(C * 0.8);
-        magenta = Math.round(C * 0.7);
-        amarillo = Math.round(C * 0.1);
+        cian = Math.round(85 * factorCroma * (0.8 + 0.2 * Math.sin(factor * Math.PI)));
+        magenta = Math.round(75 * factorCroma * (0.7 + 0.3 * Math.cos(factor * Math.PI)));
+        amarillo = Math.round(25 * factorCroma * (0.5 - factor * 0.2));
     }
     // Magentas (300-360°)
     else {
         const factor = (H - 300) / 60;
-        magenta = Math.round(C * 0.9);
-        cian = Math.round(C * 0.4 * (1 - factor * 0.5));
-        amarillo = Math.round(C * 0.2);
+        magenta = Math.round(90 * factorCroma * (0.9 + 0.1 * Math.sin(factor * Math.PI)));
+        cian = Math.round(45 * factorCroma * (0.5 + factor * 0.3));
+        amarillo = Math.round(35 * factorCroma * (0.4 + factor * 0.2));
     }
     
-    // Normalizar y garantizar rangos
+    // ============================================
+    // PASO 3: AJUSTAR POR BAJA LUMINOSIDAD (NEGROS RICOS)
+    // ============================================
+    if (L < 30) {
+        // Para colores muy oscuros, aumentar CMY para crear negros ricos
+        const factorOscuro = (30 - L) / 30;
+        cian = Math.min(100, cian + Math.round(40 * factorOscuro));
+        magenta = Math.min(100, magenta + Math.round(30 * factorOscuro));
+        amarillo = Math.min(100, amarillo + Math.round(30 * factorOscuro));
+    }
+    
+    // ============================================
+    // PASO 4: NORMALIZAR Y GARANTIZAR RANGOS
+    // ============================================
     cian = Math.min(100, Math.max(0, Math.round(cian)));
     magenta = Math.min(100, Math.max(0, Math.round(magenta)));
     amarillo = Math.min(100, Math.max(0, Math.round(amarillo)));
     K = Math.min(100, Math.max(0, K));
     
-    // Ajuste de carga total (evitar > 280%)
+    // ============================================
+    // PASO 5: AJUSTE DE CARGA TOTAL (evitar > 320%)
+    // ============================================
     let cargaTotal = cian + magenta + amarillo + K;
-    if (cargaTotal > 280) {
-        const factor = 260 / cargaTotal;
+    if (cargaTotal > 320) {
+        const factor = 300 / cargaTotal;
         cian = Math.round(cian * factor);
         magenta = Math.round(magenta * factor);
         amarillo = Math.round(amarillo * factor);
@@ -256,7 +276,7 @@ function procesar() {
         const deltaE_cmc = calcularCMC(ref.L, ref.a, ref.b, muestra.L, muestra.a, muestra.b);
         const deltaE_cie94 = calcularCIE94(ref.L, ref.a, ref.b, muestra.L, muestra.a, muestra.b);
         
-        // GENERAR CMYK DESDE LA MUESTRA FÍSICA (NO desde el objetivo)
+        // GENERAR CMYK DESDE LA MUESTRA FÍSICA (valores realistas)
         const cmykMuestra = generarCMYKdesdeLCH(mL, mC, mH);
         
         // GENERAR CMYK CORREGIDO (objetivo vs muestra)
