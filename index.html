@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALPHA v10.0 - Generador CMYK Automático</title>
+    <title>ALPHA v11.0 - Calibración MS JP4 + K-ONE</title>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧵</text></svg>">
 </head>
@@ -12,7 +12,7 @@
         <div class="header">
             <div style="display: flex; align-items: center; gap: 15px;">
                 <img src="logo.png" alt="ALPHA Logo" style="height: 45px; width: auto;" onerror="this.style.display='none'">
-                <h1>ALPHA <span class="version">v10.0</span></h1>
+                <h1>ALPHA <span class="version">v11.0</span></h1>
             </div>
             <div class="actions">
                 <button class="btn btn-sec" onclick="exportarProyecto()">Exportar .alpha</button>
@@ -26,21 +26,25 @@
             <input type="text" id="projName" placeholder="Nombre del Proyecto / Orden de Trabajo (OT)">
         </div>
 
-        <!-- PARÁMETROS DE MÁQUINA MONTI -->
-        <div class="card machine-card">
-            <h3>⚙️ MONTI - SUBLIMACIÓN</h3>
-            <div class="machine-params">
-                <div class="param-item">
-                    <span class="param-label">TEMPERATURA</span>
-                    <span class="param-value">210°C</span>
+        <!-- INFORMACIÓN DEL COMBO -->
+        <div class="card combo-card">
+            <h3>⚙️ CONFIGURACIÓN DE PRODUCCIÓN</h3>
+            <div class="combo-info">
+                <div class="combo-item">
+                    <span class="combo-label">PLOTTER</span>
+                    <span class="combo-value">MS JP4 Italy</span>
                 </div>
-                <div class="param-item">
-                    <span class="param-label">VELOCIDAD</span>
-                    <span class="param-value">1.8 m/min</span>
+                <div class="combo-item">
+                    <span class="combo-label">TINTA</span>
+                    <span class="combo-value">K-ONE Sublimación</span>
                 </div>
-                <div class="param-item">
-                    <span class="param-label">PRESIÓN</span>
-                    <span class="param-value">2 bares</span>
+                <div class="combo-item">
+                    <span class="combo-label">PAPEL</span>
+                    <span class="combo-value">Feliz Schoeller 10g</span>
+                </div>
+                <div class="combo-item">
+                    <span class="combo-label">PRENSA</span>
+                    <span class="combo-value">Monti 210°C | 1.8 m/min | 2 bares</span>
                 </div>
             </div>
         </div>
@@ -57,7 +61,7 @@
                     </select>
                 </div>
                 <div class="badge" id="formulaBadge">
-                    ⚡ CMC l:2 c:1 - Generador CMYK automático
+                    ⚡ CMC l:2 c:1 - Con tabla de calibración
                 </div>
             </div>
             <div style="display: flex; gap: 20px; margin-top: 10px; flex-wrap: wrap;">
@@ -100,7 +104,7 @@
                 <small style="color: #888; display: block; margin-top: 5px;">🧪 Color medido</small>
             </div>
 
-            <!-- RESULTADO CMYK (GENERADO AUTOMÁTICAMENTE) -->
+            <!-- RESULTADO CMYK (GENERADO DESDE TABLA DE CALIBRACIÓN) -->
             <div class="card">
                 <h3>3. CMYK SUGERIDO</h3>
                 <div class="cmyk-result" id="cmykResult">
@@ -136,9 +140,18 @@
                     </div>
                     <div class="cmyk-total" id="cargaTotal">Carga: 0%</div>
                 </div>
+                <small style="color: #888; display: block; margin-top: 5px;">📊 Basado en tabla de calibración</small>
+                
                 <div class="action-buttons" style="display: flex; gap: 8px; margin-top: 15px;">
                     <button class="btn btn-main" id="btnProcesar" onclick="procesar()" style="flex: 2;">CALCULAR</button>
                     <button class="btn btn-sec" onclick="limpiarCamposNuevo()" style="flex: 1; background: #333;">NUEVO</button>
+                </div>
+                
+                <!-- BOTONES DE CALIBRACIÓN -->
+                <div style="display: flex; gap: 8px; margin-top: 10px;">
+                    <button class="btn btn-cal" onclick="exportarCalibracion()" style="flex: 1; background: #4dabf7; color: #000;">📊 EXP CAL</button>
+                    <input type="file" id="calFile" hidden onchange="importarCalibracion(event)">
+                    <button class="btn btn-cal" onclick="document.getElementById('calFile').click()" style="flex: 1; background: #4dabf7; color: #000;">📥 IMP CAL</button>
                 </div>
             </div>
         </div>
@@ -160,6 +173,10 @@
             <div class="quality-item">
                 <span class="quality-dot" style="background: #ff6b81;"></span>
                 <span>CMC &gt; 1.5: Requiere ajuste</span>
+            </div>
+            <div class="quality-item">
+                <span class="quality-dot" style="background: #4dabf7;"></span>
+                <span>Puntos calibración: <span id="puntosCalibracion">0</span></span>
             </div>
         </div>
 
@@ -183,9 +200,11 @@
         
         <!-- PIE DE PÁGINA -->
         <div class="footer">
-            <span>🧵 ALPHA Color System - Generador CMYK Automático</span>
+            <span>🧵 ALPHA Color System - Calibración MS JP4 + K-ONE + Feliz Schoeller 10g</span>
             <span class="separator">|</span>
             <span>CMC l:2 c:1 - ISO 105-J03</span>
+            <span class="separator">|</span>
+            <span>Monti: 210°C / 1.8 m/min / 2 bares</span>
         </div>
     </div>
 
