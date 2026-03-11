@@ -1,14 +1,17 @@
-/* --- ALPHA COLOR SYSTEM v4.7 --- */
-
+/* --- ALPHA COLOR SYSTEM v6.0 - SUBLIMACIÓN TEXTIL --- */
 :root {
     --bg-page: #0f111a;
     --bg-card: #1a1d29;
-    --accent: #40e0d0;   /* Turquesa Alpha */
-    --coral: #ff6b81;    /* Rojo/Error */
-    --warning: #ffb74d;  /* Amarillo/Ajuste */
-    --success: #51cf66;  /* Verde/En Punto */
+    --accent: #40e0d0;
+    --coral: #ff6b81;
+    --warning: #ffb74d;
+    --success: #51cf66;
     --text: #ced4da;
     --shadow: rgba(0, 0, 0, 0.4);
+}
+
+* {
+    box-sizing: border-box;
 }
 
 body { 
@@ -22,7 +25,7 @@ body {
 
 .container { 
     max-width: 1200px; 
-    margin: auto; 
+    margin: 0 auto; 
 }
 
 /* --- ENCABEZADO --- */
@@ -39,6 +42,7 @@ body {
     margin: 0; 
     letter-spacing: 2px; 
     color: #fff;
+    font-size: 2em;
 }
 
 .version { 
@@ -47,76 +51,9 @@ body {
     vertical-align: super;
 }
 
-/* --- CONFIGURACIÓN DE PROYECTO --- */
-.project-config input { 
-    background: transparent; 
-    border: none; 
-    border-bottom: 1px solid #333; 
-    color: var(--accent); 
-    font-size: 1.2em; 
-    width: 100%; 
-    outline: none; 
-    padding: 10px 0;
-    margin-bottom: 20px;
-}
-
-/* --- GRID DE ENTRADA --- */
-.grid-main { 
-    display: grid; 
-    grid-template-columns: 1fr 1fr 1fr; 
-    gap: 15px; 
-}
-
-.card { 
-    background: var(--bg-card); 
-    padding: 15px; 
-    border-radius: 10px; 
-    border: 1px solid #333; 
-    box-shadow: 0 4px 6px var(--shadow);
-}
-
-.card h3 { 
-    color: var(--accent); 
-    font-size: 0.85em; 
-    margin: 0 0 15px 0; 
-    border-bottom: 1px solid #2a2e3f; 
-    padding-bottom: 5px; 
-    text-transform: uppercase;
-}
-
-/* --- INPUTS --- */
-input[type="number"], input[type="text"] { 
-    background: #000; 
-    border: 1px solid #444; 
-    color: #fff; 
-    padding: 12px; 
-    border-radius: 5px; 
-    width: 100%; 
-    box-sizing: border-box; 
-    margin-bottom: 10px; 
-    font-size: 1em;
-}
-
-input:focus {
-    border-color: var(--accent);
-    outline: none;
-}
-
-.input-row { 
-    display: grid; 
-    grid-template-columns: repeat(3, 1fr); 
-    gap: 8px; 
-}
-
-.input-grid { 
-    display: grid; 
-    grid-template-columns: 1fr 1fr; 
-    gap: 8px; 
-}
-
-/* --- BOTONES Y EFECTOS --- */
+/* --- BOTONES --- */
 .btn { 
-    padding: 12px; 
+    padding: 12px 18px; 
     border-radius: 5px; 
     border: none; 
     cursor: pointer; 
@@ -128,13 +65,11 @@ input:focus {
     text-align: center;
 }
 
-/* Efecto Hover (Pasar mouse) */
 .btn:hover {
     filter: brightness(1.2);
     transform: translateY(-1px);
 }
 
-/* Efecto Active (Al hacer clic) */
 .btn:active {
     transform: translateY(1px);
     filter: brightness(0.8);
@@ -161,6 +96,12 @@ input:focus {
     background: #4dabf7; 
     color: #000; 
     padding: 6px 12px; 
+    margin-right: 5px;
+    font-size: 0.7em;
+}
+
+.btn-rev:hover {
+    background: #6cbeff;
 }
 
 .btn-del { 
@@ -168,11 +109,168 @@ input:focus {
     color: var(--coral); 
     border: 1px solid var(--coral); 
     padding: 6px 12px; 
+    font-size: 0.7em;
 }
 
-/* --- TABLA DE RESULTADOS --- */
+.btn-del:hover {
+    background: rgba(255, 107, 129, 0.1);
+}
+
+.btn-aplicar {
+    background: var(--accent);
+    color: #000;
+    padding: 6px 12px;
+    margin-top: 8px;
+    font-size: 0.7em;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: block;
+    width: 100%;
+}
+
+.btn-aplicar:hover {
+    filter: brightness(1.2);
+    transform: translateY(-1px);
+}
+
+/* --- CONFIGURACIÓN DE PROYECTO --- */
+.project-config input { 
+    background: transparent; 
+    border: none; 
+    border-bottom: 1px solid #333; 
+    color: var(--accent); 
+    font-size: 1.2em; 
+    width: 100%; 
+    outline: none; 
+    padding: 10px 0;
+    margin-bottom: 20px;
+}
+
+/* --- GRID PRINCIPAL --- */
+.grid-main { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr 1fr; 
+    gap: 15px; 
+    margin-bottom: 15px;
+}
+
+/* --- TARJETAS --- */
+.card { 
+    background: var(--bg-card); 
+    padding: 18px; 
+    border-radius: 10px; 
+    border: 1px solid #333; 
+    box-shadow: 0 4px 6px var(--shadow);
+}
+
+.card h3 { 
+    color: var(--accent); 
+    font-size: 0.85em; 
+    margin: 0 0 15px 0; 
+    border-bottom: 1px solid #2a2e3f; 
+    padding-bottom: 5px; 
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* --- TARJETA DE MÁQUINA --- */
+.machine-card {
+    grid-column: span 3;
+    background: linear-gradient(145deg, var(--bg-card), #151a28);
+    border: 1px solid var(--accent);
+    margin-bottom: 5px;
+}
+
+.machine-params {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: space-around;
+}
+
+.param-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 10px 25px;
+    border-radius: 8px;
+    min-width: 130px;
+}
+
+.param-label {
+    font-size: 0.7em;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.param-value {
+    font-size: 1.4em;
+    color: var(--accent);
+    font-weight: bold;
+    line-height: 1.4;
+}
+
+/* --- INPUTS --- */
+input[type="number"], input[type="text"] { 
+    background: #000; 
+    border: 1px solid #444; 
+    color: #fff; 
+    padding: 12px; 
+    border-radius: 5px; 
+    width: 100%; 
+    margin-bottom: 10px; 
+    font-size: 1em;
+}
+
+input:focus {
+    border-color: var(--accent);
+    outline: none;
+}
+
+.input-row { 
+    display: grid; 
+    grid-template-columns: repeat(3, 1fr); 
+    gap: 8px; 
+}
+
+.input-grid { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 8px; 
+}
+
+/* --- LEYENDA DE CALIDAD --- */
+.quality-legend {
+    display: flex;
+    gap: 25px;
+    margin: 15px 0 20px;
+    padding: 12px 20px;
+    background: var(--bg-card);
+    border-radius: 8px;
+    border-left: 4px solid var(--accent);
+    flex-wrap: wrap;
+}
+
+.quality-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9em;
+}
+
+.quality-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+/* --- TABLA --- */
 .table-container { 
-    margin-top: 25px; 
     background: var(--bg-card); 
     border-radius: 10px; 
     overflow: hidden; 
@@ -189,8 +287,9 @@ th {
     color: var(--accent); 
     padding: 15px; 
     text-align: left; 
-    font-size: 0.85em; 
+    font-size: 0.8em; 
     text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 td { 
@@ -199,7 +298,7 @@ td {
     vertical-align: top; 
 }
 
-/* --- TAGS DE TENDENCIA --- */
+/* --- TENDENCIAS --- */
 .tendencia-tag { 
     display: inline-block; 
     padding: 4px 10px; 
@@ -209,12 +308,15 @@ td {
     font-size: 0.8em; 
 }
 
+.t-punto { background: rgba(81,207,102,0.15); color: var(--success); border: 1px solid var(--success); }
 .t-rojo { background: rgba(255,107,129,0.15); color: var(--coral); border: 1px solid var(--coral); }
-.t-verde { background: rgba(81,207,102,0.15); color: var(--success); border: 1px solid var(--success); }
+.t-verde { background: rgba(81,207,102,0.15); color: #51cf66; border: 1px solid #51cf66; }
 .t-azul { background: rgba(77,171,247,0.15); color: #4dabf7; border: 1px solid #4dabf7; }
 .t-amar { background: rgba(255,183,77,0.15); color: var(--warning); border: 1px solid var(--warning); }
+.t-claro { background: rgba(255,255,255,0.15); color: #e0e0e0; border: 1px solid #e0e0e0; }
+.t-oscuro { background: rgba(0,0,0,0.5); color: #a0a0a0; border: 1px solid #a0a0a0; }
 
-/* --- RUTAS Y CHECKBOXES --- */
+/* --- RUTAS --- */
 .rutas-container { 
     display: flex; 
     flex-direction: column; 
@@ -223,7 +325,7 @@ td {
 
 .ruta-item { 
     background: rgba(0,0,0,0.2); 
-    padding: 10px; 
+    padding: 8px 12px; 
     border-radius: 5px; 
     border-left: 3px solid var(--accent); 
     font-size: 0.85em; 
@@ -231,17 +333,83 @@ td {
     display: flex; 
     align-items: center; 
     gap: 10px;
+    transition: all 0.2s ease;
+}
+
+.ruta-item:hover {
+    background: rgba(64, 224, 208, 0.1);
+    border-left-width: 5px;
 }
 
 .ruta-item.done { 
-    opacity: 0.4; 
+    opacity: 0.5; 
     text-decoration: line-through; 
     border-left-color: var(--success); 
-    background: rgba(0,0,0,0.1);
 }
 
 .ruta-item input[type="checkbox"] {
     width: auto;
     margin: 0;
     cursor: pointer;
+}
+
+/* --- TEXTOS ESPECIALES --- */
+.actual {
+    color: #888;
+    font-size: 0.85em;
+}
+
+.sugerido {
+    color: var(--accent);
+    font-size: 0.9em;
+    font-weight: bold;
+    display: block;
+    margin-top: 3px;
+}
+
+/* --- PIE DE PÁGINA --- */
+.footer {
+    margin-top: 25px;
+    text-align: center;
+    font-size: 0.8em;
+    color: #666;
+    border-top: 1px solid #333;
+    padding-top: 15px;
+}
+
+.separator {
+    margin: 0 10px;
+    color: #444;
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 768px) {
+    .grid-main {
+        grid-template-columns: 1fr;
+    }
+    
+    .header {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .machine-params {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .param-item {
+        width: 100%;
+    }
+    
+    .quality-legend {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
 }

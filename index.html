@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALPHA v4.3 - Color Matching System</title>
+    <title>ALPHA v6.5 - Sublimación Textil</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>ALPHA <span class="version">v4.3</span></h1>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <img src="/Users/carlosreyes/Desktop/Alpha Color/logo.png" alt="ALPHA Logo" style="height: 45px; width: auto;">
+                <h1>ALPHA <span class="version">v6.5</span></h1>
+            </div>
             <div class="actions">
                 <button class="btn btn-sec" onclick="exportarProyecto()">Exportar .alpha</button>
                 <input type="file" id="fileInput" hidden onchange="importarProyecto(event)">
@@ -18,25 +21,41 @@
             </div>
         </div>
 
-        <div class="project-config" style="margin-bottom: 20px;">
-            <input type="text" id="projName" placeholder="Nombre del Proyecto / Orden de Trabajo (OT)" 
-                   style="background:transparent; border:none; border-bottom:1px solid #333; color:#40e0d0; font-size:1.2em; width:100%; outline:none; padding:10px 0;">
+        <div class="project-config">
+            <input type="text" id="projName" placeholder="Nombre del Proyecto / Orden de Trabajo (OT)">
+        </div>
+
+        <!-- PARÁMETROS DE MÁQUINA MONTI -->
+        <div class="card machine-card">
+            <h3>⚙️ MONTI - SUBLIMACIÓN</h3>
+            <div class="machine-params">
+                <div class="param-item">
+                    <span class="param-label">TEMPERATURA</span>
+                    <span class="param-value">210°C</span>
+                </div>
+                <div class="param-item">
+                    <span class="param-label">VELOCIDAD</span>
+                    <span class="param-value">1.8 m/min</span>
+                </div>
+                <div class="param-item">
+                    <span class="param-label">PRESIÓN</span>
+                    <span class="param-value">2 bares</span>
+                </div>
+            </div>
         </div>
 
         <div class="grid-main">
-            
             <div class="card">
-                <h3>1. Referencia (LAB Objetivo)</h3>
+                <h3>1. REFERENCIA (LAB OBJETIVO)</h3>
                 <div class="input-row">
                     <input type="number" id="r1L" placeholder="L1" step="0.01">
                     <input type="number" id="r1a" placeholder="a1" step="0.01">
                     <input type="number" id="r1b" placeholder="b1" step="0.01">
                 </div>
-        
             </div>
 
             <div class="card">
-                <h3>2. Muestra Actual (LAB)</h3>
+                <h3>2. MUESTRA ACTUAL (LAB)</h3>
                 <input type="text" id="mName" placeholder="Nombre del Color / ID Muestra">
                 <div class="input-row">
                     <input type="number" id="mL" placeholder="L" step="0.01">
@@ -46,17 +65,37 @@
             </div>
 
             <div class="card">
-                <h3>3. CMYK (%)</h3>
+                <h3>3. CMYK ACTUAL (%)</h3>
                 <div class="input-grid">
-                    <input type="number" id="cC" placeholder="C">
-                    <input type="number" id="cM" placeholder="M">
-                    <input type="number" id="cY" placeholder="Y">
-                    <input type="number" id="cK" placeholder="K">
+                    <input type="number" id="cC" placeholder="C" min="0" max="100">
+                    <input type="number" id="cM" placeholder="M" min="0" max="100">
+                    <input type="number" id="cY" placeholder="Y" min="0" max="100">
+                    <input type="number" id="cK" placeholder="K" min="0" max="100">
                 </div>
-                <div class="action-buttons" style="display: flex; gap: 8px; margin-top: 5px;">
+                <div class="action-buttons" style="display: flex; gap: 8px; margin-top: 15px;">
                     <button class="btn btn-main" id="btnProcesar" onclick="procesar()" style="flex: 2;">CALCULAR</button>
                     <button class="btn btn-sec" onclick="limpiarCamposNuevo()" style="flex: 1; background: #333;">NUEVO</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- LEYENDA DE CALIDAD -->
+        <div class="quality-legend">
+            <div class="quality-item">
+                <span class="quality-dot" style="background: #51cf66;"></span>
+                <span>ΔE &lt; 1.0: Color exacto</span>
+            </div>
+            <div class="quality-item">
+                <span class="quality-dot" style="background: #ffb74d;"></span>
+                <span>ΔE 1.0 - 2.0: Tolerancia comercial</span>
+            </div>
+            <div class="quality-item">
+                <span class="quality-dot" style="background: #ff6b81;"></span>
+                <span>ΔE &gt; 2.0: Requiere ajuste</span>
+            </div>
+            <div class="quality-item">
+                <span class="quality-dot" style="background: #40e0d0;"></span>
+                <span>Objetivo: ΔE = 0.5</span>
             </div>
         </div>
 
@@ -66,14 +105,24 @@
                     <tr>
                         <th style="width: 10%;">Hora</th>
                         <th style="width: 25%;">Color / CMYK</th>
-                        <th style="width: 10%;">ΔE</th>
-                        <th style="width: 40%;">Tendencia y Ajustes Sugeridos</th>
+                        <th style="width: 8%;">ΔE</th>
+                        <th style="width: 42%;">Diagnóstico y Ajustes</th>
                         <th style="width: 15%;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="cuerpoTabla">
-                    </tbody>
+                    <!-- Se llena dinámicamente con JavaScript -->
+                </tbody>
             </table>
+        </div>
+        
+        <!-- PIE DE PÁGINA -->
+        <div class="footer">
+            <span>🖨️ ALPHA Color System - Sublimación Textil</span>
+            <span class="separator">|</span>
+            <span>Monti: 210°C / 1.8 m/min / 2 bares</span>
+            <span class="separator">|</span>
+            <span>Objetivo ΔE = 0.5</span>
         </div>
     </div>
 
