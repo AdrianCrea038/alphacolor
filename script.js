@@ -1,8 +1,8 @@
 /**
- * ALPHA COLOR SYSTEM - v6.7
+ * ALPHA COLOR SYSTEM - v6.8
  * ESPECIALIZADO EN SUBLIMACIÓN TEXTIL
  * AJUSTE AUTOMÁTICO PARA ΔE = 0.5
- * COMPENSACIÓN CON CONTROL DE LUMINOSIDAD
+ * COMPENSACIÓN CON ANÁLISIS DE CUADRANTE Y LUMINOSIDAD
  */
 
 // ============================================
@@ -307,135 +307,157 @@ function calcularAjusteParaDelta05(rL, ra, rb, mL, ma, mb, cmykActual) {
 }
 
 // ============================================
-// COMPENSACIÓN MATEMÁTICA AVANZADA CON CONTROL DE LUMINOSIDAD
+// COMPENSACIÓN MATEMÁTICA AVANZADA CON ANÁLISIS DE CUADRANTE
 // ============================================
 function compensarCanalesLimite(formula, canales, original, da, db, dL) {
-    const compensada = { ...formula };
+    const compensada = { ...original }; // PARTIR DE LA ORIGINAL, no de la fórmula
     const compensaciones = [];
     const advertencias = [];
     
-    // Calcular si el color es oscuro o necesita aclarar
-    const esOscuro = (original.K > 70) || ((original.C + original.M + original.Y) > 220);
-    const necesitaAclarar = dL < -0.3; // Muestra más oscura que referencia
+    // ============================================
+    // 1. ANÁLISIS DE LUMINOSIDAD
+    // ============================================
+    const cargaTotal = original.C + original.M + original.Y + original.K;
+    const esMuyOscuro = cargaTotal > 260 || original.K > 75;
+    const necesitaAclarar = dL < -0.3 || esMuyOscuro;
     
-    // Dirección de corrección basada en da y db
-    const direccionCorreccion = {
-        magenta: da > 0 ? 'reducir' : 'aumentar',
-        amarillo: db > 0 ? 'reducir' : 'aumentar',
-        cian: (da < 0 && db < 0) ? 'aumentar' : 'reducir'
+    // ============================================
+    // 2. ANÁLISIS DE CUADRANTE (¿qué color sobra?)
+    // ============================================
+    const cuadrante = {
+        rojo: da > 0.5,
+        verde: da < -0.5,
+        amarillo: db > 0.5,
+        azul: db < -0.5
     };
+    
+    // Determinar el color dominante en exceso
+    let exceso = "";
+    if (cuadrante.verde && cuadrante.azul) exceso = "CIAN (verde+azul)";
+    else if (cuadrante.verde) exceso = "VERDE";
+    else if (cuadrante.azul) exceso = "AZUL";
+    else if (cuadrante.rojo) exceso = "ROJO";
+    else if (cuadrante.amarillo) exceso = "AMARILLO";
+    
+    // ============================================
+    // 3. CÁLCULO DE FACTORES DE REDUCCIÓN
+    // ============================================
+    // Basado en la magnitud de la desviación
+    const factorRojoVerde = Math.min(0.9, Math.max(0.6, 1 - (Math.abs(da) * 0.08)));
+    const factorAmarilloAzul = Math.min(0.9, Math.max(0.6, 1 - (Math.abs(db) * 0.08)));
+    
+    // ============================================
+    // 4. APLICAR AJUSTES POR CANAL
+    // ============================================
     
     canales.forEach(canal => {
         switch(canal) {
             case 'M': // Magenta al límite
-                if (direccionCorreccion.magenta === 'reducir') {
+                if (cuadrante.rojo) {
                     // Exceso de rojo - bajar M es correcto
-                    compensada.M = 92;
-                    compensaciones.push(`🔴 M al 100%: Reducir a 92% para neutralizar rojo`);
-                } else {
-                    // Exceso de verde - necesitamos más magenta
-                    if (necesitaAclarar || esOscuro) {
-                        // Si está oscuro, NO subir C y Y (eso lo oscurece más)
-                        compensada.M = 94;
-                        compensada.C = Math.max(0, (compensada.C || 0) - 3);
-                        compensada.Y = Math.max(0, (compensada.Y || 0) - 3);
-                        compensaciones.push(`🟢 M al 100%: Reducir C-3%, Y-3% para aclarar y equilibrar`);
-                        advertencias.push("Se reduce C y Y para evitar oscurecer");
-                    } else {
-                        // Si no está oscuro, podemos intentar crear rojo
-                        compensada.M = 95;
-                        compensada.C = Math.min(100, (compensada.C || 0) + 2);
-                        compensada.Y = Math.min(100, (compensada.Y || 0) + 2);
-                        compensaciones.push(`🎨 M al 100%: Crear rojo con C+2%, Y+2%, M→95%`);
-                    }
+                    compensada.M = Math.round(original.M * 0.88); // Bajar 12%
+                    compensaciones.push(`🔴 Exceso de ROJO: Reducir M ${original.M}% → ${compensada.M}%`);
+                } 
+                else if (cuadrante.verde) {
+                    // Exceso de verde - necesitamos MÁS magenta pero no podemos
+                    // En lugar de subir C/Y, BAJAMOS C y Y drásticamente
+                    compensada.M = 94; // Bajar ligeramente para dar espacio
+                    compensada.C = Math.max(0, Math.round(original.C * 0.65)); // Bajar C 35%
+                    compensada.Y = Math.max(0, Math.round(original.Y * 0.7)); // Bajar Y 30%
+                    compensaciones.push(`🟢 Exceso de VERDE: Reducir C ${original.C}% → ${compensada.C}%, Y ${original.Y}% → ${compensada.Y}%`);
+                    advertencias.push("Se reduce drásticamente C y Y para eliminar el verde");
                 }
-                break;
-                
-            case 'Y': // Amarillo al límite
-                if (direccionCorreccion.amarillo === 'reducir') {
-                    compensada.Y = 92;
-                    compensaciones.push(`🟡 Y al 100%: Reducir a 92%`);
-                } else {
-                    if (necesitaAclarar || esOscuro) {
-                        compensada.Y = 94;
-                        compensada.C = Math.max(0, (compensada.C || 0) - 2);
-                        compensada.M = Math.max(0, (compensada.M || 0) - 2);
-                        compensaciones.push(`🔵 Y al 100%: Reducir C-2%, M-2% para aclarar`);
-                    } else {
-                        compensada.Y = 94;
-                        compensada.C = Math.max(0, (compensada.C || 0) - 1);
-                        compensada.M = Math.max(0, (compensada.M || 0) - 1);
-                        compensaciones.push(`🟡 Y al 100%: Ajuste fino con C-1%, M-1%`);
-                    }
+                else {
+                    // Caso genérico
+                    compensada.M = Math.round(original.M * 0.92);
+                    compensaciones.push(`🎨 M al límite: Reducir a ${compensada.M}%`);
                 }
                 break;
                 
             case 'C': // Cian al límite
-                if (da < 0 && db < 0) {
-                    compensada.C = 94;
-                    if (!necesitaAclarar && !esOscuro) {
-                        compensada.M = Math.min(100, (compensada.M || 0) + 2);
-                        compensada.Y = Math.min(100, (compensada.Y || 0) + 2);
-                        compensaciones.push(`🟢🔵 C al 100%: Equilibrar con M+2%, Y+2%`);
-                    } else {
-                        compensaciones.push(`🌊 C al 100%: Reducir a 94% para controlar luminosidad`);
-                    }
+                if (cuadrante.verde && cuadrante.azul) {
+                    // Exceso de cian (verde+azul)
+                    compensada.C = Math.round(original.C * 0.7); // Bajar 30%
+                    compensaciones.push(`🌊 Exceso de CIAN: Reducir C ${original.C}% → ${compensada.C}%`);
+                } else if (cuadrante.azul) {
+                    compensada.C = Math.round(original.C * 0.75); // Bajar 25%
+                    compensaciones.push(`🔵 Exceso de AZUL: Reducir C ${original.C}% → ${compensada.C}%`);
+                } else if (cuadrante.verde) {
+                    compensada.C = Math.round(original.C * 0.8); // Bajar 20%
+                    compensaciones.push(`🟢 Exceso de VERDE: Reducir C ${original.C}% → ${compensada.C}%`);
                 } else {
-                    compensada.C = 91;
-                    compensaciones.push(`🌊 C al 100%: Reducir a 91%`);
+                    compensada.C = Math.round(original.C * 0.85);
+                    compensaciones.push(`🌊 C al límite: Reducir a ${compensada.C}%`);
+                }
+                break;
+                
+            case 'Y': // Amarillo al límite
+                if (cuadrante.amarillo) {
+                    compensada.Y = Math.round(original.Y * 0.8); // Bajar 20%
+                    compensaciones.push(`🟡 Exceso de AMARILLO: Reducir Y ${original.Y}% → ${compensada.Y}%`);
+                } else if (cuadrante.azul) {
+                    compensada.Y = Math.round(original.Y * 0.85); // Bajar 15%
+                    compensaciones.push(`🔵 Exceso de AZUL: Reducir Y ${original.Y}% → ${compensada.Y}%`);
+                } else {
+                    compensada.Y = Math.round(original.Y * 0.88);
+                    compensaciones.push(`🟡 Y al límite: Reducir a ${compensada.Y}%`);
                 }
                 break;
                 
             case 'K': // Negro al límite
-                if (necesitaAclarar || esOscuro) {
-                    compensada.K = 84; // Reducción más agresiva
-                    compensaciones.push(`⚫ K al 100%: Reducir a 84% para aclarar`);
+                if (necesitaAclarar) {
+                    compensada.K = Math.round(original.K * 0.7); // Bajar 30%
+                    compensaciones.push(`⚫ MUY OSCURO: Reducir K ${original.K}% → ${compensada.K}%`);
                 } else {
-                    compensada.K = 92;
-                    compensaciones.push(`⬛ K al 100%: Reducir a 92%`);
+                    compensada.K = Math.round(original.K * 0.85);
+                    compensaciones.push(`⬛ K al límite: Reducir a ${compensada.K}%`);
                 }
                 break;
         }
     });
     
     // ============================================
-    // VERIFICACIÓN FINAL DE LUMINOSIDAD
+    // 5. AJUSTES ADICIONALES POR LUMINOSIDAD
     // ============================================
-    const nuevaCarga = compensada.C + compensada.M + compensada.Y + compensada.K;
-    const cargaOriginal = original.C + original.M + original.Y + original.K;
-    
-    if (necesitaAclarar && nuevaCarga > cargaOriginal) {
-        // Si necesitamos aclarar pero la carga aumentó, aplicamos reducción
-        const factorAclarado = 0.94;
-        compensada.C = Math.round(compensada.C * factorAclarado);
-        compensada.M = Math.round(compensada.M * factorAclarado);
-        compensada.Y = Math.round(compensada.Y * factorAclarado);
-        compensada.K = Math.round(compensada.K * factorAclarado);
-        compensaciones.push(`✨ Ajuste final de luminosidad: Reducción del 6% en todos los canales`);
+    if (necesitaAclarar) {
+        // Aplicar reducción adicional en todos los canales
+        compensada.C = Math.round(compensada.C * 0.88);
+        compensada.M = Math.round(compensada.M * 0.95);
+        compensada.Y = Math.round(compensada.Y * 0.88);
+        compensada.K = Math.round(compensada.K * 0.85);
+        compensaciones.push(`✨ AJUSTE DE LUMINOSIDAD: Reducción adicional del 12% en C,Y y 15% en K`);
     }
     
-    // Verificar nuevos límites
-    const nuevosLimites = [];
-    if (compensada.C >= 100) nuevosLimites.push('C');
-    if (compensada.M >= 100) nuevosLimites.push('M');
-    if (compensada.Y >= 100) nuevosLimites.push('Y');
-    if (compensada.K >= 100) nuevosLimites.push('K');
+    // ============================================
+    // 6. VERIFICAR QUE LA CARGA TOTAL SEA RAZONABLE
+    // ============================================
+    const nuevaCarga = compensada.C + compensada.M + compensada.Y + compensada.K;
     
-    if (nuevosLimites.length > 0) {
-        const factor = 0.93;
+    if (nuevaCarga > 240 && necesitaAclarar) {
+        // Aún muy oscuro - aplicar reducción proporcional
+        const factor = 220 / nuevaCarga;
         compensada.C = Math.round(compensada.C * factor);
         compensada.M = Math.round(compensada.M * factor);
         compensada.Y = Math.round(compensada.Y * factor);
         compensada.K = Math.round(compensada.K * factor);
-        compensaciones.push(`⚠️ Ajuste final: Reducción del 7% para evitar nuevos límites`);
+        compensaciones.push(`📊 AJUSTE DE CARGA: Reducción proporcional para llegar a 220% (actual: ${Math.round(nuevaCarga)}%)`);
     }
     
-    const dEEstimado = canales.length > 1 ? "0.7" : "0.5";
+    // ============================================
+    // 7. GARANTIZAR VALORES EN RANGO
+    // ============================================
+    compensada.C = Math.min(100, Math.max(0, compensada.C));
+    compensada.M = Math.min(100, Math.max(0, compensada.M));
+    compensada.Y = Math.min(100, Math.max(0, compensada.Y));
+    compensada.K = Math.min(100, Math.max(0, compensada.K));
+    
+    // ============================================
+    // 8. CALCULAR ΔE ESTIMADO
+    // ============================================
+    const dEEstimado = necesitaAclarar ? "0.6" : "0.5";
     
     return {
-        mensaje: necesitaAclarar ? 
-            "✨ Compensación con prioridad en aclarar el color" : 
-            "⚠️ Canal al límite - Compensación aplicada",
+        mensaje: `🎯 Compensación dirigida al cuadrante ${exceso || "desconocido"}`,
         nuevaFormula: compensada,
         pasos: compensaciones,
         advertencias: advertencias,
