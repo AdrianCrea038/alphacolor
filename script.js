@@ -1,7 +1,7 @@
 /**
- * ALPHA COLOR SYSTEM - v10.3
- * GENERADOR CMYK AUTOMÁTICO
- * MUESTRA FÓRMULA BASE Y AJUSTADA
+ * ALPHA COLOR SYSTEM - v10.4
+ * GENERADOR CMYK DESDE MUESTRA FÍSICA
+ * MUESTRA CMYK MUESTRA Y CORRECCIÓN
  */
 
 // ============================================
@@ -44,62 +44,28 @@ function LABaLCH(L, a, b) {
 }
 
 // ============================================
-// GENERADOR DE CMYK BASADO EN LCH (CORREGIDO)
+// GENERADOR DE CMYK BASADO EN LCH (DESDE MUESTRA)
 // ============================================
 
-function generarCMYKdesdeLCH(refLCH, muestraLCH) {
+function generarCMYKdesdeLCH(L, C, H) {
     // Validar que los valores existan
-    if (!refLCH || !muestraLCH) {
+    if (isNaN(L) || isNaN(C) || isNaN(H)) {
         return { C: 0, M: 0, Y: 0, K: 0 };
     }
     
-    // Asegurar que L, C, H sean números
-    const rL = isNaN(refLCH.L) ? 50 : Math.min(100, Math.max(0, refLCH.L));
-    const rC = isNaN(refLCH.C) ? 0 : Math.max(0, refLCH.C);
-    const rH = isNaN(refLCH.H) ? 0 : Math.min(360, Math.max(0, refLCH.H));
-    
-    const mL = isNaN(muestraLCH.L) ? 50 : Math.min(100, Math.max(0, muestraLCH.L));
-    const mC = isNaN(muestraLCH.C) ? 0 : Math.max(0, muestraLCH.C);
-    const mH = isNaN(muestraLCH.H) ? 0 : Math.min(360, Math.max(0, muestraLCH.H));
-    
-    // Convertir a LAB para cálculos
-    let ref, muestra;
-    try {
-        ref = LCHaLAB(rL, rC, rH);
-        muestra = LCHaLAB(mL, mC, mH);
-    } catch (e) {
-        // Si hay error, usar valores por defecto
-        ref = { L: rL, a: 0, b: 0 };
-        muestra = { L: mL, a: 0, b: 0 };
-    }
-    
-    // Diferencias
-    const dL = muestra.L - ref.L;
-    const da = muestra.a - ref.a;
-    const db = muestra.b - ref.b;
+    // Asegurar rangos
+    L = Math.min(100, Math.max(0, L));
+    C = Math.max(0, C);
+    H = Math.min(360, Math.max(0, H));
     
     // ============================================
     // CASO ESPECIAL: COLORES NEUTROS (C ≈ 0)
     // ============================================
-    const esNeutro = rC < 1.0 || isNaN(rC) || rC === 0;
-    
-    if (esNeutro) {
+    if (C < 1.0) {
         // Es un color neutro (gris o negro)
-        let K = Math.round(100 - (rL * 0.9));
+        let K = Math.round(100 - (L * 0.9));
         K = Math.min(95, Math.max(0, K));
-        
-        // Ajustar por diferencia de luminosidad
-        if (!isNaN(dL)) {
-            if (dL < -2) K = Math.min(95, K + 5);  // Más oscuro
-            if (dL > 2) K = Math.max(0, K - 5);    // Más claro
-        }
-        
-        return { 
-            C: 0, 
-            M: 0, 
-            Y: 0, 
-            K: K 
-        };
+        return { C: 0, M: 0, Y: 0, K };
     }
     
     // ============================================
@@ -107,95 +73,115 @@ function generarCMYKdesdeLCH(refLCH, muestraLCH) {
     // ============================================
     
     // 1. Negro base (K) basado en luminosidad
-    let K = Math.round(100 - (rL * 0.8));
+    let K = Math.round(100 - (L * 0.8));
     K = Math.min(95, Math.max(0, K));
     
     // 2. Croma (saturación) distribuido entre CMY
-    const cromaTotal = rC;
-    let C = 0, M = 0, Y = 0;
+    let cian = 0, magenta = 0, amarillo = 0;
     
     // 3. Distribución según tono (H)
-    const H = rH;
-    
     // Rojos (0-60°)
     if (H >= 0 && H < 60) {
         const factor = H / 60;
-        M = Math.round(cromaTotal * 0.9);
-        Y = Math.round(cromaTotal * 0.7 * (1 - factor * 0.3));
-        C = Math.round(cromaTotal * 0.1);
+        magenta = Math.round(C * 0.9);
+        amarillo = Math.round(C * 0.7 * (1 - factor * 0.3));
+        cian = Math.round(C * 0.1);
     }
     // Amarillos (60-120°)
     else if (H >= 60 && H < 120) {
         const factor = (H - 60) / 60;
-        Y = Math.round(cromaTotal * 0.9);
-        M = Math.round(cromaTotal * 0.3 * (1 - factor));
-        C = Math.round(cromaTotal * 0.2);
+        amarillo = Math.round(C * 0.9);
+        magenta = Math.round(C * 0.3 * (1 - factor));
+        cian = Math.round(C * 0.2);
     }
     // Verdes (120-180°)
     else if (H >= 120 && H < 180) {
         const factor = (H - 120) / 60;
-        C = Math.round(cromaTotal * 0.8);
-        Y = Math.round(cromaTotal * 0.7 * (1 - factor * 0.3));
-        M = Math.round(cromaTotal * 0.1);
+        cian = Math.round(C * 0.8);
+        amarillo = Math.round(C * 0.7 * (1 - factor * 0.3));
+        magenta = Math.round(C * 0.1);
     }
     // Cianes (180-240°)
     else if (H >= 180 && H < 240) {
         const factor = (H - 180) / 60;
-        C = Math.round(cromaTotal * 0.9);
-        M = Math.round(cromaTotal * 0.2);
-        Y = Math.round(cromaTotal * 0.2);
+        cian = Math.round(C * 0.9);
+        magenta = Math.round(C * 0.2);
+        amarillo = Math.round(C * 0.2);
     }
     // Azules (240-300°)
     else if (H >= 240 && H < 300) {
         const factor = (H - 240) / 60;
-        C = Math.round(cromaTotal * 0.8);
-        M = Math.round(cromaTotal * 0.7);
-        Y = Math.round(cromaTotal * 0.1);
+        cian = Math.round(C * 0.8);
+        magenta = Math.round(C * 0.7);
+        amarillo = Math.round(C * 0.1);
     }
     // Magentas (300-360°)
     else {
         const factor = (H - 300) / 60;
-        M = Math.round(cromaTotal * 0.9);
-        C = Math.round(cromaTotal * 0.4 * (1 - factor * 0.5));
-        Y = Math.round(cromaTotal * 0.2);
+        magenta = Math.round(C * 0.9);
+        cian = Math.round(C * 0.4 * (1 - factor * 0.5));
+        amarillo = Math.round(C * 0.2);
     }
     
-    // 4. Ajuste por diferencias (da, db)
-    if (!isNaN(da) && !isNaN(db)) {
-        if (da < -2) M = Math.min(100, M + Math.round(Math.abs(da) * 2));
-        if (da > 2) M = Math.max(0, M - Math.round(da * 2));
-        
-        if (db < -2) Y = Math.min(100, Y + Math.round(Math.abs(db) * 2));
-        if (db > 2) Y = Math.max(0, Y - Math.round(db * 2));
-    }
+    // Normalizar y garantizar rangos
+    cian = Math.min(100, Math.max(0, Math.round(cian)));
+    magenta = Math.min(100, Math.max(0, Math.round(magenta)));
+    amarillo = Math.min(100, Math.max(0, Math.round(amarillo)));
+    K = Math.min(100, Math.max(0, K));
     
-    // 5. Ajuste por luminosidad
-    if (!isNaN(dL)) {
-        if (dL < -2) K = Math.min(95, K + 5);
-        if (dL > 2) K = Math.max(0, K - 5);
-    }
-    
-    // 6. Normalizar y garantizar rangos (protección contra NaN)
-    C = isNaN(C) || C < 0 ? 0 : Math.min(100, Math.round(C));
-    M = isNaN(M) || M < 0 ? 0 : Math.min(100, Math.round(M));
-    Y = isNaN(Y) || Y < 0 ? 0 : Math.min(100, Math.round(Y));
-    K = isNaN(K) || K < 0 ? 0 : Math.min(100, Math.round(K));
-    
-    // 7. Ajuste de carga total (evitar > 280%)
-    let cargaTotal = C + M + Y + K;
+    // Ajuste de carga total (evitar > 280%)
+    let cargaTotal = cian + magenta + amarillo + K;
     if (cargaTotal > 280) {
         const factor = 260 / cargaTotal;
-        C = Math.round(C * factor);
-        M = Math.round(M * factor);
-        Y = Math.round(Y * factor);
+        cian = Math.round(cian * factor);
+        magenta = Math.round(magenta * factor);
+        amarillo = Math.round(amarillo * factor);
         K = Math.round(K * factor);
     }
     
-    return { C, M, Y, K };
+    return { C: cian, M: magenta, Y: amarillo, K };
 }
 
 // ============================================
-// ACTUALIZAR VISTA CMYK (CON PROTECCIÓN CONTRA NaN)
+// GENERAR CMYK CORREGIDO (OBJETIVO VS MUESTRA)
+// ============================================
+
+function generarCMYKcorregido(cmykMuestra, dL, da, db) {
+    const corregido = { ...cmykMuestra };
+    
+    // Aplicar correcciones basadas en diferencias LAB
+    if (da > 0.5) {
+        // Exceso de rojo → reducir magenta
+        corregido.M = Math.max(0, corregido.M - 3);
+    }
+    if (da < -0.5) {
+        // Falta rojo → aumentar magenta
+        corregido.M = Math.min(100, corregido.M + 3);
+    }
+    
+    if (db > 0.5) {
+        // Exceso amarillo → reducir amarillo
+        corregido.Y = Math.max(0, corregido.Y - 3);
+    }
+    if (db < -0.5) {
+        // Exceso azul → aumentar amarillo
+        corregido.Y = Math.min(100, corregido.Y + 3);
+    }
+    
+    if (dL > 0.5) {
+        // Muy claro → aumentar K
+        corregido.K = Math.min(100, corregido.K + 3);
+    }
+    if (dL < -0.5) {
+        // Muy oscuro → reducir K
+        corregido.K = Math.max(0, corregido.K - 3);
+    }
+    
+    return corregido;
+}
+
+// ============================================
+// ACTUALIZAR VISTA CMYK
 // ============================================
 function actualizarVistaCMYK(cmyk) {
     // Asegurar que todos los valores sean números válidos
@@ -230,13 +216,16 @@ function procesar() {
         return parseFloat(el.value);
     };
 
-    // Leer LCH
+    // Leer LCH de referencia (objetivo)
     const rL = getNum('rL');
     const rC = getNum('rC');
     const rH = getNum('rH');
+    
+    // Leer LCH de muestra (física)
     const mL = getNum('mL');
     const mC = getNum('mC');
     const mH = getNum('mH');
+    
     const nombre = document.getElementById('mName')?.value || "Muestra";
 
     if (isNaN(rL) || isNaN(rC) || isNaN(rH) || isNaN(mL) || isNaN(mC) || isNaN(mH)) {
@@ -267,19 +256,20 @@ function procesar() {
         const deltaE_cmc = calcularCMC(ref.L, ref.a, ref.b, muestra.L, muestra.a, muestra.b);
         const deltaE_cie94 = calcularCIE94(ref.L, ref.a, ref.b, muestra.L, muestra.a, muestra.b);
         
-        // GENERAR CMYK AUTOMÁTICAMENTE
-        const cmykGenerado = generarCMYKdesdeLCH(
-            { L: rL, C: rC, H: rH },
-            { L: mL, C: mC, H: mH }
-        );
+        // GENERAR CMYK DESDE LA MUESTRA FÍSICA (NO desde el objetivo)
+        const cmykMuestra = generarCMYKdesdeLCH(mL, mC, mH);
         
-        actualizarVistaCMYK(cmykGenerado);
+        // GENERAR CMYK CORREGIDO (objetivo vs muestra)
+        const cmykCorregido = generarCMYKcorregido(cmykMuestra, dL, da, db);
+        
+        // Actualizar vista con el CMYK de la muestra
+        actualizarVistaCMYK(cmykMuestra);
         
         // Determinar tendencia
         const tendencia = determinarTendenciaCMC(da, db, dL);
         
-        // Generar rutas con fórmula base y ajustada
-        const rutasUI = generarRutas(deltaE_cmc, dL, da, db, cmykGenerado);
+        // Generar rutas con ambos CMYK
+        const rutasUI = generarRutas(deltaE_cmc, dL, da, db, cmykMuestra, cmykCorregido);
         
         // Guardar registro
         const registro = {
@@ -290,7 +280,8 @@ function procesar() {
             cie94: deltaE_cie94.toFixed(2),
             tendencia: tendencia.nombre,
             clase: tendencia.clase,
-            cmyk: cmykGenerado,
+            cmykMuestra: cmykMuestra,
+            cmykCorregido: cmykCorregido,
             rutas: rutasUI,
             lch: { ref: { L: rL, C: rC, H: rH }, muestra: { L: mL, C: mC, H: mH } },
             timestamp: new Date().toISOString()
@@ -314,89 +305,80 @@ function procesar() {
 }
 
 // ============================================
-// GENERAR RUTAS DE AJUSTE (CON FÓRMULA COMPLETA)
+// GENERAR RUTAS DE AJUSTE (CON AMBOS CMYK)
 // ============================================
-function generarRutas(cmc, dL, da, db, cmyk) {
+function generarRutas(cmc, dL, da, db, cmykMuestra, cmykCorregido) {
     const rutas = [];
     
     rutas.push({ texto: `📊 CMC: ${cmc.toFixed(2)}`, prioridad: 200, chequeado: false });
     
-    // Copia del CMYK para aplicar ajustes
-    const cmykAjustado = { ...cmyk };
+    // Mostrar CMYK de la muestra física
+    rutas.push({ 
+        texto: `🧪 CMYK MUESTRA: C:${cmykMuestra.C} M:${cmykMuestra.M} Y:${cmykMuestra.Y} K:${cmykMuestra.K}`, 
+        prioridad: 195, 
+        chequeado: false 
+    });
     
-    // Aplicar ajustes y generar mensajes
+    // Mostrar correcciones
     if (da > 0.5) {
-        const reduccion = Math.min(3, cmyk.M);
-        cmykAjustado.M = Math.max(0, cmyk.M - reduccion);
+        const cambio = cmykCorregido.M - cmykMuestra.M;
         rutas.push({ 
-            texto: `🔴 Exceso ROJO: Reducir M -${reduccion}% (${cmyk.M}% → ${cmykAjustado.M}%)`, 
+            texto: `🔴 Exceso ROJO: ${cambio > 0 ? '+' : ''}${cambio}% M (${cmykMuestra.M}% → ${cmykCorregido.M}%)`, 
             prioridad: 190, 
             chequeado: false 
         });
     }
     if (da < -0.5) {
-        const aumento = Math.min(3, 100 - cmyk.M);
-        cmykAjustado.M = Math.min(100, cmyk.M + aumento);
+        const cambio = cmykCorregido.M - cmykMuestra.M;
         rutas.push({ 
-            texto: `🔴 Falta ROJO: Aumentar M +${aumento}% (${cmyk.M}% → ${cmykAjustado.M}%)`, 
+            texto: `🔴 Falta ROJO: ${cambio > 0 ? '+' : ''}${cambio}% M (${cmykMuestra.M}% → ${cmykCorregido.M}%)`, 
             prioridad: 190, 
             chequeado: false 
         });
     }
     
     if (db > 0.5) {
-        const reduccion = Math.min(3, cmyk.Y);
-        cmykAjustado.Y = Math.max(0, cmyk.Y - reduccion);
+        const cambio = cmykCorregido.Y - cmykMuestra.Y;
         rutas.push({ 
-            texto: `🟡 Exceso AMARILLO: Reducir Y -${reduccion}% (${cmyk.Y}% → ${cmykAjustado.Y}%)`, 
+            texto: `🟡 Exceso AMARILLO: ${cambio > 0 ? '+' : ''}${cambio}% Y (${cmykMuestra.Y}% → ${cmykCorregido.Y}%)`, 
             prioridad: 185, 
             chequeado: false 
         });
     }
     if (db < -0.5) {
-        const aumento = Math.min(3, 100 - cmyk.Y);
-        cmykAjustado.Y = Math.min(100, cmyk.Y + aumento);
+        const cambio = cmykCorregido.Y - cmykMuestra.Y;
         rutas.push({ 
-            texto: `🔵 Exceso AZUL: Aumentar Y +${aumento}% (${cmyk.Y}% → ${cmykAjustado.Y}%)`, 
+            texto: `🔵 Exceso AZUL: ${cambio > 0 ? '+' : ''}${cambio}% Y (${cmykMuestra.Y}% → ${cmykCorregido.Y}%)`, 
             prioridad: 185, 
             chequeado: false 
         });
     }
     
     if (dL > 0.5) {
-        const aumento = Math.min(3, 100 - cmyk.K);
-        cmykAjustado.K = Math.min(100, cmyk.K + aumento);
+        const cambio = cmykCorregido.K - cmykMuestra.K;
         rutas.push({ 
-            texto: `⚪ Muy CLARO: Aumentar K +${aumento}% (${cmyk.K}% → ${cmykAjustado.K}%)`, 
+            texto: `⚪ Muy CLARO: ${cambio > 0 ? '+' : ''}${cambio}% K (${cmykMuestra.K}% → ${cmykCorregido.K}%)`, 
             prioridad: 180, 
             chequeado: false 
         });
     }
     if (dL < -0.5) {
-        const reduccion = Math.min(3, cmyk.K);
-        cmykAjustado.K = Math.max(0, cmyk.K - reduccion);
+        const cambio = cmykCorregido.K - cmykMuestra.K;
         rutas.push({ 
-            texto: `⚫ Muy OSCURO: Reducir K -${reduccion}% (${cmyk.K}% → ${cmykAjustado.K}%)`, 
+            texto: `⚫ Muy OSCURO: ${cambio > 0 ? '+' : ''}${cambio}% K (${cmykMuestra.K}% → ${cmykCorregido.K}%)`, 
             prioridad: 180, 
             chequeado: false 
         });
     }
     
-    // Mostrar fórmula original
+    // Mostrar CMYK corregido
     rutas.push({ 
-        texto: `📐 CMYK BASE: C:${cmyk.C} M:${cmyk.M} Y:${cmyk.Y} K:${cmyk.K}`, 
-        prioridad: 175, 
-        chequeado: false 
-    });
-    
-    // Mostrar fórmula ajustada
-    rutas.push({ 
-        texto: `🎯 CMYK AJUSTADO: C:${cmykAjustado.C} M:${cmykAjustado.M} Y:${cmykAjustado.Y} K:${cmykAjustado.K}`, 
+        texto: `🎯 CMYK CORREGIDO: C:${cmykCorregido.C} M:${cmykCorregido.M} Y:${cmykCorregido.Y} K:${cmykCorregido.K}`, 
         prioridad: 170, 
         chequeado: false 
     });
     
-    return rutas.sort((a, b) => b.prioridad - a.prioridad).slice(0, 6);
+    return rutas.sort((a, b) => b.prioridad - a.prioridad).slice(0, 7);
 }
 
 // ============================================
@@ -493,12 +475,19 @@ function actualizarComparacion() {
     };
     
     try {
-        const rL = getNum('rL');
-        const rC = getNum('rC');
-        const rH = getNum('rH');
         const mL = getNum('mL');
         const mC = getNum('mC');
         const mH = getNum('mH');
+        
+        if (!isNaN(mL) && !isNaN(mC) && !isNaN(mH)) {
+            // Generar y mostrar CMYK de la muestra en tiempo real
+            const cmykTemp = generarCMYKdesdeLCH(mL, mC, mH);
+            actualizarVistaCMYK(cmykTemp);
+        }
+        
+        const rL = getNum('rL');
+        const rC = getNum('rC');
+        const rH = getNum('rH');
         
         if (!isNaN(rL) && !isNaN(rC) && !isNaN(rH) && !isNaN(mL) && !isNaN(mC) && !isNaN(mH)) {
             // Validar rangos básicos
@@ -517,13 +506,6 @@ function actualizarComparacion() {
                 calcularCMC(ref.L, ref.a, ref.b, muestra.L, muestra.a, muestra.b).toFixed(2);
             document.getElementById('deltaE_cie94').textContent = 
                 calcularCIE94(ref.L, ref.a, ref.b, muestra.L, muestra.a, muestra.b).toFixed(2);
-            
-            // Generar y mostrar CMYK en tiempo real
-            const cmykTemp = generarCMYKdesdeLCH(
-                { L: rL, C: rC, H: rH },
-                { L: mL, C: mC, H: mH }
-            );
-            actualizarVistaCMYK(cmykTemp);
         }
     } catch (e) {
         // Ignorar durante escritura
@@ -538,13 +520,13 @@ function cambiarFormula() {
     const badge = document.getElementById('formulaBadge');
     
     if (formulaActual === 'cmc') {
-        badge.innerHTML = '⚡ CMC l:2 c:1 - Generador CMYK automático';
+        badge.innerHTML = '⚡ CMC l:2 c:1 - Generador CMYK desde muestra';
         badge.style.color = 'var(--accent)';
     } else if (formulaActual === 'cielab') {
-        badge.innerHTML = '📐 CIELAB ΔE*ab - Generador CMYK automático';
+        badge.innerHTML = '📐 CIELAB ΔE*ab - Generador CMYK desde muestra';
         badge.style.color = '#ffb74d';
     } else {
-        badge.innerHTML = '🖨️ CIE94 - Generador CMYK automático';
+        badge.innerHTML = '🖨️ CIE94 - Generador CMYK desde muestra';
         badge.style.color = '#4dabf7';
     }
     
@@ -562,7 +544,9 @@ function render() {
     
     tbody.innerHTML = proyecto.colores.map(c => {
         const colorId = JSON.stringify(c.id);
-        const cmykActual = `C:${c.cmyk.C} M:${c.cmyk.M} Y:${c.cmyk.Y} K:${c.cmyk.K}`;
+        const cmykMuestra = `C:${c.cmykMuestra.C} M:${c.cmykMuestra.M} Y:${c.cmykMuestra.Y} K:${c.cmykMuestra.K}`;
+        const cmykCorregido = c.cmykCorregido ? 
+            `<br><small class="sugerido">➤ C:${c.cmykCorregido.C} M:${c.cmykCorregido.M} Y:${c.cmykCorregido.Y} K:${c.cmykCorregido.K}</small>` : '';
         
         let colorCMC = '#51cf66';
         const cmcVal = parseFloat(c.cmc);
@@ -575,7 +559,8 @@ function render() {
             <td><small>${new Date(c.id).toLocaleTimeString()}</small></td>
             <td>
                 <strong>${c.nombre}</strong>
-                <br><small class="actual">${cmykActual}</small>
+                <br><small class="actual">${cmykMuestra}</small>
+                ${cmykCorregido}
             </td>
             <td><b style="color: #888">${c.de}</b></td>
             <td><b style="color: ${colorCMC}">${c.cmc}</b></td>
@@ -636,7 +621,7 @@ function revalidar(id) {
     document.getElementById('mH').value = c.lch.muestra.H;
     document.getElementById('mName').value = c.nombre;
     
-    actualizarVistaCMYK(c.cmyk);
+    actualizarVistaCMYK(c.cmykMuestra);
     document.getElementById('btnProcesar').innerText = "ACTUALIZAR";
     window.scrollTo(0,0);
 }
@@ -653,7 +638,7 @@ function aplicarSugerencia(id) {
     document.getElementById('mH').value = c.lch.muestra.H;
     document.getElementById('mName').value = c.nombre;
     
-    actualizarVistaCMYK(c.cmyk);
+    actualizarVistaCMYK(c.cmykMuestra);
     alert("✅ Valores cargados. Puedes recalcular si es necesario.");
 }
 
