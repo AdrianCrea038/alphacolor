@@ -1,7 +1,7 @@
 /**
- * ALPHA COLOR SYSTEM - v10.2
+ * ALPHA COLOR SYSTEM - v10.3
  * GENERADOR CMYK AUTOMÁTICO
- * CORREGIDO: Manejo de colores neutros y NaN
+ * MUESTRA FÓRMULA BASE Y AJUSTADA
  */
 
 // ============================================
@@ -278,7 +278,7 @@ function procesar() {
         // Determinar tendencia
         const tendencia = determinarTendenciaCMC(da, db, dL);
         
-        // Generar rutas
+        // Generar rutas con fórmula base y ajustada
         const rutasUI = generarRutas(deltaE_cmc, dL, da, db, cmykGenerado);
         
         // Guardar registro
@@ -314,29 +314,89 @@ function procesar() {
 }
 
 // ============================================
-// GENERAR RUTAS DE AJUSTE
+// GENERAR RUTAS DE AJUSTE (CON FÓRMULA COMPLETA)
 // ============================================
 function generarRutas(cmc, dL, da, db, cmyk) {
     const rutas = [];
     
     rutas.push({ texto: `📊 CMC: ${cmc.toFixed(2)}`, prioridad: 200, chequeado: false });
     
-    if (da > 0.5) rutas.push({ texto: `🔴 Exceso ROJO: Reducir M -3%`, prioridad: 190, chequeado: false });
-    if (da < -0.5) rutas.push({ texto: `🔴 Falta ROJO: Aumentar M +3%`, prioridad: 190, chequeado: false });
+    // Copia del CMYK para aplicar ajustes
+    const cmykAjustado = { ...cmyk };
     
-    if (db > 0.5) rutas.push({ texto: `🟡 Exceso AMARILLO: Reducir Y -3%`, prioridad: 185, chequeado: false });
-    if (db < -0.5) rutas.push({ texto: `🔵 Exceso AZUL: Aumentar Y +3%`, prioridad: 185, chequeado: false });
+    // Aplicar ajustes y generar mensajes
+    if (da > 0.5) {
+        const reduccion = Math.min(3, cmyk.M);
+        cmykAjustado.M = Math.max(0, cmyk.M - reduccion);
+        rutas.push({ 
+            texto: `🔴 Exceso ROJO: Reducir M -${reduccion}% (${cmyk.M}% → ${cmykAjustado.M}%)`, 
+            prioridad: 190, 
+            chequeado: false 
+        });
+    }
+    if (da < -0.5) {
+        const aumento = Math.min(3, 100 - cmyk.M);
+        cmykAjustado.M = Math.min(100, cmyk.M + aumento);
+        rutas.push({ 
+            texto: `🔴 Falta ROJO: Aumentar M +${aumento}% (${cmyk.M}% → ${cmykAjustado.M}%)`, 
+            prioridad: 190, 
+            chequeado: false 
+        });
+    }
     
-    if (dL > 0.5) rutas.push({ texto: `⚪ Muy CLARO: Aumentar K +3%`, prioridad: 180, chequeado: false });
-    if (dL < -0.5) rutas.push({ texto: `⚫ Muy OSCURO: Reducir K -3%`, prioridad: 180, chequeado: false });
+    if (db > 0.5) {
+        const reduccion = Math.min(3, cmyk.Y);
+        cmykAjustado.Y = Math.max(0, cmyk.Y - reduccion);
+        rutas.push({ 
+            texto: `🟡 Exceso AMARILLO: Reducir Y -${reduccion}% (${cmyk.Y}% → ${cmykAjustado.Y}%)`, 
+            prioridad: 185, 
+            chequeado: false 
+        });
+    }
+    if (db < -0.5) {
+        const aumento = Math.min(3, 100 - cmyk.Y);
+        cmykAjustado.Y = Math.min(100, cmyk.Y + aumento);
+        rutas.push({ 
+            texto: `🔵 Exceso AZUL: Aumentar Y +${aumento}% (${cmyk.Y}% → ${cmykAjustado.Y}%)`, 
+            prioridad: 185, 
+            chequeado: false 
+        });
+    }
     
+    if (dL > 0.5) {
+        const aumento = Math.min(3, 100 - cmyk.K);
+        cmykAjustado.K = Math.min(100, cmyk.K + aumento);
+        rutas.push({ 
+            texto: `⚪ Muy CLARO: Aumentar K +${aumento}% (${cmyk.K}% → ${cmykAjustado.K}%)`, 
+            prioridad: 180, 
+            chequeado: false 
+        });
+    }
+    if (dL < -0.5) {
+        const reduccion = Math.min(3, cmyk.K);
+        cmykAjustado.K = Math.max(0, cmyk.K - reduccion);
+        rutas.push({ 
+            texto: `⚫ Muy OSCURO: Reducir K -${reduccion}% (${cmyk.K}% → ${cmykAjustado.K}%)`, 
+            prioridad: 180, 
+            chequeado: false 
+        });
+    }
+    
+    // Mostrar fórmula original
     rutas.push({ 
-        texto: `🎯 CMYK SUGERIDO: C:${cmyk.C} M:${cmyk.M} Y:${cmyk.Y} K:${cmyk.K}`, 
+        texto: `📐 CMYK BASE: C:${cmyk.C} M:${cmyk.M} Y:${cmyk.Y} K:${cmyk.K}`, 
+        prioridad: 175, 
+        chequeado: false 
+    });
+    
+    // Mostrar fórmula ajustada
+    rutas.push({ 
+        texto: `🎯 CMYK AJUSTADO: C:${cmykAjustado.C} M:${cmykAjustado.M} Y:${cmykAjustado.Y} K:${cmykAjustado.K}`, 
         prioridad: 170, 
         chequeado: false 
     });
     
-    return rutas.sort((a, b) => b.prioridad - a.prioridad).slice(0, 5);
+    return rutas.sort((a, b) => b.prioridad - a.prioridad).slice(0, 6);
 }
 
 // ============================================
