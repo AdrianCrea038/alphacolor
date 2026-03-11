@@ -1,7 +1,7 @@
 /**
- * ALPHA COLOR SYSTEM - v10.0
+ * ALPHA COLOR SYSTEM - v10.2
  * GENERADOR CMYK AUTOMÁTICO
- * Solo requiere LCH objetivo y LCH muestra
+ * CORREGIDO: Manejo de colores neutros y NaN
  */
 
 // ============================================
@@ -17,9 +17,15 @@ let ultimoCMYK = { C: 0, M: 0, Y: 0, K: 0 };
 // ============================================
 
 function LCHaLAB(L, C, H) {
+    // Validar rangos
     if (L < 0 || L > 100) throw new Error("L debe estar entre 0 y 100");
     if (C < 0) throw new Error("C no puede ser negativo");
     if (H < 0 || H > 360) throw new Error("H debe estar entre 0° y 360°");
+    
+    // Si C es 0, el ángulo es irrelevante, a y b son 0
+    if (C === 0) {
+        return { L, a: 0, b: 0 };
+    }
     
     const hRad = H * Math.PI / 180;
     const a = C * Math.cos(hRad);
@@ -32,41 +38,84 @@ function LABaLCH(L, a, b) {
     const C = Math.sqrt(a*a + b*b);
     let H = Math.atan2(b, a) * 180 / Math.PI;
     if (H < 0) H += 360;
+    if (C === 0) H = 0; // Para neutros, el tono es 0
+    
     return { L, C, H };
 }
 
 // ============================================
-// GENERADOR DE CMYK BASADO EN LCH
+// GENERADOR DE CMYK BASADO EN LCH (CORREGIDO)
 // ============================================
 
 function generarCMYKdesdeLCH(refLCH, muestraLCH) {
+    // Validar que los valores existan
+    if (!refLCH || !muestraLCH) {
+        return { C: 0, M: 0, Y: 0, K: 0 };
+    }
+    
+    // Asegurar que L, C, H sean números
+    const rL = isNaN(refLCH.L) ? 50 : Math.min(100, Math.max(0, refLCH.L));
+    const rC = isNaN(refLCH.C) ? 0 : Math.max(0, refLCH.C);
+    const rH = isNaN(refLCH.H) ? 0 : Math.min(360, Math.max(0, refLCH.H));
+    
+    const mL = isNaN(muestraLCH.L) ? 50 : Math.min(100, Math.max(0, muestraLCH.L));
+    const mC = isNaN(muestraLCH.C) ? 0 : Math.max(0, muestraLCH.C);
+    const mH = isNaN(muestraLCH.H) ? 0 : Math.min(360, Math.max(0, muestraLCH.H));
+    
     // Convertir a LAB para cálculos
-    const ref = LCHaLAB(refLCH.L, refLCH.C, refLCH.H);
-    const muestra = LCHaLAB(muestraLCH.L, muestraLCH.C, muestraLCH.H);
+    let ref, muestra;
+    try {
+        ref = LCHaLAB(rL, rC, rH);
+        muestra = LCHaLAB(mL, mC, mH);
+    } catch (e) {
+        // Si hay error, usar valores por defecto
+        ref = { L: rL, a: 0, b: 0 };
+        muestra = { L: mL, a: 0, b: 0 };
+    }
     
     // Diferencias
     const dL = muestra.L - ref.L;
     const da = muestra.a - ref.a;
     const db = muestra.b - ref.b;
     
-    // CMYK base (estimación inicial)
-    let C = 0, M = 0, Y = 0, K = 0;
+    // ============================================
+    // CASO ESPECIAL: COLORES NEUTROS (C ≈ 0)
+    // ============================================
+    const esNeutro = rC < 1.0 || isNaN(rC) || rC === 0;
+    
+    if (esNeutro) {
+        // Es un color neutro (gris o negro)
+        let K = Math.round(100 - (rL * 0.9));
+        K = Math.min(95, Math.max(0, K));
+        
+        // Ajustar por diferencia de luminosidad
+        if (!isNaN(dL)) {
+            if (dL < -2) K = Math.min(95, K + 5);  // Más oscuro
+            if (dL > 2) K = Math.max(0, K - 5);    // Más claro
+        }
+        
+        return { 
+            C: 0, 
+            M: 0, 
+            Y: 0, 
+            K: K 
+        };
+    }
     
     // ============================================
-    // ALGORITMO DE GENERACIÓN CMYK
-    // Basado en posición en el espacio de color
+    // CASO NORMAL: COLORES CON CROMA > 0
     // ============================================
     
     // 1. Negro base (K) basado en luminosidad
-    // A menor L, más negro
-    K = Math.round(100 - (ref.L * 0.8));
+    let K = Math.round(100 - (rL * 0.8));
     K = Math.min(95, Math.max(0, K));
     
     // 2. Croma (saturación) distribuido entre CMY
-    const cromaTotal = ref.C;
+    const cromaTotal = rC;
+    let C = 0, M = 0, Y = 0;
     
     // 3. Distribución según tono (H)
-    const H = ref.H;
+    const H = rH;
     
     // Rojos (0-60°)
     if (H >= 0 && H < 60) {
@@ -112,25 +161,25 @@ function generarCMYKdesdeLCH(refLCH, muestraLCH) {
     }
     
     // 4. Ajuste por diferencias (da, db)
-    // Si falta rojo (da negativo), aumentar M
-    if (da < -2) M = Math.min(100, M + Math.round(Math.abs(da) * 2));
-    // Si sobra rojo (da positivo), reducir M
-    if (da > 2) M = Math.max(0, M - Math.round(da * 2));
-    
-    // Si falta amarillo (db negativo), aumentar Y
-    if (db < -2) Y = Math.min(100, Y + Math.round(Math.abs(db) * 2));
-    // Si sobra amarillo (db positivo), reducir Y
-    if (db > 2) Y = Math.max(0, Y - Math.round(db * 2));
+    if (!isNaN(da) && !isNaN(db)) {
+        if (da < -2) M = Math.min(100, M + Math.round(Math.abs(da) * 2));
+        if (da > 2) M = Math.max(0, M - Math.round(da * 2));
+        
+        if (db < -2) Y = Math.min(100, Y + Math.round(Math.abs(db) * 2));
+        if (db > 2) Y = Math.max(0, Y - Math.round(db * 2));
+    }
     
     // 5. Ajuste por luminosidad
-    if (dL < -2) K = Math.min(95, K + 5); // Más oscuro
-    if (dL > 2) K = Math.max(0, K - 5);   // Más claro
+    if (!isNaN(dL)) {
+        if (dL < -2) K = Math.min(95, K + 5);
+        if (dL > 2) K = Math.max(0, K - 5);
+    }
     
-    // 6. Normalizar y garantizar rangos
-    C = Math.min(100, Math.max(0, C));
-    M = Math.min(100, Math.max(0, M));
-    Y = Math.min(100, Math.max(0, Y));
-    K = Math.min(100, Math.max(0, K));
+    // 6. Normalizar y garantizar rangos (protección contra NaN)
+    C = isNaN(C) || C < 0 ? 0 : Math.min(100, Math.round(C));
+    M = isNaN(M) || M < 0 ? 0 : Math.min(100, Math.round(M));
+    Y = isNaN(Y) || Y < 0 ? 0 : Math.min(100, Math.round(Y));
+    K = isNaN(K) || K < 0 ? 0 : Math.min(100, Math.round(K));
     
     // 7. Ajuste de carga total (evitar > 280%)
     let cargaTotal = C + M + Y + K;
@@ -146,23 +195,29 @@ function generarCMYKdesdeLCH(refLCH, muestraLCH) {
 }
 
 // ============================================
-// ACTUALIZAR VISTA CMYK
+// ACTUALIZAR VISTA CMYK (CON PROTECCIÓN CONTRA NaN)
 // ============================================
 function actualizarVistaCMYK(cmyk) {
-    document.getElementById('barC').style.width = `${cmyk.C}%`;
-    document.getElementById('barM').style.width = `${cmyk.M}%`;
-    document.getElementById('barY').style.width = `${cmyk.Y}%`;
-    document.getElementById('barK').style.width = `${cmyk.K}%`;
+    // Asegurar que todos los valores sean números válidos
+    const C = isNaN(cmyk.C) ? 0 : Math.min(100, Math.max(0, Math.round(cmyk.C)));
+    const M = isNaN(cmyk.M) ? 0 : Math.min(100, Math.max(0, Math.round(cmyk.M)));
+    const Y = isNaN(cmyk.Y) ? 0 : Math.min(100, Math.max(0, Math.round(cmyk.Y)));
+    const K = isNaN(cmyk.K) ? 0 : Math.min(100, Math.max(0, Math.round(cmyk.K)));
     
-    document.getElementById('valC').textContent = cmyk.C;
-    document.getElementById('valM').textContent = cmyk.M;
-    document.getElementById('valY').textContent = cmyk.Y;
-    document.getElementById('valK').textContent = cmyk.K;
+    document.getElementById('barC').style.width = `${C}%`;
+    document.getElementById('barM').style.width = `${M}%`;
+    document.getElementById('barY').style.width = `${Y}%`;
+    document.getElementById('barK').style.width = `${K}%`;
     
-    const carga = cmyk.C + cmyk.M + cmyk.Y + cmyk.K;
+    document.getElementById('valC').textContent = C;
+    document.getElementById('valM').textContent = M;
+    document.getElementById('valY').textContent = Y;
+    document.getElementById('valK').textContent = K;
+    
+    const carga = C + M + Y + K;
     document.getElementById('cargaTotal').textContent = `Carga: ${carga}%`;
     
-    ultimoCMYK = cmyk;
+    ultimoCMYK = { C, M, Y, K };
 }
 
 // ============================================
@@ -182,6 +237,7 @@ function procesar() {
     const mL = getNum('mL');
     const mC = getNum('mC');
     const mH = getNum('mH');
+    const nombre = document.getElementById('mName')?.value || "Muestra";
 
     if (isNaN(rL) || isNaN(rC) || isNaN(rH) || isNaN(mL) || isNaN(mC) || isNaN(mH)) {
         alert("❌ Completa TODOS los campos LCH");
@@ -189,7 +245,15 @@ function procesar() {
     }
 
     try {
-        // Validar y convertir
+        // Validar rangos
+        if (rL < 0 || rL > 100) throw new Error("L de referencia debe estar entre 0 y 100");
+        if (mL < 0 || mL > 100) throw new Error("L de muestra debe estar entre 0 y 100");
+        if (rC < 0) throw new Error("C de referencia no puede ser negativo");
+        if (mC < 0) throw new Error("C de muestra no puede ser negativo");
+        if (rH < 0 || rH > 360) throw new Error("H de referencia debe estar entre 0° y 360°");
+        if (mH < 0 || mH > 360) throw new Error("H de muestra debe estar entre 0° y 360°");
+        
+        // Convertir a LAB
         const ref = LCHaLAB(rL, rC, rH);
         const muestra = LCHaLAB(mL, mC, mH);
         
@@ -220,7 +284,7 @@ function procesar() {
         // Guardar registro
         const registro = {
             id: editandoId || Date.now(),
-            nombre: document.getElementById('mName').value || "Muestra",
+            nombre: nombre,
             de: deltaE_cielab.toFixed(2),
             cmc: deltaE_cmc.toFixed(2),
             cie94: deltaE_cie94.toFixed(2),
@@ -276,7 +340,7 @@ function generarRutas(cmc, dL, da, db, cmyk) {
 }
 
 // ============================================
-// CÁLCULOS DE ΔE (igual que antes)
+// CÁLCULOS DE ΔE
 // ============================================
 function calcularCMC(L1, a1, b1, L2, a2, b2) {
     const l = 2.0;
@@ -298,6 +362,7 @@ function calcularCMC(L1, a1, b1, L2, a2, b2) {
     
     let h1 = Math.atan2(b1, a1) * 180 / Math.PI;
     if (h1 < 0) h1 += 360;
+    if (C1 === 0) h1 = 0;
     
     const SL = L1 < 16 ? 0.511 : (0.040975 * L1) / (1 + 0.01765 * L1);
     const SC = 0.0638 * C1 / (1 + 0.0131 * C1) + 0.638;
@@ -376,6 +441,11 @@ function actualizarComparacion() {
         const mH = getNum('mH');
         
         if (!isNaN(rL) && !isNaN(rC) && !isNaN(rH) && !isNaN(mL) && !isNaN(mC) && !isNaN(mH)) {
+            // Validar rangos básicos
+            if (rL < 0 || rL > 100 || mL < 0 || mL > 100) return;
+            if (rC < 0 || mC < 0) return;
+            if (rH < 0 || rH > 360 || mH < 0 || mH > 360) return;
+            
             const ref = LCHaLAB(rL, rC, rH);
             const muestra = LCHaLAB(mL, mC, mH);
             
@@ -515,7 +585,6 @@ function aplicarSugerencia(id) {
     const c = proyecto.colores.find(col => col.id == id);
     if (!c) return;
     
-    // Cargar los valores en la vista actual
     document.getElementById('rL').value = c.lch.ref.L;
     document.getElementById('rC').value = c.lch.ref.C;
     document.getElementById('rH').value = c.lch.ref.H;
