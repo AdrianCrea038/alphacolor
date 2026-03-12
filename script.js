@@ -1,7 +1,7 @@
 /**
- * ALPHA COLOR SYSTEM - v12.0
+ * ALPHA COLOR SYSTEM - v12.2
  * MODO MANUAL CON CALIBRACIÓN
- * Tú pones el CMYK que funciona, el sistema aprende
+ * MUESTRA CMYK MANUAL ARRIBA Y CORREGIDO ABAJO
  */
 
 // ============================================
@@ -174,8 +174,14 @@ function procesar() {
         // Buscar en tabla de calibración
         const cmykCalibracion = buscarCMYKenTabla(mL, mC, mH);
         
-        // Generar rutas
-        const rutasUI = generarRutas(deltaE_cmc, dL, da, db, cmykManual, cmykCalibracion);
+        // Generar CMYK corregido basado en las diferencias
+        const cmykCorregido = generarCMYKcorregido(cmykManual, dL, da, db);
+        
+        // Generar rutas con validación de límites
+        const rutasUI = generarRutas(deltaE_cmc, dL, da, db, cmykManual, cmykCalibracion, cmykCorregido);
+        
+        // Determinar tendencia
+        const tendencia = determinarTendencia(da, db, dL);
         
         // Guardar registro
         const registro = {
@@ -184,10 +190,11 @@ function procesar() {
             de: deltaE_cielab.toFixed(2),
             cmc: deltaE_cmc.toFixed(2),
             cie94: deltaE_cie94.toFixed(2),
-            tendencia: determinarTendencia(da, db, dL).nombre,
-            clase: determinarTendencia(da, db, dL).clase,
+            tendencia: tendencia.nombre,
+            clase: tendencia.clase,
             cmykManual: cmykManual,
             cmykCalibracion: cmykCalibracion,
+            cmykCorregido: cmykCorregido,
             rutas: rutasUI,
             lch: { ref: { L: rL, C: rC, H: rH }, muestra: { L: mL, C: mC, H: mH } },
             timestamp: new Date().toISOString()
@@ -211,17 +218,42 @@ function procesar() {
 }
 
 // ============================================
-// GENERAR RUTAS
+// GENERAR CMYK CORREGIDO (basado en diferencias)
 // ============================================
-function generarRutas(cmc, dL, da, db, cmykManual, cmykCalibracion) {
+function generarCMYKcorregido(cmykManual, dL, da, db) {
+    const corregido = { ...cmykManual };
+    
+    // Aplicar correcciones estándar
+    if (da > 0.5) corregido.M = Math.max(0, corregido.M - 3);
+    if (da < -0.5) corregido.M = Math.min(100, corregido.M + 3);
+    
+    if (db > 0.5) corregido.Y = Math.max(0, corregido.Y - 3);
+    if (db < -0.5) corregido.Y = Math.min(100, corregido.Y + 3);
+    
+    if (dL > 0.5) corregido.K = Math.min(100, corregido.K + 3);
+    if (dL < -0.5) corregido.K = Math.max(0, corregido.K - 3);
+    
+    // Verificar límites
+    corregido.C = Math.min(100, Math.max(0, corregido.C));
+    corregido.M = Math.min(100, Math.max(0, corregido.M));
+    corregido.Y = Math.min(100, Math.max(0, corregido.Y));
+    corregido.K = Math.min(100, Math.max(0, corregido.K));
+    
+    return corregido;
+}
+
+// ============================================
+// GENERAR RUTAS CON VALIDACIÓN DE LÍMITES CMYK
+// ============================================
+function generarRutas(cmc, dL, da, db, cmykManual, cmykCalibracion, cmykCorregido) {
     const rutas = [];
     
     rutas.push({ texto: `📊 CMC: ${cmc.toFixed(2)}`, prioridad: 200, chequeado: false });
     
     // Mostrar CMYK manual
     rutas.push({ 
-        texto: `✏️ CMYK MANUAL: C:${cmykManual.C} M:${cmykManual.M} Y:${cmykManual.Y} K:${cmykManual.K}`, 
-        prioridad: 190, 
+        texto: `✏️ CMYK ACTUAL: C:${cmykManual.C} M:${cmykManual.M} Y:${cmykManual.Y} K:${cmykManual.K}`, 
+        prioridad: 195, 
         chequeado: false 
     });
     
@@ -229,39 +261,153 @@ function generarRutas(cmc, dL, da, db, cmykManual, cmykCalibracion) {
     if (cmykCalibracion) {
         rutas.push({ 
             texto: `📚 CMYK CALIBRADO: C:${cmykCalibracion.C} M:${cmykCalibracion.M} Y:${cmykCalibracion.Y} K:${cmykCalibracion.K}`, 
-            prioridad: 185, 
+            prioridad: 190, 
             chequeado: false 
         });
     }
     
-    // Mostrar correcciones
-    if (da > 0.5) rutas.push({ texto: `🔴 Exceso ROJO: Reducir M -3%`, prioridad: 180, chequeado: false });
-    if (da < -0.5) rutas.push({ texto: `🔴 Falta ROJO: Aumentar M +3%`, prioridad: 180, chequeado: false });
+    // ============================================
+    // VALIDAR CANALES AL LÍMITE (≥ 98%)
+    // ============================================
+    const canalesAlLimite = [];
+    if (cmykManual.C >= 98) canalesAlLimite.push('C');
+    if (cmykManual.M >= 98) canalesAlLimite.push('M');
+    if (cmykManual.Y >= 98) canalesAlLimite.push('Y');
+    if (cmykManual.K >= 98) canalesAlLimite.push('K');
     
-    if (db > 0.5) rutas.push({ texto: `🟡 Exceso AMARILLO: Reducir Y -3%`, prioridad: 175, chequeado: false });
-    if (db < -0.5) rutas.push({ texto: `🔵 Exceso AZUL: Aumentar Y +3%`, prioridad: 175, chequeado: false });
+    // ============================================
+    // GENERAR COMPENSACIONES SI HAY CANALES AL LÍMITE
+    // ============================================
+    if (canalesAlLimite.length > 0) {
+        rutas.push({ 
+            texto: `⚠️ CANALES AL LÍMITE: ${canalesAlLimite.join(', ')}`, 
+            prioridad: 185, 
+            chequeado: false 
+        });
+        
+        // Compensaciones específicas por canal
+        canalesAlLimite.forEach(canal => {
+            switch(canal) {
+                case 'M':
+                    if (da > 0.5) {
+                        rutas.push({ 
+                            texto: `🔴 M al 100% con exceso ROJO: Reducir M es correcto`, 
+                            prioridad: 180, 
+                            chequeado: false 
+                        });
+                    } else if (da < -0.5) {
+                        const compensacionC = Math.min(100, cmykManual.C + 5);
+                        const compensacionY = Math.min(100, cmykManual.Y + 5);
+                        rutas.push({ 
+                            texto: `🟢 M al 100% con FALTA ROJO: Aumentar C a ${compensacionC}% y Y a ${compensacionY}%`, 
+                            prioridad: 180, 
+                            chequeado: false 
+                        });
+                    }
+                    break;
+                    
+                case 'Y':
+                    if (db > 0.5) {
+                        rutas.push({ 
+                            texto: `🟡 Y al 100% con exceso AMARILLO: Reducir Y es correcto`, 
+                            prioridad: 180, 
+                            chequeado: false 
+                        });
+                    } else if (db < -0.5) {
+                        rutas.push({ 
+                            texto: `🔵 Y al 100% con exceso AZUL: Reducir C y M`, 
+                            prioridad: 180, 
+                            chequeado: false 
+                        });
+                    }
+                    break;
+                    
+                case 'C':
+                    if (da < -0.5 && db < -0.5) {
+                        rutas.push({ 
+                            texto: `🌊 C al 100% con exceso VERDE+AZUL: Reducir C`, 
+                            prioridad: 180, 
+                            chequeado: false 
+                        });
+                    }
+                    break;
+                    
+                case 'K':
+                    if (dL < -0.5) {
+                        rutas.push({ 
+                            texto: `⚫ K al 100% con exceso OSCURIDAD: Reducir K`, 
+                            prioridad: 180, 
+                            chequeado: false 
+                        });
+                    } else if (dL > 0.5) {
+                        rutas.push({ 
+                            texto: `⚪ K al 100% con MUY CLARO: Aumentar CMY`, 
+                            prioridad: 180, 
+                            chequeado: false 
+                        });
+                    }
+                    break;
+            }
+        });
+    }
     
-    if (dL > 0.5) rutas.push({ texto: `⚪ Muy CLARO: Aumentar K +3%`, prioridad: 170, chequeado: false });
-    if (dL < -0.5) rutas.push({ texto: `⚫ Muy OSCURO: Reducir K -3%`, prioridad: 170, chequeado: false });
+    // ============================================
+    // MOSTRAR CORRECCIONES ESTÁNDAR
+    // ============================================
     
-    return rutas.sort((a, b) => b.prioridad - a.prioridad).slice(0, 6);
-}
-
-// ============================================
-// DETERMINAR TENDENCIA
-// ============================================
-function determinarTendencia(da, db, dL) {
-    if (da > 0.5 && db > 0.5) return { nombre: 'Rojizo/Amarillento', clase: 't-rojo' };
-    if (da > 0.5 && db < -0.5) return { nombre: 'Rojizo/Azulado', clase: 't-rojo' };
-    if (da < -0.5 && db > 0.5) return { nombre: 'Verdoso/Amarillento', clase: 't-verde' };
-    if (da < -0.5 && db < -0.5) return { nombre: 'Verdoso/Azulado', clase: 't-verde' };
-    if (da > 0.5) return { nombre: 'Rojizo', clase: 't-rojo' };
-    if (da < -0.5) return { nombre: 'Verdoso', clase: 't-verde' };
-    if (db > 0.5) return { nombre: 'Amarillento', clase: 't-amar' };
-    if (db < -0.5) return { nombre: 'Azulado', clase: 't-azul' };
-    if (dL > 1.0) return { nombre: 'Claro', clase: 't-claro' };
-    if (dL < -1.0) return { nombre: 'Oscuro', clase: 't-oscuro' };
-    return { nombre: 'En Punto', clase: 't-punto' };
+    if (da > 0.5) {
+        rutas.push({ 
+            texto: `🔴 Exceso ROJO: Reducir M de ${cmykManual.M}% → ${cmykCorregido.M}%`, 
+            prioridad: 175, 
+            chequeado: false 
+        });
+    }
+    if (da < -0.5) {
+        rutas.push({ 
+            texto: `🟢 Falta ROJO: Aumentar M de ${cmykManual.M}% → ${cmykCorregido.M}%`, 
+            prioridad: 175, 
+            chequeado: false 
+        });
+    }
+    
+    if (db > 0.5) {
+        rutas.push({ 
+            texto: `🟡 Exceso AMARILLO: Reducir Y de ${cmykManual.Y}% → ${cmykCorregido.Y}%`, 
+            prioridad: 170, 
+            chequeado: false 
+        });
+    }
+    if (db < -0.5) {
+        rutas.push({ 
+            texto: `🔵 Exceso AZUL: Aumentar Y de ${cmykManual.Y}% → ${cmykCorregido.Y}%`, 
+            prioridad: 170, 
+            chequeado: false 
+        });
+    }
+    
+    if (dL > 0.5) {
+        rutas.push({ 
+            texto: `⚪ Muy CLARO: Aumentar K de ${cmykManual.K}% → ${cmykCorregido.K}%`, 
+            prioridad: 165, 
+            chequeado: false 
+        });
+    }
+    if (dL < -0.5) {
+        rutas.push({ 
+            texto: `⚫ Muy OSCURO: Reducir K de ${cmykManual.K}% → ${cmykCorregido.K}%`, 
+            prioridad: 165, 
+            chequeado: false 
+        });
+    }
+    
+    // Mostrar CMYK corregido
+    rutas.push({ 
+        texto: `✨ CMYK CORREGIDO: C:${cmykCorregido.C} M:${cmykCorregido.M} Y:${cmykCorregido.Y} K:${cmykCorregido.K}`, 
+        prioridad: 160, 
+        chequeado: false 
+    });
+    
+    return rutas.sort((a, b) => b.prioridad - a.prioridad).slice(0, 8);
 }
 
 // ============================================
@@ -335,6 +481,23 @@ function calcularCIE94(L1, a1, b1, L2, a2, b2) {
 }
 
 // ============================================
+// DETERMINAR TENDENCIA
+// ============================================
+function determinarTendencia(da, db, dL) {
+    if (da > 0.5 && db > 0.5) return { nombre: 'Rojizo/Amarillento', clase: 't-rojo' };
+    if (da > 0.5 && db < -0.5) return { nombre: 'Rojizo/Azulado', clase: 't-rojo' };
+    if (da < -0.5 && db > 0.5) return { nombre: 'Verdoso/Amarillento', clase: 't-verde' };
+    if (da < -0.5 && db < -0.5) return { nombre: 'Verdoso/Azulado', clase: 't-verde' };
+    if (da > 0.5) return { nombre: 'Rojizo', clase: 't-rojo' };
+    if (da < -0.5) return { nombre: 'Verdoso', clase: 't-verde' };
+    if (db > 0.5) return { nombre: 'Amarillento', clase: 't-amar' };
+    if (db < -0.5) return { nombre: 'Azulado', clase: 't-azul' };
+    if (dL > 1.0) return { nombre: 'Claro', clase: 't-claro' };
+    if (dL < -1.0) return { nombre: 'Oscuro', clase: 't-oscuro' };
+    return { nombre: 'En Punto', clase: 't-punto' };
+}
+
+// ============================================
 // FUNCIONES DE INTERFAZ
 // ============================================
 function actualizarComparacion() {
@@ -395,7 +558,7 @@ function cambiarFormula() {
 window.cambiarFormula = cambiarFormula;
 
 // ============================================
-// RENDERIZADO DE TABLA
+// RENDERIZADO DE TABLA (VERSIÓN CORREGIDA)
 // ============================================
 function render() {
     const tbody = document.getElementById('cuerpoTabla');
@@ -403,22 +566,36 @@ function render() {
     
     tbody.innerHTML = proyecto.colores.map(c => {
         const colorId = JSON.stringify(c.id);
+        
+        // Formatear CMYK manual (ARRIBA)
         const cmykManual = `C:${c.cmykManual.C} M:${c.cmykManual.M} Y:${c.cmykManual.Y} K:${c.cmykManual.K}`;
+        
+        // Formatear CMYK corregido (ABAJO) - si existe
+        const cmykCorregido = c.cmykCorregido ? 
+            `<br><span class="sugerido">➤ C:${c.cmykCorregido.C} M:${c.cmykCorregido.M} Y:${c.cmykCorregido.Y} K:${c.cmykCorregido.K}</span>` : '';
+        
+        // Formatear CMYK calibrado (si existe, como referencia)
         const cmykCalibracion = c.cmykCalibracion ? 
             `<br><small class="calibrado">📚 C:${c.cmykCalibracion.C} M:${c.cmykCalibracion.M} Y:${c.cmykCalibracion.Y} K:${c.cmykCalibracion.K}</small>` : '';
         
+        // Color del CMC
         let colorCMC = '#51cf66';
         const cmcVal = parseFloat(c.cmc);
         if (cmcVal > 1.5) colorCMC = '#ff6b81';
         else if (cmcVal > 1.0) colorCMC = '#ffb74d';
         else if (cmcVal > 0.5) colorCMC = '#40e0d0';
         
+        // Detectar si hay canales al límite
+        const tieneLimite = c.cmykManual.C >= 98 || c.cmykManual.M >= 98 || c.cmykManual.Y >= 98 || c.cmykManual.K >= 98;
+        const claseFila = tieneLimite ? 'limite' : '';
+        
         return `
-        <tr>
+        <tr class="${claseFila}">
             <td><small>${new Date(c.id).toLocaleTimeString()}</small></td>
             <td>
                 <strong>${c.nombre}</strong>
-                <br><small class="actual">✏️ ${cmykManual}</small>
+                <br><span class="actual">${cmykManual}</span>
+                ${cmykCorregido}
                 ${cmykCalibracion}
             </td>
             <td><b style="color: #888">${c.de}</b></td>
