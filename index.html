@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALPHA v12.0 - Modo Manual con Calibración</title>
+    <title>ALPHA v13.0 - Perfil MS JP4 + K-ONE</title>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧵</text></svg>">
 </head>
@@ -12,7 +12,7 @@
         <div class="header">
             <div style="display: flex; align-items: center; gap: 15px;">
                 <img src="logo.png" alt="ALPHA Logo" style="height: 45px; width: auto;" onerror="this.style.display='none'">
-                <h1>ALPHA <span class="version">v12.0</span></h1>
+                <h1>ALPHA <span class="version">v13.0</span></h1>
             </div>
             <div class="actions">
                 <button class="btn btn-sec" onclick="exportarProyecto()">Exportar .alpha</button>
@@ -26,26 +26,38 @@
             <input type="text" id="projName" placeholder="Nombre del Proyecto / Orden de Trabajo (OT)">
         </div>
 
-        <!-- INFORMACIÓN DEL COMBO (solo informativo) -->
+        <!-- ============================================ -->
+        <!-- SELECTOR DE PERFIL (NUEVO)                   -->
+        <!-- ============================================ -->
+        <div class="selector-perfil-card">
+            <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="color: var(--accent); font-weight: bold;">🎯 PERFIL ACTIVO:</span>
+                    <select id="selectorPerfil" class="perfil-select" onchange="cambiarPerfil()">
+                        <option value="msjp4_kone" selected>🇲🇽 MS JP4 + K-ONE (Producción)</option>
+                        <option value="estandar">📐 Perfil Estándar (Genérico)</option>
+                        <option value="personalizado">⚙️ + Crear nuevo perfil</option>
+                    </select>
+                </div>
+                <div class="perfil-badge" id="perfilBadge">
+                    <span>⚡ Ergosoft B2 | 2 pasadas | K-ONE</span>
+                </div>
+            </div>
+            
+            <!-- DETALLES DEL PERFIL (expandible) -->
+            <details class="perfil-detalles">
+                <summary style="cursor: pointer; color: var(--accent); font-weight: bold;">🔍 Ver configuración detallada</summary>
+                <div class="perfil-detalles-grid" id="perfilDetalles">
+                    <!-- Se llena dinámicamente con JS -->
+                </div>
+            </details>
+        </div>
+
+        <!-- INFORMACIÓN DEL COMBO (resumen) -->
         <div class="card combo-card">
             <h3>⚙️ CONFIGURACIÓN DE PRODUCCIÓN</h3>
-            <div class="combo-info">
-                <div class="combo-item">
-                    <span class="combo-label">PLOTTER</span>
-                    <span class="combo-value">MS JP4 Italy</span>
-                </div>
-                <div class="combo-item">
-                    <span class="combo-label">TINTA</span>
-                    <span class="combo-value">K-ONE Sublimación</span>
-                </div>
-                <div class="combo-item">
-                    <span class="combo-label">PAPEL</span>
-                    <span class="combo-value">Feliz Schoeller 10g</span>
-                </div>
-                <div class="combo-item">
-                    <span class="combo-label">PRENSA</span>
-                    <span class="combo-value">Monti 210°C | 1.8 m/min | 2 bares</span>
-                </div>
+            <div class="combo-info" id="comboInfo">
+                <!-- Se llena dinámicamente con JS -->
             </div>
         </div>
 
@@ -61,7 +73,7 @@
                     </select>
                 </div>
                 <div class="badge" id="formulaBadge">
-                    ⚡ Modo Manual + Calibración
+                    ⚡ Modo Producción MS JP4
                 </div>
             </div>
             <div style="display: flex; gap: 20px; margin-top: 10px; flex-wrap: wrap;">
@@ -104,7 +116,7 @@
                 <small style="color: #888; display: block; margin-top: 5px;">🧪 Color medido</small>
             </div>
 
-            <!-- CMYK MANUAL (LO QUE TÚ SABES QUE FUNCIONA) -->
+            <!-- CMYK MANUAL -->
             <div class="card">
                 <h3>3. CMYK MANUAL</h3>
                 <div class="input-grid">
@@ -120,12 +132,11 @@
                     <button class="btn btn-sec" onclick="limpiarCamposNuevo()" style="flex: 1; background: #333;">NUEVO</button>
                 </div>
                 
-                <!-- BOTÓN PARA GUARDAR CALIBRACIÓN -->
-                <button class="btn btn-cal-full" onclick="guardarCalibracionManual()" style="margin-top: 10px; width: 100%;">
+                <!-- BOTONES DE CALIBRACIÓN -->
+                <button class="btn btn-cal-full" onclick="guardarCalibracionManual()" style="margin-top: 10px;">
                     💾 GUARDAR COMO PUNTO DE CALIBRACIÓN
                 </button>
                 
-                <!-- BOTONES DE EXPORTAR/IMPORTAR CALIBRACIÓN -->
                 <div style="display: flex; gap: 8px; margin-top: 10px;">
                     <button class="btn btn-cal" onclick="exportarCalibracion()" style="flex: 1;">📤 EXP CAL</button>
                     <input type="file" id="calFile" hidden onchange="importarCalibracion(event)">
@@ -137,7 +148,7 @@
         <!-- ESTADO DE CALIBRACIÓN -->
         <div class="cal-status">
             <span>📊 Puntos de calibración guardados: <strong id="puntosCalibracion">0</strong></span>
-            <span>🔄 El sistema aprende de tus aciertos</span>
+            <span>🔄 Perfil activo: <span id="perfilActivoNombre">MS JP4 + K-ONE</span></span>
         </div>
 
         <!-- LEYENDA DE CALIDAD -->
@@ -160,6 +171,7 @@
             </div>
         </div>
 
+        <!-- TABLA DE RESULTADOS -->
         <div class="table-container">
             <table>
                 <thead>
@@ -180,9 +192,7 @@
         
         <!-- PIE DE PÁGINA -->
         <div class="footer">
-            <span>🧵 ALPHA Color System - Modo Manual con Calibración</span>
-            <span class="separator">|</span>
-            <span>MS JP4 + K-ONE + Feliz Schoeller 10g</span>
+            <span>🧵 ALPHA Color System - Perfil: MS JP4 + K-ONE (Ergosoft B2 - 2 pasadas)</span>
             <span class="separator">|</span>
             <span>Monti: 210°C / 1.8 m/min / 2 bares</span>
         </div>

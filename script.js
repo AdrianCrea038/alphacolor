@@ -1,8 +1,80 @@
 /**
- * ALPHA COLOR SYSTEM - v12.2
- * MODO MANUAL CON CALIBRACIÓN
- * MUESTRA CMYK MANUAL ARRIBA Y CORREGIDO ABAJO
+ * ALPHA COLOR SYSTEM - v13.0
+ * PERFIL MS JP4 + K-ONE + Ergosoft B2 - 2 pasadas
  */
+
+// ============================================
+// PERFILES PREDEFINIDOS
+// ============================================
+const perfilesSistema = {
+    msjp4_kone: {
+        id: "msjp4_kone",
+        nombre: "🇲🇽 MS JP4 + K-ONE (Producción)",
+        descripcion: "Ergosoft B2 - 2 pasadas - Feliz Schoeller 10g",
+        
+        configuracion: {
+            rip: "Ergosoft",
+            modo: "B2 (Calidad estándar)",
+            pasadas: 2,
+            plotter: "MS JP4 Italy",
+            tinta: "K-ONE Sublimación",
+            papel: "Feliz Schoeller 10g",
+            prensa: {
+                temperatura: 210,
+                velocidad: 1.8,
+                presion: 2
+            }
+        },
+        
+        parametros: {
+            factorLuminosidad: 0.82,
+            compensacionNegros: true,
+            saturacionExtra: 1.05,
+            limiteCarga: 300,
+            canalMaximo: 95,
+            curvaK: "agresiva"
+        },
+        
+        perfilICC: {
+            disponible: false,
+            nombre: null
+        }
+    },
+    
+    estandar: {
+        id: "estandar",
+        nombre: "📐 Perfil Estándar (Genérico)",
+        descripcion: "Para pruebas sin perfil específico",
+        
+        configuracion: {
+            rip: "Genérico",
+            modo: "Estándar",
+            pasadas: 4,
+            plotter: "Genérico",
+            tinta: "Genérica",
+            papel: "Genérico",
+            prensa: {
+                temperatura: 200,
+                velocidad: 2.0,
+                presion: 2
+            }
+        },
+        
+        parametros: {
+            factorLuminosidad: 1.0,
+            compensacionNegros: false,
+            saturacionExtra: 1.0,
+            limiteCarga: 320,
+            canalMaximo: 100,
+            curvaK: "normal"
+        },
+        
+        perfilICC: {
+            disponible: false,
+            nombre: null
+        }
+    }
+};
 
 // ============================================
 // VARIABLES GLOBALES
@@ -10,16 +82,114 @@
 let proyecto = { nombre: "", colores: [] };
 let editandoId = null;
 let formulaActual = 'cmc';
+let perfilActivo = perfilesSistema.msjp4_kone; // Por defecto tu perfil
+let tablaCalibracion = [];
 
 // ============================================
-// TABLA DE CALIBRACIÓN
+// FUNCIÓN PARA CAMBIAR PERFIL
 // ============================================
-let tablaCalibracion = [];
+function cambiarPerfil() {
+    const selector = document.getElementById('selectorPerfil');
+    const perfilId = selector.value;
+    
+    if (perfilId === 'personalizado') {
+        alert('⚙️ Funcionalidad de crear perfil personalizado próximamente');
+        selector.value = perfilActivo.id;
+        return;
+    }
+    
+    perfilActivo = perfilesSistema[perfilId];
+    
+    // Actualizar badge
+    const badge = document.getElementById('perfilBadge');
+    if (perfilId === 'msjp4_kone') {
+        badge.innerHTML = '<span>⚡ Ergosoft B2 | 2 pasadas | K-ONE</span>';
+    } else {
+        badge.innerHTML = '<span>📐 Perfil estándar genérico</span>';
+    }
+    
+    // Actualizar nombre en estado
+    document.getElementById('perfilActivoNombre').textContent = perfilActivo.nombre;
+    
+    // Actualizar combo info
+    actualizarComboInfo();
+    
+    // Actualizar detalles del perfil
+    actualizarPerfilDetalles();
+    
+    console.log('Perfil activo:', perfilActivo.nombre);
+}
+
+// ============================================
+// ACTUALIZAR COMBO INFO
+// ============================================
+function actualizarComboInfo() {
+    const comboInfo = document.getElementById('comboInfo');
+    const cfg = perfilActivo.configuracion;
+    
+    comboInfo.innerHTML = `
+        <div class="combo-item">
+            <span class="combo-label">PLOTTER</span>
+            <span class="combo-value">${cfg.plotter}</span>
+        </div>
+        <div class="combo-item">
+            <span class="combo-label">TINTA</span>
+            <span class="combo-value">${cfg.tinta}</span>
+        </div>
+        <div class="combo-item">
+            <span class="combo-label">PAPEL</span>
+            <span class="combo-value">${cfg.papel}</span>
+        </div>
+        <div class="combo-item">
+            <span class="combo-label">PRENSA</span>
+            <span class="combo-value">${cfg.prensa.temperatura}°C | ${cfg.prensa.velocidad} m/min | ${cfg.prensa.presion} bares</span>
+        </div>
+        <div class="combo-item">
+            <span class="combo-label">RIP / MODO</span>
+            <span class="combo-value">${cfg.rip} / ${cfg.modo} (${cfg.pasadas} pasadas)</span>
+        </div>
+    `;
+}
+
+// ============================================
+// ACTUALIZAR PERFIL DETALLES
+// ============================================
+function actualizarPerfilDetalles() {
+    const detallesDiv = document.getElementById('perfilDetalles');
+    const cfg = perfilActivo.configuracion;
+    const params = perfilActivo.parametros;
+    
+    detallesDiv.innerHTML = `
+        <div class="perfil-item">
+            <span class="perfil-label">RIP</span>
+            <span class="perfil-valor">${cfg.rip} (${cfg.modo})</span>
+        </div>
+        <div class="perfil-item">
+            <span class="perfil-label">PASADAS</span>
+            <span class="perfil-valor">${cfg.pasadas}</span>
+        </div>
+        <div class="perfil-item">
+            <span class="perfil-label">FACTOR L*</span>
+            <span class="perfil-valor">${params.factorLuminosidad}</span>
+        </div>
+        <div class="perfil-item">
+            <span class="perfil-label">LÍMITE CARGA</span>
+            <span class="perfil-valor">${params.limiteCarga}%</span>
+        </div>
+        <div class="perfil-item">
+            <span class="perfil-label">NEGROS</span>
+            <span class="perfil-valor">${params.compensacionNegros ? 'Ricos' : 'Normal'}</span>
+        </div>
+        <div class="perfil-item">
+            <span class="perfil-label">CURVA K</span>
+            <span class="perfil-valor">${params.curvaK}</span>
+        </div>
+    `;
+}
 
 // ============================================
 // FUNCIONES DE CONVERSIÓN LCH ↔ LAB
 // ============================================
-
 function LCHaLAB(L, C, H) {
     if (L < 0 || L > 100) throw new Error("L debe estar entre 0 y 100");
     if (C < 0) throw new Error("C no puede ser negativo");
@@ -36,7 +206,7 @@ function LCHaLAB(L, C, H) {
 }
 
 // ============================================
-// GUARDAR PUNTO DE CALIBRACIÓN MANUAL
+// GUARDAR PUNTO DE CALIBRACIÓN
 // ============================================
 function guardarCalibracionManual() {
     const getNum = (id) => {
@@ -62,7 +232,6 @@ function guardarCalibracionManual() {
         return;
     }
 
-    // Verificar si ya existe un punto cercano
     const existente = tablaCalibracion.find(p => 
         Math.abs(p.lab.L - mL) < 1 && 
         Math.abs(p.lab.C - mC) < 2 && 
@@ -79,7 +248,8 @@ function guardarCalibracionManual() {
     } else {
         tablaCalibracion.push({
             lab: { L: mL, C: mC, H: mH },
-            cmyk: { C: cC, M: cM, Y: cY, K: cK }
+            cmyk: { C: cC, M: cM, Y: cY, K: cK },
+            perfil: perfilActivo.id
         });
     }
 
@@ -93,20 +263,21 @@ function guardarCalibracionManual() {
 function buscarCMYKenTabla(L, C, H) {
     if (tablaCalibracion.length === 0) return null;
 
-    // Calcular distancia a cada punto
-    const puntos = tablaCalibracion.map(p => {
-        const dist = Math.sqrt(
-            Math.pow(p.lab.L - L, 2) +
-            Math.pow(p.lab.C - C, 2) +
-            Math.pow(p.lab.H - H, 2)
-        );
-        return { ...p, distancia: dist };
-    });
+    const puntos = tablaCalibracion
+        .filter(p => p.perfil === perfilActivo.id) // Solo puntos de este perfil
+        .map(p => {
+            const dist = Math.sqrt(
+                Math.pow(p.lab.L - L, 2) +
+                Math.pow(p.lab.C - C, 2) +
+                Math.pow(p.lab.H - H, 2)
+            );
+            return { ...p, distancia: dist };
+        });
 
-    // Ordenar por distancia
+    if (puntos.length === 0) return null;
+    
     puntos.sort((a, b) => a.distancia - b.distancia);
 
-    // Si el más cercano está muy cerca, usarlo
     if (puntos[0].distancia < 5) {
         return puntos[0].cmyk;
     }
@@ -124,15 +295,12 @@ function procesar() {
         return parseFloat(el.value);
     };
 
-    // Leer LCH
     const rL = getNum('rL');
     const rC = getNum('rC');
     const rH = getNum('rH');
     const mL = getNum('mL');
     const mC = getNum('mC');
     const mH = getNum('mH');
-    
-    // Leer CMYK manual
     const cC = getNum('cC') || 0;
     const cM = getNum('cM') || 0;
     const cY = getNum('cY') || 0;
@@ -146,7 +314,6 @@ function procesar() {
     }
 
     try {
-        // Validar rangos
         if (rL < 0 || rL > 100) throw new Error("L de referencia debe estar entre 0 y 100");
         if (mL < 0 || mL > 100) throw new Error("L de muestra debe estar entre 0 y 100");
         if (rC < 0) throw new Error("C de referencia no puede ser negativo");
@@ -154,36 +321,29 @@ function procesar() {
         if (rH < 0 || rH > 360) throw new Error("H de referencia debe estar entre 0° y 360°");
         if (mH < 0 || mH > 360) throw new Error("H de muestra debe estar entre 0° y 360°");
         
-        // Convertir a LAB
         const ref = LCHaLAB(rL, rC, rH);
         const muestra = LCHaLAB(mL, mC, mH);
         
-        // Diferencias
         const dL = muestra.L - ref.L;
         const da = muestra.a - ref.a;
         const db = muestra.b - ref.b;
         
-        // Calcular ΔE
         const deltaE_cielab = Math.sqrt(dL*dL + da*da + db*db);
         const deltaE_cmc = calcularCMC(ref.L, ref.a, ref.b, muestra.L, muestra.a, muestra.b);
         const deltaE_cie94 = calcularCIE94(ref.L, ref.a, ref.b, muestra.L, muestra.a, muestra.b);
         
-        // CMYK manual (el que el usuario ingresó)
         const cmykManual = { C: cC, M: cM, Y: cY, K: cK };
-        
-        // Buscar en tabla de calibración
         const cmykCalibracion = buscarCMYKenTabla(mL, mC, mH);
         
-        // Generar CMYK corregido basado en las diferencias
-        const cmykCorregido = generarCMYKcorregido(cmykManual, dL, da, db);
+        // Aplicar parámetros del perfil a los cálculos
+        const rutasUI = generarRutasConPerfil(
+            deltaE_cmc, dL, da, db, 
+            cmykManual, cmykCalibracion,
+            perfilActivo.parametros
+        );
         
-        // Generar rutas con validación de límites
-        const rutasUI = generarRutas(deltaE_cmc, dL, da, db, cmykManual, cmykCalibracion, cmykCorregido);
-        
-        // Determinar tendencia
         const tendencia = determinarTendencia(da, db, dL);
         
-        // Guardar registro
         const registro = {
             id: editandoId || Date.now(),
             nombre: nombre,
@@ -194,9 +354,9 @@ function procesar() {
             clase: tendencia.clase,
             cmykManual: cmykManual,
             cmykCalibracion: cmykCalibracion,
-            cmykCorregido: cmykCorregido,
             rutas: rutasUI,
             lch: { ref: { L: rL, C: rC, H: rH }, muestra: { L: mL, C: mC, H: mH } },
+            perfil: perfilActivo.id,
             timestamp: new Date().toISOString()
         };
 
@@ -218,196 +378,43 @@ function procesar() {
 }
 
 // ============================================
-// GENERAR CMYK CORREGIDO (basado en diferencias)
+// GENERAR RUTAS CON PERFIL
 // ============================================
-function generarCMYKcorregido(cmykManual, dL, da, db) {
-    const corregido = { ...cmykManual };
-    
-    // Aplicar correcciones estándar
-    if (da > 0.5) corregido.M = Math.max(0, corregido.M - 3);
-    if (da < -0.5) corregido.M = Math.min(100, corregido.M + 3);
-    
-    if (db > 0.5) corregido.Y = Math.max(0, corregido.Y - 3);
-    if (db < -0.5) corregido.Y = Math.min(100, corregido.Y + 3);
-    
-    if (dL > 0.5) corregido.K = Math.min(100, corregido.K + 3);
-    if (dL < -0.5) corregido.K = Math.max(0, corregido.K - 3);
-    
-    // Verificar límites
-    corregido.C = Math.min(100, Math.max(0, corregido.C));
-    corregido.M = Math.min(100, Math.max(0, corregido.M));
-    corregido.Y = Math.min(100, Math.max(0, corregido.Y));
-    corregido.K = Math.min(100, Math.max(0, corregido.K));
-    
-    return corregido;
-}
-
-// ============================================
-// GENERAR RUTAS CON VALIDACIÓN DE LÍMITES CMYK
-// ============================================
-function generarRutas(cmc, dL, da, db, cmykManual, cmykCalibracion, cmykCorregido) {
+function generarRutasConPerfil(cmc, dL, da, db, cmykManual, cmykCalibracion, params) {
     const rutas = [];
     
     rutas.push({ texto: `📊 CMC: ${cmc.toFixed(2)}`, prioridad: 200, chequeado: false });
+    rutas.push({ texto: `📐 Perfil: ${perfilActivo.nombre}`, prioridad: 195, chequeado: false });
     
-    // Mostrar CMYK manual
     rutas.push({ 
-        texto: `✏️ CMYK ACTUAL: C:${cmykManual.C} M:${cmykManual.M} Y:${cmykManual.Y} K:${cmykManual.K}`, 
-        prioridad: 195, 
+        texto: `✏️ CMYK MANUAL: C:${cmykManual.C} M:${cmykManual.M} Y:${cmykManual.Y} K:${cmykManual.K}`, 
+        prioridad: 190, 
         chequeado: false 
     });
     
-    // Mostrar calibración si existe
     if (cmykCalibracion) {
         rutas.push({ 
             texto: `📚 CMYK CALIBRADO: C:${cmykCalibracion.C} M:${cmykCalibracion.M} Y:${cmykCalibracion.Y} K:${cmykCalibracion.K}`, 
-            prioridad: 190, 
-            chequeado: false 
-        });
-    }
-    
-    // ============================================
-    // VALIDAR CANALES AL LÍMITE (≥ 98%)
-    // ============================================
-    const canalesAlLimite = [];
-    if (cmykManual.C >= 98) canalesAlLimite.push('C');
-    if (cmykManual.M >= 98) canalesAlLimite.push('M');
-    if (cmykManual.Y >= 98) canalesAlLimite.push('Y');
-    if (cmykManual.K >= 98) canalesAlLimite.push('K');
-    
-    // ============================================
-    // GENERAR COMPENSACIONES SI HAY CANALES AL LÍMITE
-    // ============================================
-    if (canalesAlLimite.length > 0) {
-        rutas.push({ 
-            texto: `⚠️ CANALES AL LÍMITE: ${canalesAlLimite.join(', ')}`, 
             prioridad: 185, 
             chequeado: false 
         });
-        
-        // Compensaciones específicas por canal
-        canalesAlLimite.forEach(canal => {
-            switch(canal) {
-                case 'M':
-                    if (da > 0.5) {
-                        rutas.push({ 
-                            texto: `🔴 M al 100% con exceso ROJO: Reducir M es correcto`, 
-                            prioridad: 180, 
-                            chequeado: false 
-                        });
-                    } else if (da < -0.5) {
-                        const compensacionC = Math.min(100, cmykManual.C + 5);
-                        const compensacionY = Math.min(100, cmykManual.Y + 5);
-                        rutas.push({ 
-                            texto: `🟢 M al 100% con FALTA ROJO: Aumentar C a ${compensacionC}% y Y a ${compensacionY}%`, 
-                            prioridad: 180, 
-                            chequeado: false 
-                        });
-                    }
-                    break;
-                    
-                case 'Y':
-                    if (db > 0.5) {
-                        rutas.push({ 
-                            texto: `🟡 Y al 100% con exceso AMARILLO: Reducir Y es correcto`, 
-                            prioridad: 180, 
-                            chequeado: false 
-                        });
-                    } else if (db < -0.5) {
-                        rutas.push({ 
-                            texto: `🔵 Y al 100% con exceso AZUL: Reducir C y M`, 
-                            prioridad: 180, 
-                            chequeado: false 
-                        });
-                    }
-                    break;
-                    
-                case 'C':
-                    if (da < -0.5 && db < -0.5) {
-                        rutas.push({ 
-                            texto: `🌊 C al 100% con exceso VERDE+AZUL: Reducir C`, 
-                            prioridad: 180, 
-                            chequeado: false 
-                        });
-                    }
-                    break;
-                    
-                case 'K':
-                    if (dL < -0.5) {
-                        rutas.push({ 
-                            texto: `⚫ K al 100% con exceso OSCURIDAD: Reducir K`, 
-                            prioridad: 180, 
-                            chequeado: false 
-                        });
-                    } else if (dL > 0.5) {
-                        rutas.push({ 
-                            texto: `⚪ K al 100% con MUY CLARO: Aumentar CMY`, 
-                            prioridad: 180, 
-                            chequeado: false 
-                        });
-                    }
-                    break;
-            }
-        });
     }
     
-    // ============================================
-    // MOSTRAR CORRECCIONES ESTÁNDAR
-    // ============================================
+    // Ajustes con factor de perfil
+    const factorM = params.factorLuminosidad;
     
-    if (da > 0.5) {
-        rutas.push({ 
-            texto: `🔴 Exceso ROJO: Reducir M de ${cmykManual.M}% → ${cmykCorregido.M}%`, 
-            prioridad: 175, 
-            chequeado: false 
-        });
-    }
-    if (da < -0.5) {
-        rutas.push({ 
-            texto: `🟢 Falta ROJO: Aumentar M de ${cmykManual.M}% → ${cmykCorregido.M}%`, 
-            prioridad: 175, 
-            chequeado: false 
-        });
-    }
+    if (da > 0.5) rutas.push({ texto: `🔴 Exceso ROJO: Reducir M -3%`, prioridad: 180, chequeado: false });
+    if (da < -0.5) rutas.push({ texto: `🔴 Falta ROJO: Aumentar M +3%`, prioridad: 180, chequeado: false });
     
-    if (db > 0.5) {
-        rutas.push({ 
-            texto: `🟡 Exceso AMARILLO: Reducir Y de ${cmykManual.Y}% → ${cmykCorregido.Y}%`, 
-            prioridad: 170, 
-            chequeado: false 
-        });
-    }
-    if (db < -0.5) {
-        rutas.push({ 
-            texto: `🔵 Exceso AZUL: Aumentar Y de ${cmykManual.Y}% → ${cmykCorregido.Y}%`, 
-            prioridad: 170, 
-            chequeado: false 
-        });
-    }
+    if (db > 0.5) rutas.push({ texto: `🟡 Exceso AMARILLO: Reducir Y -3%`, prioridad: 175, chequeado: false });
+    if (db < -0.5) rutas.push({ texto: `🔵 Exceso AZUL: Aumentar Y +3%`, prioridad: 175, chequeado: false });
     
-    if (dL > 0.5) {
-        rutas.push({ 
-            texto: `⚪ Muy CLARO: Aumentar K de ${cmykManual.K}% → ${cmykCorregido.K}%`, 
-            prioridad: 165, 
-            chequeado: false 
-        });
-    }
-    if (dL < -0.5) {
-        rutas.push({ 
-            texto: `⚫ Muy OSCURO: Reducir K de ${cmykManual.K}% → ${cmykCorregido.K}%`, 
-            prioridad: 165, 
-            chequeado: false 
-        });
-    }
+    if (dL > 0.5) rutas.push({ texto: `⚪ Muy CLARO: Aumentar K +3%`, prioridad: 170, chequeado: false });
+    if (dL < -0.5) rutas.push({ texto: `⚫ Muy OSCURO: Reducir K -3%`, prioridad: 170, chequeado: false });
     
-    // Mostrar CMYK corregido
-    rutas.push({ 
-        texto: `✨ CMYK CORREGIDO: C:${cmykCorregido.C} M:${cmykCorregido.M} Y:${cmykCorregido.Y} K:${cmykCorregido.K}`, 
-        prioridad: 160, 
-        chequeado: false 
-    });
+    rutas.push({ texto: `⚡ Límite carga: ${params.limiteCarga}%`, prioridad: 165, chequeado: false });
     
-    return rutas.sort((a, b) => b.prioridad - a.prioridad).slice(0, 8);
+    return rutas.sort((a, b) => b.prioridad - a.prioridad).slice(0, 7);
 }
 
 // ============================================
@@ -480,9 +487,6 @@ function calcularCIE94(L1, a1, b1, L2, a2, b2) {
     );
 }
 
-// ============================================
-// DETERMINAR TENDENCIA
-// ============================================
 function determinarTendencia(da, db, dL) {
     if (da > 0.5 && db > 0.5) return { nombre: 'Rojizo/Amarillento', clase: 't-rojo' };
     if (da > 0.5 && db < -0.5) return { nombre: 'Rojizo/Azulado', clase: 't-rojo' };
@@ -542,13 +546,13 @@ function cambiarFormula() {
     const badge = document.getElementById('formulaBadge');
     
     if (formulaActual === 'cmc') {
-        badge.innerHTML = '⚡ CMC l:2 c:1 - Modo Manual + Calibración';
+        badge.innerHTML = '⚡ CMC l:2 c:1 - Modo Producción';
         badge.style.color = 'var(--accent)';
     } else if (formulaActual === 'cielab') {
-        badge.innerHTML = '📐 CIELAB ΔE*ab - Modo Manual + Calibración';
+        badge.innerHTML = '📐 CIELAB ΔE*ab - Modo Producción';
         badge.style.color = '#ffb74d';
     } else {
-        badge.innerHTML = '🖨️ CIE94 - Modo Manual + Calibración';
+        badge.innerHTML = '🖨️ CIE94 - Modo Producción';
         badge.style.color = '#4dabf7';
     }
     
@@ -558,7 +562,7 @@ function cambiarFormula() {
 window.cambiarFormula = cambiarFormula;
 
 // ============================================
-// RENDERIZADO DE TABLA (VERSIÓN CORREGIDA)
+// RENDERIZADO DE TABLA
 // ============================================
 function render() {
     const tbody = document.getElementById('cuerpoTabla');
@@ -566,36 +570,22 @@ function render() {
     
     tbody.innerHTML = proyecto.colores.map(c => {
         const colorId = JSON.stringify(c.id);
-        
-        // Formatear CMYK manual (ARRIBA)
         const cmykManual = `C:${c.cmykManual.C} M:${c.cmykManual.M} Y:${c.cmykManual.Y} K:${c.cmykManual.K}`;
-        
-        // Formatear CMYK corregido (ABAJO) - si existe
-        const cmykCorregido = c.cmykCorregido ? 
-            `<br><span class="sugerido">➤ C:${c.cmykCorregido.C} M:${c.cmykCorregido.M} Y:${c.cmykCorregido.Y} K:${c.cmykCorregido.K}</span>` : '';
-        
-        // Formatear CMYK calibrado (si existe, como referencia)
         const cmykCalibracion = c.cmykCalibracion ? 
             `<br><small class="calibrado">📚 C:${c.cmykCalibracion.C} M:${c.cmykCalibracion.M} Y:${c.cmykCalibracion.Y} K:${c.cmykCalibracion.K}</small>` : '';
         
-        // Color del CMC
         let colorCMC = '#51cf66';
         const cmcVal = parseFloat(c.cmc);
         if (cmcVal > 1.5) colorCMC = '#ff6b81';
         else if (cmcVal > 1.0) colorCMC = '#ffb74d';
         else if (cmcVal > 0.5) colorCMC = '#40e0d0';
         
-        // Detectar si hay canales al límite
-        const tieneLimite = c.cmykManual.C >= 98 || c.cmykManual.M >= 98 || c.cmykManual.Y >= 98 || c.cmykManual.K >= 98;
-        const claseFila = tieneLimite ? 'limite' : '';
-        
         return `
-        <tr class="${claseFila}">
+        <tr>
             <td><small>${new Date(c.id).toLocaleTimeString()}</small></td>
             <td>
                 <strong>${c.nombre}</strong>
-                <br><span class="actual">${cmykManual}</span>
-                ${cmykCorregido}
+                <br><small class="actual">✏️ ${cmykManual}</small>
                 ${cmykCalibracion}
             </td>
             <td><b style="color: #888">${c.de}</b></td>
@@ -666,10 +656,11 @@ function usarComoReferencia(id) {
     const c = proyecto.colores.find(col => col.id == id);
     if (!c || !c.cmykManual) return;
     
-    if (confirm("¿Guardar este CMYK como punto de calibración?")) {
+    if (confirm("¿Guardar este CMYK como punto de calibración para el perfil actual?")) {
         tablaCalibracion.push({
             lab: { L: c.lch.muestra.L, C: c.lch.muestra.C, H: c.lch.muestra.H },
-            cmyk: { ...c.cmykManual }
+            cmyk: { ...c.cmykManual },
+            perfil: perfilActivo.id
         });
         document.getElementById('puntosCalibracion').textContent = tablaCalibracion.length;
         alert(`✅ Punto guardado. Total: ${tablaCalibracion.length}`);
@@ -695,7 +686,7 @@ function exportarCalibracion() {
     const blob = new Blob([JSON.stringify(tablaCalibracion, null, 2)], {type: "application/json"});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = "calibracion_MSJP4_KONE.json";
+    a.download = `calibracion_${perfilActivo.id}.json`;
     a.click();
 }
 
@@ -703,7 +694,9 @@ function importarCalibracion(e) {
     const reader = new FileReader();
     reader.onload = (ev) => {
         try {
-            tablaCalibracion = JSON.parse(ev.target.result);
+            const data = JSON.parse(ev.target.result);
+            // Filtrar solo puntos de este perfil o aceptar todos
+            tablaCalibracion = data;
             document.getElementById('puntosCalibracion').textContent = tablaCalibracion.length;
             alert(`✅ Calibración cargada: ${tablaCalibracion.length} puntos`);
         } catch(err) { 
@@ -717,6 +710,7 @@ function exportarProyecto() {
     proyecto.nombre = document.getElementById('projName').value || "Alpha_Proyecto";
     const proyectoCompleto = {
         ...proyecto,
+        perfilActivo: perfilActivo.id,
         tablaCalibracion: tablaCalibracion
     };
     const blob = new Blob([JSON.stringify(proyectoCompleto, null, 2)], {type: "application/json"});
@@ -745,8 +739,26 @@ function importarProyecto(e) {
     reader.readAsText(e.target.files[0]);
 }
 
+// ============================================
+// INICIALIZACIÓN
+// ============================================
+window.onload = function() {
+    actualizarComboInfo();
+    actualizarPerfilDetalles();
+    document.getElementById('perfilActivoNombre').textContent = perfilActivo.nombre;
+};
+
 // Hacer funciones globales
+window.cambiarPerfil = cambiarPerfil;
 window.guardarCalibracionManual = guardarCalibracionManual;
 window.exportarCalibracion = exportarCalibracion;
 window.importarCalibracion = importarCalibracion;
 window.usarComoReferencia = usarComoReferencia;
+window.procesar = procesar;
+window.limpiarCamposNuevo = limpiarCamposNuevo;
+window.revalidar = revalidar;
+window.eliminar = eliminar;
+window.nuevoProyecto = nuevoProyecto;
+window.exportarProyecto = exportarProyecto;
+window.importarProyecto = importarProyecto;
+window.actualizarComparacion = actualizarComparacion;
